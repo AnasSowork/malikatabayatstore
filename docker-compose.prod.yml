@@ -1,0 +1,59 @@
+# Production stack for VPS (Docker + Nginx on the host).
+# Usage: docker compose -f docker-compose.prod.yml up -d --build
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-youthstore}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'mysqladmin ping -h 127.0.0.1 -uroot -p"$${MYSQL_ROOT_PASSWORD}" || exit 1',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 25
+      start_period: 40s
+
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - uploads_data:/app/public/uploads
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD}@db:3306/${MYSQL_DATABASE:-youthstore}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@malikatabayat.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # One-time seed: docker compose -f docker-compose.prod.yml --profile seed run --rm seed
+  seed:
+    profiles: [seed]
+    build:
+      context: .
+      target: builder
+    environment:
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD}@db:3306/${MYSQL_DATABASE:-youthstore}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@malikatabayat.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      FORCE_SEED: ${FORCE_SEED:-0}
+    command: npx prisma db seed
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
+  uploads_data:

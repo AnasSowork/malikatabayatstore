@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique @db.VarChar(100)
+  nameAr    String?  @db.VarChar(255)
+  nameFr    String?  @db.VarChar(255)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sortOrder])
+  @@map("categories")
+}
+
+model Product {
+  id              String   @id @default(cuid())
+  name            String
+  nameAr          String?  @db.VarChar(255)
+  nameFr          String?  @db.VarChar(255)
+  price           Decimal  @db.Decimal(10, 2)
+  description     String   @db.Text
+  descriptionAr   String?  @db.Text
+  descriptionFr   String?  @db.Text
+  categories      Json
+  images          Json
+  colorVariants   Json
+  bundleOffers    Json?
+  createdAt       DateTime @default(now())
+  orders          Order[]
+
+  @@map("products")
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  @@map("admin_users")
+}
+
+model HomeSection {
+  id        String   @id @default(cuid())
+  key       String   @unique @db.VarChar(50)
+  enabled   Boolean  @default(true)
+  sortOrder Int      @default(0)
+  content   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sortOrder])
+  @@map("home_sections")
+}
+
+model Order {
+  id            String   @id @default(cuid())
+  customerName  String
+  phone         String
+  city          String
+  selectedColor String?
+  quantity      Int      @default(1)
+  totalPrice    Decimal  @db.Decimal(10, 2)
+  lineItems     Json?
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  createdAt     DateTime @default(now())
+
+  @@map("orders")
+  @@index([productId])
+}
