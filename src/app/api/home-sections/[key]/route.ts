@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { isAdminAuthenticated } from "@/lib/auth";
 import { getHomeSection, isHomeSectionKey } from "@/lib/home-content";
 import { prisma } from "@/lib/prisma";
@@ -29,11 +30,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ke
     }
 
     const body = (await request.json()) as Record<string, unknown>;
-    const data: { enabled?: boolean; content?: unknown } = {};
+    const data: Prisma.HomeSectionUpdateInput = {};
 
     if (typeof body.enabled === "boolean") data.enabled = body.enabled;
     if (body.content !== undefined && body.content !== null && typeof body.content === "object") {
-      data.content = body.content;
+      data.content = body.content as Prisma.InputJsonValue;
     }
 
     if (Object.keys(data).length === 0) {
