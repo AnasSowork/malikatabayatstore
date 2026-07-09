@@ -2,10 +2,13 @@
   "name": "malikat-abayat",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/deploy-db.cjs && next build --webpack",
-    "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
+    "start": "node scripts/hostinger-start.cjs",
     "postinstall": "prisma generate",
     "lint": "eslint",
     "db:migrate": "prisma migrate deploy",
