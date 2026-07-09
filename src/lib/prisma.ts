@@ -4,14 +4,14 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefi
 
 function trimOuterQuotes(value?: string): string {
   if (!value) return "";
-  const trimmed = value.trim();
+  let trimmed = value.trim();
   if (
     (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
     (trimmed.startsWith("'") && trimmed.endsWith("'"))
   ) {
-    return trimmed.slice(1, -1).trim();
+    trimmed = trimmed.slice(1, -1).trim();
   }
-  return trimmed;
+  return trimmed.replace(/^DATABASE_URL\s*=\s*/i, "").trim();
 }
 
 function resolveDatabaseUrlFromEnv(): string | undefined {

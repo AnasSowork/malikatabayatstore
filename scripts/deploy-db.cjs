@@ -38,6 +38,8 @@ function unwrapEnvString(raw) {
   ) {
     s = s.slice(1, -1).trim();
   }
+  // Hostinger panels sometimes get a full `.env` line pasted as the value.
+  s = s.replace(/^DATABASE_URL\s*=\s*/i, "").trim();
   return s;
 }
 
