@@ -92,9 +92,15 @@ function resolveDatabaseUrl() {
   const connection = unwrapEnvString(process.env.DB_CONNECTION || "mysql");
   const host = unwrapEnvString(process.env.DB_HOST);
   const port = unwrapEnvString(process.env.DB_PORT || "3306");
-  const database = unwrapEnvString(process.env.DB_DATABASE);
-  const username = unwrapEnvString(process.env.DB_USERNAME);
-  const password = unwrapEnvString(process.env.DB_PASSWORD);
+  const database = unwrapEnvString(
+    process.env.DB_DATABASE || process.env.DB_NAME || process.env.MYSQL_DATABASE,
+  );
+  const username = unwrapEnvString(
+    process.env.DB_USERNAME || process.env.DB_USER || process.env.MYSQL_USER,
+  );
+  const password = unwrapEnvString(
+    process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD,
+  );
 
   if (
     connection.toLowerCase() === "mysql" &&

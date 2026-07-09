@@ -23,9 +23,15 @@ function resolveDatabaseUrlFromEnv(): string | undefined {
 
   const host = trimOuterQuotes(process.env.DB_HOST);
   const port = trimOuterQuotes(process.env.DB_PORT || "3306");
-  const database = trimOuterQuotes(process.env.DB_DATABASE);
-  const username = trimOuterQuotes(process.env.DB_USERNAME);
-  const password = trimOuterQuotes(process.env.DB_PASSWORD);
+  const database = trimOuterQuotes(
+    process.env.DB_DATABASE || process.env.DB_NAME || process.env.MYSQL_DATABASE,
+  );
+  const username = trimOuterQuotes(
+    process.env.DB_USERNAME || process.env.DB_USER || process.env.MYSQL_USER,
+  );
+  const password = trimOuterQuotes(
+    process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD,
+  );
 
   if (!host || !database || !username) return undefined;
 
