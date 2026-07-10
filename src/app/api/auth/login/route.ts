@@ -52,6 +52,19 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Failed to login" }, { status: 500 });
+    const message = error instanceof Error ? error.message : String(error);
+    const isDbAuth =
+      message.includes("Authentication failed") ||
+      message.includes("P1000") ||
+      message.includes("P1001") ||
+      message.includes("Can't reach database");
+    return NextResponse.json(
+      {
+        error: isDbAuth
+          ? "Database connection failed. Check DB_USER / DB_PASSWORD / DB_NAME in Hostinger env vars."
+          : "Failed to login",
+      },
+      { status: 500 },
+    );
   }
 }
