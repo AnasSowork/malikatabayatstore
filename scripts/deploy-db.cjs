@@ -31,7 +31,7 @@ function loadEnvFile() {
  */
 function unwrapEnvString(raw) {
   if (raw == null) return "";
-  let s = String(raw).trim();
+  let s = String(raw).trim().replace(/^\uFEFF/, "");
   while (
     (s.startsWith('"') && s.endsWith('"')) ||
     (s.startsWith("'") && s.endsWith("'"))

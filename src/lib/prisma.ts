@@ -4,7 +4,7 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefi
 
 function trimOuterQuotes(value?: string): string {
   if (!value) return "";
-  let trimmed = value.trim();
+  let trimmed = value.trim().replace(/^\uFEFF/, "");
   if (
     (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
     (trimmed.startsWith("'") && trimmed.endsWith("'"))
