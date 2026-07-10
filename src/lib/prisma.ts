@@ -48,7 +48,10 @@ export function getDbEnvDebug() {
   );
   const host = trimOuterQuotes(process.env.DB_HOST || "localhost");
   const port = trimOuterQuotes(process.env.DB_PORT || "3306");
-  const hasDatabaseUrl = Boolean(trimOuterQuotes(process.env.DATABASE_URL));
+  // Read before we overwrite process.env.DATABASE_URL from DB_*.
+  const hasDatabaseUrlFromHost =
+    Boolean(trimOuterQuotes(process.env.__HOSTINGER_DATABASE_URL_RAW__)) ||
+    false;
   const resolved = resolveDatabaseUrlFromEnv();
 
   let resolvedPreview = "(none)";
@@ -62,16 +65,22 @@ export function getDbEnvDebug() {
   }
 
   return {
-    source: database && username ? "DB_*" : hasDatabaseUrl ? "DATABASE_URL" : "none",
+    source: database && username ? "DB_*" : "DATABASE_URL_or_none",
     DB_HOST: host,
     DB_PORT: port,
     DB_USER: username || "(missing)",
     DB_NAME: database || "(missing)",
     DB_PASSWORD_length: password.length,
     DB_PASSWORD_set: password.length > 0,
-    DATABASE_URL_set: hasDatabaseUrl,
+    hostinger_DATABASE_URL_present: hasDatabaseUrlFromHost,
     resolvedPreview,
   };
+}
+
+// Capture whether Hostinger injected DATABASE_URL before we overwrite it.
+const rawDatabaseUrlBeforeResolve = trimOuterQuotes(process.env.DATABASE_URL);
+if (rawDatabaseUrlBeforeResolve) {
+  process.env.__HOSTINGER_DATABASE_URL_RAW__ = "1";
 }
 
 const resolvedDatabaseUrl = resolveDatabaseUrlFromEnv();
