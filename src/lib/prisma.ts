@@ -14,14 +14,9 @@ function trimOuterQuotes(value?: string): string {
   return trimmed.replace(/^DATABASE_URL\s*=\s*/i, "").trim();
 }
 
-function resolveDatabaseUrlFromEnv(): string | undefined {
-  const directUrl = trimOuterQuotes(process.env.DATABASE_URL);
-  if (directUrl) return directUrl;
-
-  const connection = trimOuterQuotes(process.env.DB_CONNECTION || "mysql");
-  if (connection.toLowerCase() !== "mysql") return undefined;
-
-  const host = trimOuterQuotes(process.env.DB_HOST);
+/** Prefer Hostinger-style DB_* vars over a stale DATABASE_URL. */
+export function resolveDatabaseUrlFromEnv(): string | undefined {
+  const host = trimOuterQuotes(process.env.DB_HOST || "localhost");
   const port = trimOuterQuotes(process.env.DB_PORT || "3306");
   const database = trimOuterQuotes(
     process.env.DB_DATABASE || process.env.DB_NAME || process.env.MYSQL_DATABASE,
@@ -33,17 +28,55 @@ function resolveDatabaseUrlFromEnv(): string | undefined {
     process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD,
   );
 
-  if (!host || !database || !username) return undefined;
+  if (database && username) {
+    return `mysql://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}/${encodeURIComponent(database)}`;
+  }
 
-  const encodedUser = encodeURIComponent(username);
-  const encodedPassword = encodeURIComponent(password);
-  const encodedDatabase = encodeURIComponent(database);
+  const directUrl = trimOuterQuotes(process.env.DATABASE_URL);
+  return directUrl || undefined;
+}
 
-  return `mysql://${encodedUser}:${encodedPassword}@${host}:${port}/${encodedDatabase}`;
+export function getDbEnvDebug() {
+  const password = trimOuterQuotes(
+    process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD,
+  );
+  const database = trimOuterQuotes(
+    process.env.DB_DATABASE || process.env.DB_NAME || process.env.MYSQL_DATABASE,
+  );
+  const username = trimOuterQuotes(
+    process.env.DB_USERNAME || process.env.DB_USER || process.env.MYSQL_USER,
+  );
+  const host = trimOuterQuotes(process.env.DB_HOST || "localhost");
+  const port = trimOuterQuotes(process.env.DB_PORT || "3306");
+  const hasDatabaseUrl = Boolean(trimOuterQuotes(process.env.DATABASE_URL));
+  const resolved = resolveDatabaseUrlFromEnv();
+
+  let resolvedPreview = "(none)";
+  if (resolved) {
+    try {
+      const u = new URL(resolved);
+      resolvedPreview = `${u.protocol}//${u.username}:***@${u.host}${u.pathname}`;
+    } catch {
+      resolvedPreview = "(unparseable)";
+    }
+  }
+
+  return {
+    source: database && username ? "DB_*" : hasDatabaseUrl ? "DATABASE_URL" : "none",
+    DB_HOST: host,
+    DB_PORT: port,
+    DB_USER: username || "(missing)",
+    DB_NAME: database || "(missing)",
+    DB_PASSWORD_length: password.length,
+    DB_PASSWORD_set: password.length > 0,
+    DATABASE_URL_set: hasDatabaseUrl,
+    resolvedPreview,
+  };
 }
 
 const resolvedDatabaseUrl = resolveDatabaseUrlFromEnv();
-if (resolvedDatabaseUrl && !process.env.DATABASE_URL) {
+if (resolvedDatabaseUrl) {
+  // Always apply resolved URL so DB_* wins over a stale DATABASE_URL in Hostinger.
   process.env.DATABASE_URL = resolvedDatabaseUrl;
 }
 
@@ -59,7 +92,6 @@ function isStalePrismaClient(client: PrismaClient | undefined): client is undefi
     category?: { findMany?: unknown };
     homeSection?: { findMany?: unknown };
   };
-  // Dev hot-reload can keep an old client cached before new models are generated.
   return (
     typeof c.category?.findMany !== "function" ||
     typeof c.homeSection?.findMany !== "function"
