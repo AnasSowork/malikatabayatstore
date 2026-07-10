@@ -48,12 +48,26 @@ export async function ensureHomeSections(): Promise<void> {
   }
 }
 
+function defaultSectionsFallback(): HomeSectionForClient[] {
+  return HOME_SECTION_ORDER.map((key) => ({
+    key,
+    enabled: true,
+    sortOrder: HOME_SECTION_SORT[key],
+    content: defaultHomeSectionContent(key),
+  }));
+}
+
 export async function listHomeSections(): Promise<HomeSectionForClient[]> {
-  await ensureHomeSections();
-  const rows = await prisma.homeSection.findMany({
-    orderBy: [{ sortOrder: "asc" }, { key: "asc" }],
-  });
-  return rows.map(serializeRow);
+  try {
+    await ensureHomeSections();
+    const rows = await prisma.homeSection.findMany({
+      orderBy: [{ sortOrder: "asc" }, { key: "asc" }],
+    });
+    return rows.map(serializeRow);
+  } catch (e) {
+    console.error("[home-content] listHomeSections failed — using defaults:", e);
+    return defaultSectionsFallback();
+  }
 }
 
 export async function getHomeSection(key: HomeSectionKey): Promise<HomeSectionForClient | null> {
