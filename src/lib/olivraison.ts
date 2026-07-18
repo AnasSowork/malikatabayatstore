@@ -36,6 +36,25 @@ export function isOlivraisonConfigured(): boolean {
   return Boolean(apiKey && secretKey);
 }
 
+async function providerFetch(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: init.signal ?? AbortSignal.timeout(12_000),
+    });
+  } catch (error) {
+    const name = error instanceof Error ? error.name : "";
+    if (name === "AbortError" || name === "TimeoutError") {
+      throw new OlivraisonError("Olivraison did not respond within 12 seconds.", 504, "TIMEOUT");
+    }
+    throw new OlivraisonError(
+      error instanceof Error ? error.message : "Could not reach Olivraison.",
+      502,
+      "NETWORK_ERROR",
+    );
+  }
+}
+
 async function parseError(response: Response): Promise<OlivraisonError> {
   let body: { code?: string; description?: string; message?: string } = {};
   try {
@@ -75,7 +94,7 @@ async function login(force = false): Promise<string> {
   }
 
   await throttle();
-  const response = await fetch(`${baseUrl}/auth/login`, {
+  const response = await providerFetch(`${baseUrl}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ apiKey, secretKey }),
@@ -105,7 +124,7 @@ export async function olivraisonRequest<T>(
   const token = await login();
   await throttle();
 
-  const response = await fetch(`${baseUrl}${path}`, {
+  const response = await providerFetch(`${baseUrl}${path}`, {
     ...init,
     headers: {
       Accept: "application/json",

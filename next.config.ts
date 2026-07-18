@@ -6,7 +6,9 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 const nextConfig: NextConfig = {
   // Hostinger runs server.js through Phusion Passenger. Docker still uses the
   // standalone artifact, enabled explicitly in the Docker builder stage.
-  ...(process.env.DOCKER_BUILD === "1" ? { output: "standalone" as const } : {}),
+  ...(process.env.NEXT_STANDALONE_BUILD === "1"
+    ? { output: "standalone" as const }
+    : {}),
   turbopack: {
     root: __dirname,
   },
