@@ -15,7 +15,13 @@ export type OrderWithProduct = {
   product: ProductForClient;
 };
 
-export type AdminView = "overview" | "orders" | "products" | "categories" | "home";
+export type AdminView =
+  | "overview"
+  | "orders"
+  | "products"
+  | "categories"
+  | "home"
+  | "delivery";
 
 export type ColorVariantDraft = {
   id: string;

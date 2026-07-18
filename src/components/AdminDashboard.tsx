@@ -20,6 +20,7 @@ import { AdminProductsView } from "@/components/admin/AdminProductsView";
 import { AdminProductModal } from "@/components/admin/AdminProductModal";
 import { AdminCategoriesView, type CategoryForm } from "@/components/admin/AdminCategoriesView";
 import { AdminHomeView } from "@/components/admin/AdminHomeView";
+import { AdminDeliveryView } from "@/components/admin/AdminDeliveryView";
 import { draftsFromProductVariants, draftsToPayload } from "@/components/admin/AdminColorVariantPicker";
 import {
   EMPTY_PRODUCT_FORM,
@@ -350,6 +351,12 @@ export function AdminDashboard({ view }: { view: AdminView }) {
         <h1 className="admin-page-title">{t("navHome")}</h1>
         <p className="admin-page-subtitle">{t("homeIntro")}</p>
       </div>
+    ) : view === "delivery" ? (
+      <div>
+        <p className="brand-eyebrow">Olivraison</p>
+        <h1 className="admin-page-title">{t("navDelivery")}</h1>
+        <p className="admin-page-subtitle">{t("deliveryIntro")}</p>
+      </div>
     ) : (
       <div>
         <p className="brand-eyebrow">{view === "orders" ? t("navOrders") : t("navProducts")}</p>
@@ -485,6 +492,8 @@ export function AdminDashboard({ view }: { view: AdminView }) {
           onSave={saveHomeSection}
         />
       )}
+
+      {view === "delivery" && <AdminDeliveryView />}
     </AdminShell>
   );
 }
