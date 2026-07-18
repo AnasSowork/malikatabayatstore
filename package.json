@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/deploy-db.cjs && next build --webpack",
-    "start": "node scripts/hostinger-start.cjs",
+    "start": "node server.js",
     "postinstall": "prisma generate",
     "lint": "eslint",
     "db:migrate": "prisma migrate deploy",
