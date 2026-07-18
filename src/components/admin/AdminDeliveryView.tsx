@@ -49,10 +49,16 @@ export function AdminDeliveryView() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [citySearch, setCitySearch] = useState("");
   const [selectedIDs, setSelectedIDs] = useState<string[]>([]);
+  const [pickupDriverEmail, setPickupDriverEmail] = useState("");
+  const [riskByPhone, setRiskByPhone] = useState<
+    Record<string, { count?: number; deliveredCount?: number; blacklisted?: boolean }>
+  >({});
   const [detail, setDetail] = useState<OlivraisonPackage | null>(null);
   const [detailDraft, setDetailDraft] = useState({
+    partnerTrackingID: "",
     comment: "",
     note: "",
     COD: "",
@@ -74,6 +80,8 @@ export function AdminDeliveryView() {
     packageId: "",
     priority: "MEDIUM",
   });
+  const [claimDetail, setClaimDetail] = useState<OlivraisonClaim | null>(null);
+  const [claimComment, setClaimComment] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -98,18 +106,19 @@ export function AdminDeliveryView() {
 
   const filteredPackages = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return data?.packages ?? [];
     return (data?.packages ?? []).filter((item) =>
-      [
-        item.trackingID,
-        item.partnerTrackingID,
-        item.destination?.name,
-        item.destination?.phone,
-        item.destination?.city,
-        item.status,
-      ].some((value) => value?.toLowerCase().includes(q)),
+      (statusFilter === "ALL" || item.status === statusFilter) &&
+      (!q ||
+        [
+          item.trackingID,
+          item.partnerTrackingID,
+          item.destination?.name,
+          item.destination?.phone,
+          item.destination?.city,
+          item.status,
+        ].some((value) => value?.toLowerCase().includes(q))),
     );
-  }, [data?.packages, search]);
+  }, [data?.packages, search, statusFilter]);
 
   const filteredCities = useMemo(() => {
     const q = citySearch.trim().toLowerCase();
@@ -125,6 +134,19 @@ export function AdminDeliveryView() {
     }
     return counts;
   }, [data?.packages]);
+
+  const pageCod = useMemo(
+    () => (data?.packages ?? []).reduce((total, item) => total + Number(item.COD || 0), 0),
+    [data?.packages],
+  );
+  const selectedCity = useMemo(
+    () =>
+      data?.cities.find(
+        (city) =>
+          city.name.toLowerCase() === createForm.destination.city.trim().toLowerCase(),
+      ),
+    [createForm.destination.city, data?.cities],
+  );
 
   async function action<T>(actionName: string, payload: Record<string, unknown>): Promise<T> {
     const response = await fetch("/api/admin/delivery", {
@@ -145,6 +167,7 @@ export function AdminDeliveryView() {
       const packageDetail = await responseJson<OlivraisonPackage>(response);
       setDetail(packageDetail);
       setDetailDraft({
+        partnerTrackingID: packageDetail.partnerTrackingID ?? "",
         comment: packageDetail.comment ?? "",
         note: packageDetail.note ?? "",
         COD: String(packageDetail.COD ?? ""),
@@ -205,6 +228,28 @@ export function AdminDeliveryView() {
     }
   }
 
+  async function updatePartnerTracking() {
+    if (!detail || !detailDraft.partnerTrackingID.trim()) return;
+    setBusy(true);
+    setError("");
+    try {
+      await action("updatePartnerTracking", {
+        trackingID: detail.trackingID,
+        partnerTrackingID: detailDraft.partnerTrackingID.trim(),
+      });
+      setDetail((current) =>
+        current
+          ? { ...current, partnerTrackingID: detailDraft.partnerTrackingID.trim() }
+          : current,
+      );
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("deliveryActionError"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function confirmPackage(trackingID: string) {
     setBusy(true);
     setError("");
@@ -246,11 +291,47 @@ export function AdminDeliveryView() {
       const result = await action<{
         miniStickerFilePath?: string;
         slipFilePath?: string;
-      }>("createPickup", { packages: selectedIDs });
+      }>("createPickup", {
+        packages: selectedIDs,
+        ...(pickupDriverEmail.trim() ? { driverEmail: pickupDriverEmail.trim() } : {}),
+      });
       setSelectedIDs([]);
+      setPickupDriverEmail("");
       if (result.miniStickerFilePath) window.open(result.miniStickerFilePath, "_blank", "noopener");
       if (result.slipFilePath) window.open(result.slipFilePath, "_blank", "noopener");
       await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("deliveryActionError"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function checkCurrentPageRisk() {
+    const phones = [
+      ...new Set(
+        (data?.packages ?? [])
+          .map((item) => item.destination?.phone?.trim())
+          .filter((phone): phone is string => Boolean(phone)),
+      ),
+    ].slice(0, 100);
+    if (phones.length === 0) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await action<{
+        results?: Array<{
+          phone?: string;
+          count?: number;
+          deliveredCount?: number;
+          blacklisted?: boolean;
+        }>;
+      }>("checkBlacklistBulk", { phones });
+      const next: typeof riskByPhone = {};
+      for (const item of result.results ?? []) {
+        if (item.phone) next[item.phone] = item;
+      }
+      setRiskByPhone(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("deliveryActionError"));
     } finally {
@@ -295,6 +376,41 @@ export function AdminDeliveryView() {
     }
   }
 
+  async function openClaim(claim: OlivraisonClaim) {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/admin/delivery?resource=claim&id=${encodeURIComponent(claim._id)}`,
+      );
+      setClaimDetail(await responseJson<OlivraisonClaim>(response));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("deliveryActionError"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function addClaimComment(event: React.FormEvent) {
+    event.preventDefault();
+    if (!claimDetail || !claimComment.trim()) return;
+    setBusy(true);
+    setError("");
+    try {
+      const updated = await action<OlivraisonClaim>("addClaimComment", {
+        claimID: claimDetail._id,
+        content: claimComment.trim(),
+      });
+      setClaimDetail(updated);
+      setClaimComment("");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("deliveryActionError"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (loading && !data) {
     return (
       <section className="admin-section flex min-h-64 items-center justify-center">
@@ -320,34 +436,82 @@ export function AdminDeliveryView() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="delivery-dashboard space-y-5">
       {error ? (
-        <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {error}
+        <div className="delivery-alert delivery-alert-error">
+          <MaterialIcon name="error" className="!text-xl" />
+          <span>{error}</span>
+          <button type="button" onClick={() => setError("")} aria-label={t("cancel")}>
+            <MaterialIcon name="close" className="!text-lg" />
+          </button>
         </div>
       ) : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="admin-section !p-4">
-          <p className="text-xs uppercase tracking-wider text-on-surface-variant">{t("deliveryTotal")}</p>
-          <p className="mt-1 font-headline text-3xl">{data?.pagination.total ?? 0}</p>
+      <div className="delivery-connection">
+        <span className="delivery-connection-dot" />
+        <div>
+          <strong>{t("deliveryConnected")}</strong>
+          <p>{t("deliveryLiveData")}</p>
         </div>
-        {["CREATED", "CONFIRMED", "TRANSIT"].map((status) => (
-          <div key={status} className="admin-section !p-4">
-            <p className="text-xs uppercase tracking-wider text-on-surface-variant">{status}</p>
-            <p className="mt-1 font-headline text-3xl">{statusCounts[status] ?? 0}</p>
+        <button type="button" className="admin-btn-secondary ms-auto" disabled={loading} onClick={() => void load()}>
+          <MaterialIcon name="sync" className={`!text-lg ${loading ? "animate-spin" : ""}`} />
+          {t("refresh")}
+        </button>
+      </div>
+
+      <section className="delivery-kpi-grid">
+        {[
+          {
+            label: t("deliveryTotal"),
+            value: String(data?.pagination.total ?? 0),
+            icon: "package_2",
+            tone: "gold",
+          },
+          {
+            label: t("deliveryReadyPickup"),
+            value: String((statusCounts.CONFIRMED ?? 0) + (statusCounts.PICKUP ?? 0)),
+            icon: "local_shipping",
+            tone: "blue",
+          },
+          {
+            label: t("deliveryInTransit"),
+            value: String((statusCounts.TRANSIT ?? 0) + (statusCounts.RECIVED ?? 0)),
+            icon: "route",
+            tone: "purple",
+          },
+          {
+            label: t("deliveryPageCod"),
+            value: formatMad(String(pageCod), locale),
+            icon: "payments",
+            tone: "green",
+          },
+        ].map((item) => (
+          <div key={item.label} className="delivery-kpi-card">
+            <span className={`delivery-kpi-icon delivery-kpi-icon-${item.tone}`}>
+              <MaterialIcon name={item.icon} className="!text-2xl" />
+            </span>
+            <div>
+              <p>{item.label}</p>
+              <strong>{item.value}</strong>
+            </div>
           </div>
         ))}
       </section>
 
-      <div className="admin-segmented flex-wrap">
-        {(["packages", "create", "reference", "claims"] as Tab[]).map((item) => (
+      <div className="delivery-tabs">
+        {([
+          ["packages", "inventory_2"],
+          ["create", "add_box"],
+          ["reference", "map"],
+          ["claims", "support_agent"],
+        ] as Array<[Tab, string]>).map(([item, icon]) => (
           <button
             key={item}
             type="button"
-            className={tab === item ? "admin-segmented-active" : ""}
+            className={tab === item ? "delivery-tab-active" : ""}
             onClick={() => setTab(item)}
           >
+            <MaterialIcon name={icon} className="!text-lg" />
             {t(`deliveryTab${item[0].toUpperCase()}${item.slice(1)}`)}
           </button>
         ))}
@@ -361,17 +525,15 @@ export function AdminDeliveryView() {
               <p className="admin-section-subtitle">{t("deliveryPackagesHint")}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {selectedIDs.length > 0 ? (
-                <button
-                  type="button"
-                  className="admin-btn-primary"
-                  disabled={busy}
-                  onClick={() => void createPickup()}
-                >
-                  <MaterialIcon name="local_shipping" className="!text-lg" />
-                  {t("deliveryCreatePickup")} ({selectedIDs.length})
-                </button>
-              ) : null}
+              <button
+                type="button"
+                className="admin-btn-secondary"
+                disabled={busy || !(data?.packages.length)}
+                onClick={() => void checkCurrentPageRisk()}
+              >
+                <MaterialIcon name="shield" className="!text-lg" />
+                {t("deliveryCheckPageRisk")}
+              </button>
               <div className="admin-search-wrap">
                 <MaterialIcon name="search" className="admin-search-icon" />
                 <input
@@ -384,6 +546,48 @@ export function AdminDeliveryView() {
             </div>
           </div>
 
+          <div className="delivery-filter-row">
+            {["ALL", ...(data?.statuses.map((item) => item.parcel_statut_code) ?? [])]
+              .filter((status, index, list) => list.indexOf(status) === index)
+              .map((status) => (
+                <button
+                  key={status}
+                  type="button"
+                  className={statusFilter === status ? "delivery-filter-active" : ""}
+                  onClick={() => setStatusFilter(status)}
+                >
+                  {status === "ALL" ? t("deliveryAllStatuses") : status}
+                  {status !== "ALL" && statusCounts[status] ? (
+                    <span>{statusCounts[status]}</span>
+                  ) : null}
+                </button>
+              ))}
+          </div>
+
+          {selectedIDs.length > 0 ? (
+            <div className="delivery-selection-bar">
+              <div>
+                <strong>{t("deliverySelected", { count: selectedIDs.length })}</strong>
+                <p>{t("deliveryPickupHint")}</p>
+              </div>
+              <input
+                type="email"
+                value={pickupDriverEmail}
+                onChange={(event) => setPickupDriverEmail(event.target.value)}
+                placeholder={t("deliveryDriverEmail")}
+              />
+              <button
+                type="button"
+                className="admin-btn-primary"
+                disabled={busy}
+                onClick={() => void createPickup()}
+              >
+                <MaterialIcon name="local_shipping" className="!text-lg" />
+                {t("deliveryCreatePickup")}
+              </button>
+            </div>
+          ) : null}
+
           {filteredPackages.length === 0 ? (
             <AdminEmptyState
               icon="inventory_2"
@@ -391,7 +595,8 @@ export function AdminDeliveryView() {
               description={t("deliveryNoPackagesHint")}
             />
           ) : (
-            <div className="admin-table-wrap">
+            <>
+            <div className="admin-table-wrap hidden md:block">
               <table className="admin-table">
                 <thead>
                   <tr>
@@ -427,7 +632,13 @@ export function AdminDeliveryView() {
                         <td className="font-mono text-xs">{item.trackingID}</td>
                         <td>
                           <p className="font-medium">{item.destination?.name}</p>
-                          <p className="text-xs text-on-surface-variant">{item.destination?.phone}</p>
+                          <p className="text-xs text-on-surface-variant">
+                            {item.destination?.phone}
+                            {item.destination?.phone &&
+                            riskByPhone[item.destination.phone]?.blacklisted ? (
+                              <span className="delivery-risk-flag">{t("deliveryRiskFlag")}</span>
+                            ) : null}
+                          </p>
                         </td>
                         <td>{item.destination?.city}</td>
                         <td>{formatMad(String(item.COD ?? 0), locale)}</td>
@@ -457,6 +668,52 @@ export function AdminDeliveryView() {
                 </tbody>
               </table>
             </div>
+            <div className="delivery-package-list md:hidden">
+              {filteredPackages.map((item) => {
+                const canPickup = ["CONFIRMED", "PICKUP"].includes(item.status);
+                return (
+                  <article key={item.trackingID} className="delivery-package-card">
+                    <div className="delivery-package-card-head">
+                      <label>
+                        <input
+                          type="checkbox"
+                          disabled={!canPickup}
+                          checked={selectedIDs.includes(item.trackingID)}
+                          onChange={(event) =>
+                            setSelectedIDs((current) =>
+                              event.target.checked
+                                ? [...current, item.trackingID]
+                                : current.filter((id) => id !== item.trackingID),
+                            )
+                          }
+                        />
+                        <span className="font-mono">{item.trackingID}</span>
+                      </label>
+                      <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusTone(item.status)}`}>
+                        {item.status}
+                      </span>
+                    </div>
+                    <div className="mt-4 flex items-start justify-between gap-3">
+                      <div>
+                        <strong>{item.destination?.name}</strong>
+                        <p className="text-sm text-on-surface-variant">{item.destination?.phone}</p>
+                      </div>
+                      <strong className="brand-gold-text">{formatMad(String(item.COD ?? 0), locale)}</strong>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between text-xs text-on-surface-variant">
+                      <span className="admin-meta-pill">
+                        <MaterialIcon name="location_on" className="!text-sm" />
+                        {item.destination?.city}
+                      </span>
+                      <button type="button" className="admin-btn-secondary" onClick={() => void openPackage(item)}>
+                        {t("deliveryDetails")}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+            </>
           )}
 
           <div className="mt-4 flex items-center justify-between">
@@ -550,6 +807,11 @@ export function AdminDeliveryView() {
               <datalist id="olivraison-cities">
                 {data?.cities.map((city) => <option key={city.name} value={city.name} />)}
               </datalist>
+              {selectedCity ? (
+                <small className="delivery-field-hint">
+                  {t("deliveryEstimatedFee")}: {formatMad(String(selectedCity.price), locale)}
+                </small>
+              ) : null}
             </label>
             <label className="admin-field">
               <span>{t("deliveryAddress")}</span>
@@ -616,16 +878,53 @@ export function AdminDeliveryView() {
                 }
               />
             </label>
-            <label className="flex items-center gap-2 text-sm lg:col-span-2">
-              <input
-                type="checkbox"
-                checked={createForm.noOpen}
-                onChange={(event) =>
-                  setCreateForm((form) => ({ ...form, noOpen: event.target.checked }))
-                }
-              />
-              {t("deliveryNoOpen")}
-            </label>
+            <div className="delivery-options lg:col-span-2">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={createForm.noOpen}
+                  onChange={(event) =>
+                    setCreateForm((form) => ({ ...form, noOpen: event.target.checked }))
+                  }
+                />
+                <span>
+                  <strong>{t("deliveryNoOpen")}</strong>
+                  <small>{t("deliveryNoOpenHint")}</small>
+                </span>
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={createForm.exchange}
+                  onChange={(event) =>
+                    setCreateForm((form) => ({
+                      ...form,
+                      exchange: event.target.checked,
+                      exchangePackage: event.target.checked ? form.exchangePackage : "",
+                    }))
+                  }
+                />
+                <span>
+                  <strong>{t("deliveryExchange")}</strong>
+                  <small>{t("deliveryExchangeHint")}</small>
+                </span>
+              </label>
+            </div>
+            {createForm.exchange ? (
+              <label className="admin-field lg:col-span-2">
+                <span>{t("deliveryOriginalTracking")}</span>
+                <input
+                  required
+                  value={createForm.exchangePackage ?? ""}
+                  onChange={(event) =>
+                    setCreateForm((form) => ({
+                      ...form,
+                      exchangePackage: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+            ) : null}
             <div className="lg:col-span-2">
               <button type="submit" className="admin-btn-primary" disabled={busy}>
                 {busy ? t("creating") : t("deliveryCreatePackage")}
@@ -698,7 +997,12 @@ export function AdminDeliveryView() {
                     <span className="admin-meta-pill">{claim.status || "OPEN"}</span>
                   </div>
                   <p className="mt-2 text-sm text-on-surface-variant">{claim.description}</p>
-                  <p className="mt-2 text-xs">{claim.reference || claim.category}</p>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <p className="text-xs">{claim.reference || claim.category}</p>
+                    <button type="button" className="admin-btn-secondary" onClick={() => void openClaim(claim)}>
+                      {t("deliveryViewClaim")}
+                    </button>
+                  </div>
                 </article>
               )) : <AdminEmptyState icon="support_agent" title={t("deliveryNoClaims")} />}
             </div>
@@ -729,57 +1033,120 @@ export function AdminDeliveryView() {
       {detail ? (
         <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
           <div className="admin-modal max-w-3xl">
-            <div className="admin-section-head">
+            <div className="admin-modal-header">
               <div>
-                <p className="brand-eyebrow">{detail.trackingID}</p>
-                <h2 className="admin-section-title">{t("deliveryDetails")}</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-mono text-xs text-on-surface-variant">{detail.trackingID}</p>
+                  <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusTone(detail.status)}`}>
+                    {detail.status}
+                  </span>
+                </div>
+                <h2 className="mt-2 font-headline text-2xl">{t("deliveryDetails")}</h2>
               </div>
               <button type="button" className="admin-icon-btn" onClick={() => setDetail(null)}>
                 <MaterialIcon name="close" />
               </button>
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              {(["name", "phone", "city", "streetAddress"] as const).map((field) => (
-                <label key={field} className="admin-field">
-                  <span>{field === "streetAddress" ? t("deliveryAddress") : t(field === "name" ? "customer" : field)}</span>
-                  <input value={detailDraft[field]} onChange={(event) => setDetailDraft((draft) => ({ ...draft, [field]: event.target.value }))} />
-                </label>
-              ))}
-              <label className="admin-field">
-                <span>{t("amount")}</span>
-                <input type="number" value={detailDraft.COD} onChange={(event) => setDetailDraft((draft) => ({ ...draft, COD: event.target.value }))} />
-              </label>
-              <label className="admin-field">
-                <span>{t("deliveryComment")}</span>
-                <input value={detailDraft.comment} onChange={(event) => setDetailDraft((draft) => ({ ...draft, comment: event.target.value }))} />
-              </label>
-              <label className="admin-field md:col-span-2">
-                <span>{t("deliveryNote")}</span>
-                <input value={detailDraft.note} onChange={(event) => setDetailDraft((draft) => ({ ...draft, note: event.target.value }))} />
-              </label>
-            </div>
-            <div className="mt-5">
-              <h3 className="font-semibold">{t("deliveryHistory")}</h3>
-              <div className="mt-2 max-h-40 overflow-auto">
-                {detail.history?.map((entry, index) => (
-                  <div key={`${entry.updateAt}-${index}`} className="flex gap-3 border-b border-outline-variant py-2 text-xs">
-                    <strong>{entry.status}</strong>
-                    <span>{entry.msg}</span>
-                    <span className="ms-auto text-on-surface-variant">
-                      {entry.updateAt ? new Date(entry.updateAt).toLocaleString(locale) : ""}
-                    </span>
-                  </div>
-                ))}
+            <div className="admin-modal-body">
+              <div className="delivery-detail-stats">
+                <div>
+                  <MaterialIcon name="warehouse" />
+                  <span>{t("deliveryWarehouse")}</span>
+                  <strong>{detail.warehouse || "—"}</strong>
+                </div>
+                <div>
+                  <MaterialIcon name="person_pin" />
+                  <span>{t("deliveryDriver")}</span>
+                  <strong>{detail.transport?.currentDriverName || "—"}</strong>
+                  {detail.transport?.currentDriverPhone ? (
+                    <small>{detail.transport.currentDriverPhone}</small>
+                  ) : null}
+                </div>
+                <div>
+                  <MaterialIcon name="receipt_long" />
+                  <span>{t("deliveryFees")}</span>
+                  <strong>{formatMad(String(detail.deliveryFees ?? 0), locale)}</strong>
+                </div>
               </div>
+
+              <section className="delivery-detail-section">
+                <h3>{t("deliveryPartnerReference")}</h3>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    className="flex-1"
+                    value={detailDraft.partnerTrackingID}
+                    onChange={(event) =>
+                      setDetailDraft((draft) => ({
+                        ...draft,
+                        partnerTrackingID: event.target.value,
+                      }))
+                    }
+                    placeholder={t("deliveryPartnerReferenceHint")}
+                  />
+                  <button
+                    type="button"
+                    className="admin-btn-secondary"
+                    disabled={busy || !detailDraft.partnerTrackingID.trim()}
+                    onClick={() => void updatePartnerTracking()}
+                  >
+                    {t("saveChanges")}
+                  </button>
+                </div>
+              </section>
+
+              <section className="delivery-detail-section">
+                <h3>{t("deliveryRecipient")}</h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {(["name", "phone", "city", "streetAddress"] as const).map((field) => (
+                    <label key={field} className="admin-field">
+                      <span>{field === "streetAddress" ? t("deliveryAddress") : t(field === "name" ? "customer" : field)}</span>
+                      <input value={detailDraft[field]} onChange={(event) => setDetailDraft((draft) => ({ ...draft, [field]: event.target.value }))} />
+                    </label>
+                  ))}
+                  <label className="admin-field">
+                    <span>{t("amount")}</span>
+                    <input type="number" value={detailDraft.COD} onChange={(event) => setDetailDraft((draft) => ({ ...draft, COD: event.target.value }))} />
+                  </label>
+                  <label className="admin-field">
+                    <span>{t("deliveryComment")}</span>
+                    <input value={detailDraft.comment} onChange={(event) => setDetailDraft((draft) => ({ ...draft, comment: event.target.value }))} />
+                  </label>
+                  <label className="admin-field md:col-span-2">
+                    <span>{t("deliveryNote")}</span>
+                    <input value={detailDraft.note} onChange={(event) => setDetailDraft((draft) => ({ ...draft, note: event.target.value }))} />
+                  </label>
+                </div>
+              </section>
+
+              <section className="delivery-detail-section">
+                <h3>{t("deliveryHistory")}</h3>
+                <div className="delivery-timeline">
+                  {detail.history?.length ? detail.history.map((entry, index) => (
+                    <div key={`${entry.updateAt}-${index}`}>
+                      <span className="delivery-timeline-dot" />
+                      <div>
+                        <strong>{entry.status}</strong>
+                        <p>{entry.msg || "—"}</p>
+                        <small>
+                          {entry.updateAt ? new Date(entry.updateAt).toLocaleString(locale) : ""}
+                        </small>
+                      </div>
+                    </div>
+                  )) : <p className="text-sm text-on-surface-variant">{t("deliveryNoHistory")}</p>}
+                </div>
+              </section>
             </div>
-            <div className="mt-5 flex flex-wrap justify-end gap-2">
+            <div className="admin-modal-footer justify-end">
+              <button type="button" className="admin-btn-secondary" onClick={() => setDetail(null)}>
+                {t("cancel")}
+              </button>
               {detail.status === "CREATED" ? (
                 <button type="button" className="admin-btn-primary" disabled={busy} onClick={() => void confirmPackage(detail.trackingID)}>
                   {t("deliveryConfirm")}
                 </button>
               ) : null}
               {detail.status === "CONFIRMED" ? (
-                <button type="button" className="admin-btn-secondary" disabled={busy} onClick={() => void cancelPackage(detail.trackingID)}>
+                <button type="button" className="admin-btn-danger" disabled={busy} onClick={() => void cancelPackage(detail.trackingID)}>
                   {t("deliveryCancelPackage")}
                 </button>
               ) : null}
@@ -788,6 +1155,73 @@ export function AdminDeliveryView() {
                   {t("saveChanges")}
                 </button>
               ) : null}
+              </div>
+          </div>
+        </div>
+      ) : null}
+
+      {claimDetail ? (
+        <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="admin-modal">
+            <div className="admin-modal-header">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="admin-meta-pill">{claimDetail.status || "OPEN"}</span>
+                  <span className="text-xs text-on-surface-variant">
+                    {claimDetail.priority || "MEDIUM"}
+                  </span>
+                </div>
+                <h2 className="mt-2 font-headline text-2xl">{claimDetail.subject}</h2>
+              </div>
+              <button type="button" className="admin-icon-btn" onClick={() => setClaimDetail(null)}>
+                <MaterialIcon name="close" />
+              </button>
+            </div>
+            <div className="admin-modal-body">
+              <p className="text-sm leading-6 text-on-surface-variant">
+                {claimDetail.description}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="admin-meta-pill">{claimDetail.category}</span>
+                {claimDetail.reference ? (
+                  <span className="admin-meta-pill">{claimDetail.reference}</span>
+                ) : null}
+              </div>
+
+              <section className="delivery-detail-section">
+                <h3>{t("deliveryClaimConversation")}</h3>
+                <div className="space-y-3">
+                  {claimDetail.comments?.length ? (
+                    claimDetail.comments.map((comment, index) => (
+                      <article key={`${comment.createdAt}-${index}`} className="delivery-claim-comment">
+                        <p>{comment.content}</p>
+                        <small>
+                          {comment.user ? `${comment.user} · ` : ""}
+                          {comment.createdAt
+                            ? new Date(comment.createdAt).toLocaleString(locale)
+                            : ""}
+                        </small>
+                      </article>
+                    ))
+                  ) : (
+                    <p className="text-sm text-on-surface-variant">{t("deliveryNoClaimComments")}</p>
+                  )}
+                </div>
+              </section>
+
+              <form onSubmit={(event) => void addClaimComment(event)} className="delivery-detail-section">
+                <h3>{t("deliveryAddComment")}</h3>
+                <textarea
+                  rows={4}
+                  required
+                  value={claimComment}
+                  onChange={(event) => setClaimComment(event.target.value)}
+                  placeholder={t("deliveryCommentPlaceholder")}
+                />
+                <button type="submit" className="admin-btn-primary mt-3" disabled={busy}>
+                  {t("deliverySendComment")}
+                </button>
+              </form>
             </div>
           </div>
         </div>

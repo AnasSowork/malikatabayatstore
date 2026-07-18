@@ -74,6 +74,12 @@ export type OlivraisonClaim = {
   status?: string;
   priority?: string;
   createdAt?: string;
+  comments?: Array<{
+    content?: string;
+    createdAt?: string;
+    user?: string;
+    attachments?: string[];
+  }>;
 };
 
 export type OlivraisonDashboardData = {
