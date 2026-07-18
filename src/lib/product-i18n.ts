@@ -1,4 +1,4 @@
-export type AppLocale = "en" | "ar" | "fr";
+export type AppLocale = "ar" | "fr";
 
 export type LocalizableProduct = {
   name: string;

@@ -4,7 +4,6 @@ import { useState } from "react";
 import type { LocalizedText } from "@/lib/home-content-types";
 
 const LANGS: { key: keyof LocalizedText; label: string; dir?: "rtl" }[] = [
-  { key: "en", label: "EN" },
   { key: "ar", label: "AR", dir: "rtl" },
   { key: "fr", label: "FR" },
 ];
@@ -17,7 +16,7 @@ type Props = {
 };
 
 export function AdminLocalizedField({ label, value, onChange, multiline }: Props) {
-  const [lang, setLang] = useState<keyof LocalizedText>("en");
+  const [lang, setLang] = useState<keyof LocalizedText>("ar");
   const active = LANGS.find((l) => l.key === lang)!;
 
   return (
