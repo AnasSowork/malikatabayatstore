@@ -395,7 +395,19 @@
     "deliveryNoClaimComments": "لا توجد تعليقات على هذه الشكوى.",
     "deliveryAddComment": "إضافة تعليق",
     "deliveryCommentPlaceholder": "اكتب تحديثاً لدعم Olivraison…",
-    "deliverySendComment": "إرسال التعليق"
+    "deliverySendComment": "إرسال التعليق",
+    "deliveryStatusCreated": "مسودة",
+    "deliveryStatusConfirmed": "مؤكد",
+    "deliveryStatusPickup": "جاهز للاستلام",
+    "deliveryStatusPickedUp": "تم الاستلام",
+    "deliveryStatusTransit": "قيد التوصيل",
+    "deliveryStatusReported": "مؤجل",
+    "deliveryStatusScheduled": "مجدول",
+    "deliveryStatusReceived": "تم الاستلام بالمركز",
+    "deliveryStatusDelivered": "تم التوصيل",
+    "deliveryStatusCanceled": "ملغي",
+    "deliveryStatusReturned": "مرتجع",
+    "deliveryStatusInterested": "مهتم"
   },
   "locale": {
     "en": "English",

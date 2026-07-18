@@ -395,7 +395,19 @@
     "deliveryNoClaimComments": "Aucun commentaire sur cette réclamation.",
     "deliveryAddComment": "Ajouter un commentaire",
     "deliveryCommentPlaceholder": "Écrivez une mise à jour au support Olivraison…",
-    "deliverySendComment": "Envoyer le commentaire"
+    "deliverySendComment": "Envoyer le commentaire",
+    "deliveryStatusCreated": "Brouillon",
+    "deliveryStatusConfirmed": "Confirmé",
+    "deliveryStatusPickup": "Prêt au ramassage",
+    "deliveryStatusPickedUp": "Ramassé",
+    "deliveryStatusTransit": "En transit",
+    "deliveryStatusReported": "Reporté",
+    "deliveryStatusScheduled": "Programmé",
+    "deliveryStatusReceived": "Reçu",
+    "deliveryStatusDelivered": "Livré",
+    "deliveryStatusCanceled": "Annulé",
+    "deliveryStatusReturned": "Retourné",
+    "deliveryStatusInterested": "Intéressé"
   },
   "locale": {
     "en": "English",

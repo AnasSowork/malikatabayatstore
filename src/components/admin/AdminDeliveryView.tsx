@@ -34,8 +34,8 @@ async function responseJson<T>(response: Response): Promise<T> {
 
 function statusTone(status: string) {
   if (status === "DELIVERED") return "bg-emerald-100 text-emerald-800";
-  if (["CANCELED", "RETURNED", "DELETED"].includes(status)) return "bg-red-100 text-red-800";
-  if (["TRANSIT", "PICKUP", "RECIVED"].includes(status)) return "bg-blue-100 text-blue-800";
+  if (["CANCELED", "CANCELLED", "RETURNED", "DELETED"].includes(status)) return "bg-red-100 text-red-800";
+  if (["TRANSIT", "PICKUP", "PICKEDUP", "RECIVED", "RECEIVED"].includes(status)) return "bg-blue-100 text-blue-800";
   return "bg-amber-100 text-amber-800";
 }
 
@@ -134,6 +134,56 @@ export function AdminDeliveryView() {
     }
     return counts;
   }, [data?.packages]);
+  const statusLabels = useMemo<Record<string, string>>(
+    () => ({
+      CREATED: t("deliveryStatusCreated"),
+      CONFIRMED: t("deliveryStatusConfirmed"),
+      PICKUP: t("deliveryStatusPickup"),
+      PICKEDUP: t("deliveryStatusPickedUp"),
+      TRANSIT: t("deliveryStatusTransit"),
+      REPORTED: t("deliveryStatusReported"),
+      SCHEDULED: t("deliveryStatusScheduled"),
+      RECIVED: t("deliveryStatusReceived"),
+      RECEIVED: t("deliveryStatusReceived"),
+      DELIVERED: t("deliveryStatusDelivered"),
+      CANCELED: t("deliveryStatusCanceled"),
+      CANCELLED: t("deliveryStatusCanceled"),
+      RETURNED: t("deliveryStatusReturned"),
+      INTERESTED: t("deliveryStatusInterested"),
+    }),
+    [t],
+  );
+  const visibleStatuses = useMemo(
+    () =>
+      Object.keys(statusCounts).sort((a, b) => {
+        const order = [
+          "CREATED",
+          "CONFIRMED",
+          "PICKUP",
+          "PICKEDUP",
+          "TRANSIT",
+          "REPORTED",
+          "SCHEDULED",
+          "RECIVED",
+          "DELIVERED",
+          "RETURNED",
+          "CANCELED",
+        ];
+        const aIndex = order.indexOf(a);
+        const bIndex = order.indexOf(b);
+        return (aIndex < 0 ? 999 : aIndex) - (bIndex < 0 ? 999 : bIndex);
+      }),
+    [statusCounts],
+  );
+
+  function displayStatus(status: string) {
+    return (
+      statusLabels[status] ||
+      data?.statuses.find((item) => item.parcel_statut_code === status)
+        ?.parcel_statut_label ||
+      status.replaceAll("_", " ")
+    );
+  }
 
   const pageCod = useMemo(
     () => (data?.packages ?? []).reduce((total, item) => total + Number(item.COD || 0), 0),
@@ -547,8 +597,7 @@ export function AdminDeliveryView() {
           </div>
 
           <div className="delivery-filter-row">
-            {["ALL", ...(data?.statuses.map((item) => item.parcel_statut_code) ?? [])]
-              .filter((status, index, list) => list.indexOf(status) === index)
+            {["ALL", ...visibleStatuses]
               .map((status) => (
                 <button
                   key={status}
@@ -556,7 +605,7 @@ export function AdminDeliveryView() {
                   className={statusFilter === status ? "delivery-filter-active" : ""}
                   onClick={() => setStatusFilter(status)}
                 >
-                  {status === "ALL" ? t("deliveryAllStatuses") : status}
+                  {status === "ALL" ? t("deliveryAllStatuses") : displayStatus(status)}
                   {status !== "ALL" && statusCounts[status] ? (
                     <span>{statusCounts[status]}</span>
                   ) : null}
@@ -644,7 +693,7 @@ export function AdminDeliveryView() {
                         <td>{formatMad(String(item.COD ?? 0), locale)}</td>
                         <td>
                           <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusTone(item.status)}`}>
-                            {item.status}
+                            {displayStatus(item.status)}
                           </span>
                         </td>
                         <td className="text-xs text-on-surface-variant">
@@ -690,7 +739,7 @@ export function AdminDeliveryView() {
                         <span className="font-mono">{item.trackingID}</span>
                       </label>
                       <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusTone(item.status)}`}>
-                        {item.status}
+                        {displayStatus(item.status)}
                       </span>
                     </div>
                     <div className="mt-4 flex items-start justify-between gap-3">
@@ -1038,7 +1087,7 @@ export function AdminDeliveryView() {
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-mono text-xs text-on-surface-variant">{detail.trackingID}</p>
                   <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusTone(detail.status)}`}>
-                    {detail.status}
+                    {displayStatus(detail.status)}
                   </span>
                 </div>
                 <h2 className="mt-2 font-headline text-2xl">{t("deliveryDetails")}</h2>

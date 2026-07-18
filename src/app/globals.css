@@ -1478,11 +1478,10 @@ html[dir="rtl"] .font-headline {
 
 .delivery-filter-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.4rem;
   margin-bottom: 1rem;
-  overflow-x: auto;
   padding-bottom: 0.25rem;
-  scrollbar-width: thin;
 }
 
 .delivery-filter-row button {
@@ -1592,6 +1591,53 @@ html[dir="rtl"] .font-headline {
 .delivery-field-hint {
   color: #047857;
   font-weight: 600;
+}
+
+.delivery-dashboard .admin-field input,
+.delivery-dashboard .admin-field select,
+.delivery-dashboard .admin-field textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 0.75rem;
+  background: var(--color-surface-container-low);
+  padding: 0.65rem 0.8rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--color-on-surface);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.delivery-dashboard .admin-field textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.delivery-dashboard .admin-field input:hover,
+.delivery-dashboard .admin-field select:hover,
+.delivery-dashboard .admin-field textarea:hover {
+  border-color: rgba(0, 0, 0, 0.32);
+}
+
+.delivery-dashboard .admin-field input:focus,
+.delivery-dashboard .admin-field select:focus,
+.delivery-dashboard .admin-field textarea:focus {
+  border-color: var(--color-brand-gold);
+  background: var(--color-surface-container-lowest);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
+}
+
+.delivery-dashboard .admin-field > div {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.delivery-dashboard .admin-field > div > input {
+  flex: 1;
 }
 
 .delivery-options {
@@ -1742,6 +1788,22 @@ html[dir="rtl"] .font-headline {
   .delivery-options,
   .delivery-detail-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .delivery-filter-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .delivery-connection {
+    align-items: flex-start;
+  }
+
+  .delivery-connection .admin-btn-secondary {
+    padding-inline: 0.7rem;
   }
 }
 

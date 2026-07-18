@@ -395,7 +395,19 @@
     "deliveryNoClaimComments": "No comments on this claim yet.",
     "deliveryAddComment": "Add a comment",
     "deliveryCommentPlaceholder": "Write an update for Olivraison support…",
-    "deliverySendComment": "Send comment"
+    "deliverySendComment": "Send comment",
+    "deliveryStatusCreated": "Draft",
+    "deliveryStatusConfirmed": "Confirmed",
+    "deliveryStatusPickup": "Ready for pickup",
+    "deliveryStatusPickedUp": "Picked up",
+    "deliveryStatusTransit": "In transit",
+    "deliveryStatusReported": "Reported",
+    "deliveryStatusScheduled": "Scheduled",
+    "deliveryStatusReceived": "Received",
+    "deliveryStatusDelivered": "Delivered",
+    "deliveryStatusCanceled": "Canceled",
+    "deliveryStatusReturned": "Returned",
+    "deliveryStatusInterested": "Interested"
   },
   "locale": {
     "en": "English",
