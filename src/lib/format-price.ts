@@ -22,7 +22,7 @@ export function formatMadParts(amount: number | string, locale: AppLocale): MadP
 export function formatMad(amount: number | string, locale: AppLocale): string {
   const { amount: value, currency } = formatMadParts(amount, locale);
   if (locale === "ar") {
-    return `${value} ${currency}`;
+    return `${currency} ${value}`;
   }
   return `${value}\u00a0${currency}`;
 }
