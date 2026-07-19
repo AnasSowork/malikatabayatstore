@@ -10,8 +10,8 @@ import { OrderForm } from "@/components/OrderForm";
 import type { ProductColorVariant } from "@/lib/product-serialize";
 import type { AppLocale } from "@/lib/product-i18n";
 import { findBundleOffer, type BundleOffer, type OrderLineItem } from "@/lib/bundle-offers";
+import { MadPrice } from "@/components/MadPrice";
 import { DEFAULT_PRODUCT_SIZE } from "@/lib/product-sizes";
-import { formatMad } from "@/lib/format-price";
 
 type Props = {
   productId: string;
@@ -152,7 +152,9 @@ export function ProductPurchasePanel({
       {inStock ? (
         <a href="#order-form" className="product-mobile-order-cta">
           <span>{t("submit")}</span>
-          <strong>{formatMad(totalPrice, locale)}</strong>
+          <strong>
+            <MadPrice amount={totalPrice} locale={locale} />
+          </strong>
         </a>
       ) : null}
     </div>

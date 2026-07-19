@@ -5,11 +5,12 @@ import { useLocale, useTranslations } from "next-intl";
 import type { ProductColorVariant } from "@/lib/product-serialize";
 import type { BundleOffer } from "@/lib/bundle-offers";
 import type { AppLocale } from "@/lib/product-i18n";
-import { formatMad } from "@/lib/format-price";
+import { MadPrice } from "@/components/MadPrice";
 import { ProductImageCarousel } from "@/components/ProductImageCarousel";
 import { ProductPurchasePanel } from "@/components/ProductPurchasePanel";
 import { CustomerReviewsSection } from "@/components/CustomerReviewsSection";
 import { ProductAssuranceSections } from "@/components/ProductAssuranceSections";
+import { ProductRatingBadge } from "@/components/ProductRatingBadge";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { Link } from "@/i18n/navigation";
 import {
@@ -138,18 +139,15 @@ export function ProductDetailExperience({
             </button>
           </div>
 
-          <div className="product-social-proof">
-            <span className="product-rating">
-              <span aria-hidden>{rating != null && rating > 0 ? "★★★★★" : "☆☆☆☆☆"}</span>
-              <strong>{t("reviewsLabel")}</strong>
-              {reviewCount > 0 ? <small>({reviewCount})</small> : null}
-            </span>
-            {soldCount > 0 ? <span>{t("soldCount", { count: soldCount })}</span> : null}
-          </div>
+          <ProductRatingBadge rating={rating} reviewCount={reviewCount} soldCount={soldCount} />
 
           <div className="product-price-row">
-            <strong>{formatMad(unitPrice.toString(), locale)}</strong>
-            {compareAtPrice ? <del>{formatMad(compareAtPrice, locale)}</del> : null}
+            <MadPrice amount={unitPrice} locale={locale} className="product-price-current" />
+            {compareAtPrice ? (
+              <del>
+                <MadPrice amount={compareAtPrice} locale={locale} className="product-price-compare" />
+              </del>
+            ) : null}
           </div>
 
           <p className="product-short-description">

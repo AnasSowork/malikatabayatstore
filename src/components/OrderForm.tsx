@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { BrandButton } from "@/components/BrandButton";
 import { useRouter } from "@/i18n/navigation";
 import type { AppLocale } from "@/lib/product-i18n";
-import { formatMad } from "@/lib/format-price";
+import { MadPrice } from "@/components/MadPrice";
 import type { OrderLineItem } from "@/lib/bundle-offers";
 
 type Props = {
@@ -134,15 +134,21 @@ export function OrderForm({
         <div className="order-cost-summary">
           <div className="order-cost-row">
             <span>{t("merchandisePrice")}</span>
-            <strong>{formatMad(totalPrice, locale)}</strong>
+            <strong>
+              <MadPrice amount={totalPrice} locale={locale} />
+            </strong>
           </div>
           <div className="order-cost-row">
             <span>{t("delivery")}</span>
-            <strong>{formatMad(0, locale)}</strong>
+            <strong>
+              <MadPrice amount={0} locale={locale} />
+            </strong>
           </div>
           <div className="order-cost-row order-cost-row-total">
             <span>{quantity > 1 ? t("bundleTotal", { count: quantity }) : t("total")}</span>
-            <strong>{formatMad(totalPrice, locale)}</strong>
+            <strong>
+              <MadPrice amount={totalPrice} locale={locale} />
+            </strong>
           </div>
         </div>
 

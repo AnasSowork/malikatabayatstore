@@ -5,7 +5,7 @@ import { Link } from "@/i18n/navigation";
 import type { ProductForClient } from "@/lib/product-serialize";
 import { getLocalizedProductFields } from "@/lib/product-i18n";
 import type { AppLocale } from "@/lib/product-i18n";
-import { formatMad } from "@/lib/format-price";
+import { MadPrice } from "@/components/MadPrice";
 import { ProductImage } from "@/components/ProductImage";
 
 type Props = {
@@ -66,11 +66,11 @@ export function ProductCard({ product, isNew, isExclusive }: Props) {
           </div>
           <div className="shrink-0 text-end">
             <p className="shop-product-price brand-gold-text">
-              {formatMad(product.price.toString(), locale)}
+              <MadPrice amount={product.price.toString()} locale={locale} />
             </p>
             {compareAtPrice ? (
               <del className="font-store text-xs text-on-surface/40">
-                {formatMad(compareAtPrice, locale)}
+                <MadPrice amount={compareAtPrice} locale={locale} />
               </del>
             ) : null}
           </div>

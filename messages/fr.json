@@ -170,6 +170,8 @@
     "reviewsCount": "{count} avis",
     "reviewsTitle": "Avis clients",
     "reviewImageAlt": "Capture d’un avis cliente numéro {number}",
+    "reviewsVerified": "Avis clients vérifiés",
+    "ratingAria": "Note {score} sur 5 basée sur {count} avis",
     "soldCount": "{count} vendus",
     "inStock": "En stock",
     "stockRemaining": "{count} pièces restantes",

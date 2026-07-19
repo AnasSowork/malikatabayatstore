@@ -170,6 +170,8 @@
     "reviewsCount": "{count} تقييم",
     "reviewsTitle": "آراء الزبناء",
     "reviewImageAlt": "رسالة رأي من عميلة رقم {number}",
+    "reviewsVerified": "آراء زبناء حقيقيون",
+    "ratingAria": "تقييم {score} من 5 بناءً على {count} تقييم",
     "soldCount": "تم بيع {count}",
     "inStock": "متوفر",
     "stockRemaining": "متبقي {count} قطع",
