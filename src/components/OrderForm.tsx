@@ -114,15 +114,15 @@ export function OrderForm({
           <input
             required
             type="tel"
-            inputMode="tel"
+            inputMode="numeric"
             className={localizedInputClass}
             dir={locale === "ar" ? "rtl" : "ltr"}
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
             autoComplete="tel-national"
             placeholder={t("phonePlaceholder")}
-            pattern="(?:0[5-7](?:[ .-]?[0-9]){8}|\+212[5-7](?:[ .-]?[0-9]){8})"
-            maxLength={18}
+            pattern="0[5-7][0-9]{8}"
+            maxLength={10}
             title={t("phoneFormatHint")}
           />
         </div>
