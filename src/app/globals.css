@@ -3174,11 +3174,11 @@ html[dir="rtl"] .product-detail-shell {
   inset-inline-end: 0.75rem;
   top: -0.55rem;
   border-radius: 0.35rem;
-  background: #d8bd88;
+  background: #d83b32;
   padding: 0.15rem 0.45rem;
   font-size: 0.625rem;
   font-weight: 700;
-  color: #17130d;
+  color: white;
 }
 
 .bundle-option:hover {

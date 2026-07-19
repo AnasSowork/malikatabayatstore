@@ -32,6 +32,13 @@ function serializeOrder(order: {
   };
 }
 
+function normalizeMoroccanPhone(value: string): string | null {
+  let normalized = value.replace(/[\s.-]/g, "");
+  if (normalized.startsWith("+212")) normalized = `0${normalized.slice(4)}`;
+  if (normalized.startsWith("00212")) normalized = `0${normalized.slice(5)}`;
+  return /^0[5-7][0-9]{8}$/.test(normalized) ? normalized : null;
+}
+
 export async function GET() {
   try {
     const isAdmin = await isAdminAuthenticated();
@@ -74,6 +81,11 @@ export async function POST(request: Request) {
       !productId.trim()
     ) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const normalizedPhone = normalizeMoroccanPhone(phone);
+    if (!normalizedPhone) {
+      return NextResponse.json({ error: "Invalid Moroccan phone number" }, { status: 400 });
     }
 
     const quantity =
@@ -126,7 +138,7 @@ export async function POST(request: Request) {
     const order = await prisma.order.create({
       data: {
         customerName: customerName.trim(),
-        phone: phone.trim(),
+        phone: normalizedPhone,
         city: city.trim(),
         productId: productId.trim(),
         selectedColor: primaryColor,

@@ -35,6 +35,11 @@ export function OrderForm({
 }: Props) {
   const t = useTranslations("product");
   const router = useRouter();
+  const localizedInputClass = `${inputClass} ${
+    locale === "ar"
+      ? "text-right placeholder:text-right"
+      : "text-left placeholder:text-left"
+  }`;
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
@@ -84,7 +89,8 @@ export function OrderForm({
             <label className={labelClass}>{t("customerName")}</label>
             <input
               required
-              className={inputClass}
+              className={localizedInputClass}
+              dir={locale === "ar" ? "rtl" : "ltr"}
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               autoComplete="name"
@@ -95,7 +101,8 @@ export function OrderForm({
             <label className={labelClass}>{t("city")}</label>
             <input
               required
-              className={inputClass}
+              className={localizedInputClass}
+              dir={locale === "ar" ? "rtl" : "ltr"}
               value={city}
               onChange={(e) => setCity(e.target.value)}
               autoComplete="address-level2"
@@ -108,11 +115,16 @@ export function OrderForm({
           <input
             required
             type="tel"
-            className={inputClass}
+            inputMode="tel"
+            className={localizedInputClass}
+            dir={locale === "ar" ? "rtl" : "ltr"}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            autoComplete="tel"
+            autoComplete="tel-national"
             placeholder={t("phonePlaceholder")}
+            pattern="(?:0[5-7](?:[ .-]?[0-9]){8}|\+212[5-7](?:[ .-]?[0-9]){8})"
+            maxLength={18}
+            title={t("phoneFormatHint")}
           />
         </div>
 
