@@ -77,7 +77,7 @@ export function OrderForm({
     status === "loading" || !canSubmit || (requiresColorSelection && lineItems.some((i) => !i.color));
 
   return (
-    <div id="order-form" className="space-y-6 scroll-mt-24 rounded-2xl border border-black/15 bg-white p-5 md:p-6">
+    <div id="order-form" className="order-form-card space-y-6 scroll-mt-24 rounded-2xl border border-black/15 p-5 md:p-6">
       <div className="space-y-1">
         <h3 className="font-store text-lg font-semibold text-on-surface">{t("orderTitle")}</h3>
         <p className="brand-eyebrow">{t("orderSubtitle")}</p>
@@ -110,7 +110,7 @@ export function OrderForm({
           </div>
         </div>
         <div className="space-y-2">
-          <label className={labelClass}>{t("phone")}</label>
+          <label className={`${labelClass} order-form-phone-label`}>{t("phone")}</label>
           <input
             required
             type="tel"
@@ -132,19 +132,26 @@ export function OrderForm({
         ) : null}
 
         <div className="order-cost-summary">
-          <div className="flex items-center justify-between">
-            <span className="font-store text-xs font-semibold text-on-surface-variant">
-              {quantity > 1 ? t("bundleTotal", { count: quantity }) : t("total")}
-            </span>
-            <span className="font-headline text-xl font-bold text-on-surface">{formatMad(totalPrice, locale)}</span>
+          <div className="order-cost-row">
+            <span>{t("merchandisePrice")}</span>
+            <strong>{formatMad(totalPrice, locale)}</strong>
           </div>
-          <div className="flex items-center justify-between font-store text-xs text-on-surface-variant">
+          <div className="order-cost-row">
             <span>{t("delivery")}</span>
-            <strong className="text-on-surface">{t("freeDelivery")}</strong>
+            <strong>{formatMad(0, locale)}</strong>
+          </div>
+          <div className="order-cost-row order-cost-row-total">
+            <span>{quantity > 1 ? t("bundleTotal", { count: quantity }) : t("total")}</span>
+            <strong>{formatMad(totalPrice, locale)}</strong>
           </div>
         </div>
 
-        <BrandButton type="submit" variant="primary" disabled={disabled} className="btn-brand-block">
+        <BrandButton
+          type="submit"
+          variant="primary"
+          disabled={disabled}
+          className="btn-brand-block order-form-cta"
+        >
           {status === "loading" ? t("submitting") : t("submit")}
         </BrandButton>
         {status === "success" && (

@@ -3564,13 +3564,58 @@ html[dir="rtl"] .product-detail-shell {
   object-fit: contain;
 }
 
+.order-form-card {
+  background: rgba(216, 189, 136, 0.22);
+}
+
+.order-form-phone-label {
+  opacity: 0.55;
+}
+
+.order-form-cta {
+  font-family: var(--font-store) !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  text-transform: none !important;
+}
+
 .order-cost-summary {
   display: grid;
-  gap: 0.4rem;
+  gap: 0.55rem;
   border-top: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 0.75rem;
-  background: #f8f7f4;
+  background: rgba(255, 255, 255, 0.55);
   padding: 0.85rem 0.9rem;
+}
+
+.order-cost-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-family: var(--font-store);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.62);
+}
+
+.order-cost-row strong {
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+.order-cost-row-total {
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-on-surface);
+}
+
+.order-cost-row-total strong {
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 .product-mobile-order-cta {
