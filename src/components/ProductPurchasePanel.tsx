@@ -101,10 +101,10 @@ export function ProductPurchasePanel({
     pieces.every((p) => p.size && (!requiresColor || p.color));
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="product-purchase-panel">
       <div className="flex items-baseline justify-between gap-4 border-b border-brand-gold/15 pb-4">
-        <span className="font-sans text-xs uppercase tracking-widest text-on-surface-variant">{t("selectedTotal")}</span>
-        <span className="font-headline text-2xl italic brand-gold-text md:text-3xl">
+        <span className="font-store text-xs font-semibold text-on-surface-variant">{t("selectedTotal")}</span>
+        <span className="font-store text-lg font-semibold text-on-surface">
           {formatMad(totalPrice, locale)}
         </span>
       </div>

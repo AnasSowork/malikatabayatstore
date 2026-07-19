@@ -17,13 +17,13 @@ export function SizeSelector({ selectedSize, onSelect, compact, sizes = PRODUCT_
     <div className={compact ? "space-y-3" : "space-y-4"}>
       {!compact ? (
         <div className="flex items-center justify-between">
-          <span className="font-sans text-xs uppercase tracking-widest text-on-surface">{t("selectSize")}</span>
+          <span className="font-store text-xs font-semibold text-on-surface-variant">{t("selectSize")}</span>
           <button type="button" className="text-xs text-secondary underline underline-offset-4">
             {t("sizeGuide")}
           </button>
         </div>
       ) : (
-        <span className="font-sans text-[10px] uppercase tracking-widest text-on-surface-variant">{t("selectSize")}</span>
+        <span className="font-store text-xs font-semibold text-on-surface-variant">{t("selectSize")}</span>
       )}
       <div className="flex flex-wrap gap-2.5">
         {sizes.map((size) => {
@@ -34,9 +34,9 @@ export function SizeSelector({ selectedSize, onSelect, compact, sizes = PRODUCT_
               key={size}
               type="button"
               onClick={() => onSelect(size)}
-              className={`flex items-center justify-center rounded-full border font-sans font-medium transition-all hover:border-primary ${
-                compact ? "h-10 text-xs" : "h-12 text-sm"
-              } ${wide ? (compact ? "min-w-[2.75rem] px-3" : "min-w-[3.25rem] px-4") : compact ? "w-10" : "w-12"} ${
+              className={`flex h-10 items-center justify-center rounded-full border font-store text-sm font-semibold transition-all hover:border-primary ${
+                wide ? "min-w-[2.75rem] px-3" : "w-10"
+              } ${
                 selected
                   ? "border-primary bg-primary/5 text-on-surface"
                   : "border-outline-variant text-on-surface hover:bg-surface-container-low"

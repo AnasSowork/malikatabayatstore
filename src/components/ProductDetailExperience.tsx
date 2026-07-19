@@ -108,7 +108,7 @@ export function ProductDetailExperience({
         />
       </section>
 
-      <section className="flex min-w-0 flex-col gap-10">
+      <section className="product-info-column">
         <div className="product-summary">
           <div className="flex items-start justify-between gap-4">
             <div>

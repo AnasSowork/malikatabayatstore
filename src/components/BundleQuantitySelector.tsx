@@ -25,7 +25,7 @@ export function BundleQuantitySelector({
 
   return (
     <div className="space-y-3">
-      <span className="font-sans text-xs uppercase tracking-widest text-on-surface">{t("bundleQuantity")}</span>
+      <span className="font-store text-xs font-semibold text-on-surface-variant">{t("bundleQuantity")}</span>
       <div className="flex flex-col gap-2">
         {offers.map((offer) => {
           const savings = bundleSavings(offer, unitPrice);
@@ -35,18 +35,18 @@ export function BundleQuantitySelector({
               key={offer.quantity}
               type="button"
               onClick={() => onSelect(offer.quantity)}
-              className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-all ${
+              className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-start transition-all ${
                 selected
                   ? "border-primary bg-surface-container-high"
                   : "border-outline-variant/50 hover:border-primary/50"
               }`}
               aria-pressed={selected}
             >
-              <span className="font-sans text-sm text-on-surface">
+              <span className="font-store text-lg font-semibold text-on-surface">
                 {t("bundleTier", { count: offer.quantity, price: formatMad(offer.price, locale) })}
               </span>
               {savings > 0 ? (
-                <span className="font-sans text-xs brand-gold-text">
+                <span className="font-store text-[11px] font-semibold brand-gold-text">
                   {t("saveAmount", { amount: formatMad(savings, locale) })}
                 </span>
               ) : null}

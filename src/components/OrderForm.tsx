@@ -20,9 +20,9 @@ type Props = {
 };
 
 const inputClass =
-  "w-full rounded-xl border border-brand-gold/10 bg-surface-container-lowest px-4 py-3 font-sans text-sm text-on-surface placeholder:text-outline transition-all focus:border-brand-gold/40 focus:outline-none focus:ring-1 focus:ring-brand-gold/20";
+  "h-14 w-full rounded-2xl border border-black/35 bg-surface-container-lowest px-4 font-store text-base font-medium text-on-surface placeholder:text-outline transition-all focus:border-black focus:outline-none focus:ring-1 focus:ring-black/10";
 
-const labelClass = "font-sans text-[10px] uppercase tracking-widest text-on-surface-variant px-1";
+const labelClass = "px-1 font-store text-xs font-semibold text-on-surface-variant";
 
 export function OrderForm({
   productId,
@@ -73,13 +73,13 @@ export function OrderForm({
     status === "loading" || !canSubmit || (requiresColorSelection && lineItems.some((i) => !i.color));
 
   return (
-    <div id="order-form" className="space-y-8 scroll-mt-28 rounded-xl border border-brand-gold/15 bg-brand-cream/40 p-6 md:p-8">
+    <div id="order-form" className="space-y-6 scroll-mt-28 rounded-2xl border border-brand-gold/20 bg-brand-cream/55 p-5 md:p-6">
       <div className="space-y-1">
-        <h3 className="font-headline text-xl text-on-surface">{t("orderTitle")}</h3>
+        <h3 className="font-store text-lg font-semibold text-on-surface">{t("orderTitle")}</h3>
         <p className="brand-eyebrow">{t("orderSubtitle")}</p>
       </div>
-      <form onSubmit={onSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <label className={labelClass}>{t("customerName")}</label>
             <input

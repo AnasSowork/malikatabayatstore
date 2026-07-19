@@ -645,10 +645,16 @@ html[dir="rtl"] body {
 
 html[dir="rtl"] {
   --font-store: var(--font-store-kufi), var(--font-cairo), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-headline: var(--font-store-kufi), var(--font-cairo), var(--font-newsreader), ui-sans-serif, system-ui, sans-serif;
 }
 
 html[dir="rtl"] .font-headline {
   font-family: var(--font-store-kufi), var(--font-cairo), var(--font-newsreader), serif;
+}
+
+html[dir="rtl"] .brand-eyebrow,
+html[dir="rtl"] .product-detail-shell {
+  letter-spacing: 0;
 }
 
 /* ── Admin dashboard ── */
@@ -3093,16 +3099,32 @@ html[dir="rtl"] .font-headline {
 .product-summary {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
+  font-family: var(--font-store);
+}
+
+.product-info-column {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2rem;
+  font-family: var(--font-store);
+}
+
+.product-purchase-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  font-family: var(--font-store);
 }
 
 .product-summary h1 {
-  margin-top: 0.5rem;
+  margin-top: 0.35rem;
   font-family: var(--font-headline);
-  font-size: clamp(2rem, 5vw, 3.75rem);
+  font-size: 1.75rem;
   font-weight: 500;
-  line-height: 1.15;
-  letter-spacing: -0.025em;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
 }
 
 .product-favorite {
@@ -3130,7 +3152,8 @@ html[dir="rtl"] .font-headline {
   align-items: center;
   gap: 0.45rem 0.75rem;
   font-family: var(--font-store);
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
   color: rgba(0, 0, 0, 0.58);
 }
 
@@ -3159,7 +3182,8 @@ html[dir="rtl"] .font-headline {
 }
 
 .product-price-row strong {
-  font-size: clamp(1.65rem, 4vw, 2.25rem);
+  font-size: 2.25rem;
+  font-weight: 700;
   line-height: 1;
 }
 
@@ -3179,9 +3203,10 @@ html[dir="rtl"] .font-headline {
 
 .product-short-description {
   font-family: var(--font-store);
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.8;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.75;
+  color: rgba(0, 0, 0, 0.72);
 }
 
 .product-full-description {
@@ -3189,8 +3214,8 @@ html[dir="rtl"] .font-headline {
   white-space: pre-line;
   font-family: var(--font-store);
   font-size: 0.875rem;
-  line-height: 1.9;
-  color: rgba(0, 0, 0, 0.64);
+  line-height: 1.8;
+  color: rgba(0, 0, 0, 0.6);
 }
 
 .product-inventory-meta {
@@ -3198,7 +3223,8 @@ html[dir="rtl"] .font-headline {
   flex-wrap: wrap;
   gap: 0.75rem 1.25rem;
   font-family: var(--font-store);
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
   color: rgba(0, 0, 0, 0.58);
 }
 
@@ -3297,8 +3323,10 @@ html[dir="rtl"] .font-headline {
 .product-love-section h2,
 .product-faq h2 {
   margin-bottom: 1rem;
-  font-family: var(--font-headline);
-  font-size: 1.35rem;
+  font-family: var(--font-store);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
 .product-love-grid {
@@ -3334,14 +3362,15 @@ html[dir="rtl"] .font-headline {
 .product-love-item strong {
   display: block;
   font-family: var(--font-store);
-  font-size: 0.82rem;
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
 .product-love-item p {
   margin-top: 0.2rem;
   font-family: var(--font-store);
-  font-size: 0.72rem;
-  line-height: 1.6;
+  font-size: 0.8125rem;
+  line-height: 1.65;
   color: rgba(0, 0, 0, 0.58);
 }
 
@@ -3377,6 +3406,12 @@ html[dir="rtl"] .font-headline {
 @media (min-width: 640px) {
   .product-love-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .product-summary h1 {
+    font-size: 2rem;
   }
 }
 
