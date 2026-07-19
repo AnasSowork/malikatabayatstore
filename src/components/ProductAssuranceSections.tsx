@@ -18,21 +18,6 @@ export function ProductAssuranceSections({ content }: Props) {
 
   return (
     <div className="space-y-10">
-      <section className="product-love-section" aria-labelledby="product-love-title">
-        <h2 id="product-love-title">{t("whyCustomersLoveIt")}</h2>
-        <div className="product-love-grid">
-          {content.benefits.map((benefit, index) => (
-            <article key={`${benefit.icon}-${index}`} className="product-love-item">
-              <span><MaterialIcon name={benefit.icon} className="!text-xl" /></span>
-              <div>
-                <strong>{localizeProductText(benefit.title, locale)}</strong>
-                <p>{localizeProductText(benefit.body, locale)}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
       <section aria-label={t("benefitsLabel")} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {content.services.map((benefit, index) => (
           <div key={`${benefit.icon}-${index}`} className="product-benefit">
