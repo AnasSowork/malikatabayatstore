@@ -34,11 +34,11 @@ export function SizeSelector({ selectedSize, onSelect, compact, sizes = PRODUCT_
               key={size}
               type="button"
               onClick={() => onSelect(size)}
-              className={`flex h-10 items-center justify-center rounded-full border font-store text-sm font-semibold transition-all hover:border-primary ${
-                wide ? "min-w-[2.75rem] px-3" : "w-10"
+              className={`flex h-11 items-center justify-center rounded-full border font-store text-sm font-semibold transition-all hover:border-primary ${
+                wide ? "min-w-[3rem] px-3" : "w-11"
               } ${
                 selected
-                  ? "border-primary bg-primary/5 text-on-surface"
+                  ? "border-black bg-black text-white shadow-sm"
                   : "border-outline-variant text-on-surface hover:bg-surface-container-low"
               }`}
               aria-pressed={selected}

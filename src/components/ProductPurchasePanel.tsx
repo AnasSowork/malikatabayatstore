@@ -102,13 +102,6 @@ export function ProductPurchasePanel({
 
   return (
     <div className="product-purchase-panel">
-      <div className="flex items-baseline justify-between gap-4 border-b border-brand-gold/15 pb-4">
-        <span className="font-store text-xs font-semibold text-on-surface-variant">{t("selectedTotal")}</span>
-        <span className="font-store text-lg font-semibold text-on-surface">
-          {formatMad(totalPrice, locale)}
-        </span>
-      </div>
-
       <BundleQuantitySelector
         offers={bundleOffers}
         unitPrice={unitPrice}
@@ -154,6 +147,13 @@ export function ProductPurchasePanel({
           {t("outOfStockMessage")}
         </div>
       )}
+
+      {inStock ? (
+        <a href="#order-form" className="product-mobile-order-cta">
+          <span>{t("submit")}</span>
+          <strong>{formatMad(totalPrice, locale)}</strong>
+        </a>
+      ) : null}
     </div>
   );
 }

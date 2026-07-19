@@ -90,7 +90,7 @@ export default async function ProductDetailPage({ params }: Props) {
   };
 
   return (
-    <main className="mx-auto max-w-[1600px] px-6 py-12 md:px-12 md:py-16">
+    <main className="mx-auto max-w-[1600px] px-4 py-4 md:px-12 md:py-16">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

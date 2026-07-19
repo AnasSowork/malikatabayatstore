@@ -20,7 +20,7 @@ type Props = {
 };
 
 const inputClass =
-  "h-14 w-full rounded-2xl border border-black/35 bg-surface-container-lowest px-4 font-store text-base font-medium text-on-surface placeholder:text-outline transition-all focus:border-black focus:outline-none focus:ring-1 focus:ring-black/10";
+  "h-[3.25rem] w-full rounded-xl border border-black/30 bg-white px-4 font-store text-base font-medium text-on-surface placeholder:text-outline transition-all focus:border-black focus:outline-none focus:ring-1 focus:ring-black/10";
 
 const labelClass = "px-1 font-store text-xs font-semibold text-on-surface-variant";
 
@@ -73,7 +73,7 @@ export function OrderForm({
     status === "loading" || !canSubmit || (requiresColorSelection && lineItems.some((i) => !i.color));
 
   return (
-    <div id="order-form" className="space-y-6 scroll-mt-28 rounded-2xl border border-brand-gold/20 bg-brand-cream/55 p-5 md:p-6">
+    <div id="order-form" className="space-y-5 scroll-mt-24 rounded-2xl border border-black/15 bg-white p-4 md:p-6">
       <div className="space-y-1">
         <h3 className="font-store text-lg font-semibold text-on-surface">{t("orderTitle")}</h3>
         <p className="brand-eyebrow">{t("orderSubtitle")}</p>
@@ -88,7 +88,7 @@ export function OrderForm({
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               autoComplete="name"
-              placeholder="John Doe"
+              placeholder={t("customerNamePlaceholder")}
             />
           </div>
           <div className="space-y-2">
@@ -100,7 +100,7 @@ export function OrderForm({
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               autoComplete="tel"
-              placeholder="+212 …"
+              placeholder={t("phonePlaceholder")}
             />
           </div>
         </div>
@@ -112,7 +112,7 @@ export function OrderForm({
             value={city}
             onChange={(e) => setCity(e.target.value)}
             autoComplete="address-level2"
-            placeholder="Casablanca"
+            placeholder={t("cityPlaceholder")}
           />
         </div>
 
@@ -120,11 +120,17 @@ export function OrderForm({
           <p className="text-center text-sm text-on-surface-variant">{t("completeSelections")}</p>
         ) : null}
 
-        <div className="flex items-center justify-between border-t border-brand-gold/15 pt-4">
-          <span className="font-sans text-xs uppercase tracking-widest text-on-surface-variant">
-            {quantity > 1 ? t("bundleTotal", { count: quantity }) : t("total")}
-          </span>
-          <span className="font-headline text-xl brand-gold-text">{formatMad(totalPrice, locale)}</span>
+        <div className="space-y-2 border-t border-black/10 pt-4">
+          <div className="flex items-center justify-between font-store text-xs text-on-surface-variant">
+            <span>{t("delivery")}</span>
+            <strong className="text-on-surface">{t("freeDelivery")}</strong>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="font-store text-xs font-semibold text-on-surface-variant">
+              {quantity > 1 ? t("bundleTotal", { count: quantity }) : t("total")}
+            </span>
+            <span className="font-headline text-xl font-bold text-on-surface">{formatMad(totalPrice, locale)}</span>
+          </div>
         </div>
 
         <BrandButton type="submit" variant="primary" disabled={disabled} className="btn-brand-block">

@@ -47,7 +47,6 @@ export function ProductDetailExperience({
   bundleOffers,
   category,
   compareAtPrice,
-  sku,
   stockQuantity,
   soldCount,
   rating,
@@ -150,17 +149,6 @@ export function ProductDetailExperience({
           </p>
           <p className="product-full-description">{description}</p>
 
-          <div className="product-inventory-meta">
-            <span className={inStock ? "product-stock-ok" : "product-stock-out"}>
-              <i />
-              {inStock
-                ? stockQuantity == null
-                  ? t("inStock")
-                  : t("stockRemaining", { count: stockQuantity })
-                : t("outOfStock")}
-            </span>
-            {sku ? <span>{t("skuLabel")}: {sku}</span> : null}
-          </div>
         </div>
 
         <ProductPurchasePanel
@@ -176,13 +164,6 @@ export function ProductDetailExperience({
         <ProductAssuranceSections content={detailContent} />
       </section>
       </div>
-
-      {inStock ? (
-        <a href="#order-form" className="product-mobile-order-cta">
-          <span>{t("submit")}</span>
-          <strong>{formatMad(unitPrice, locale)}</strong>
-        </a>
-      ) : null}
     </div>
   );
 }

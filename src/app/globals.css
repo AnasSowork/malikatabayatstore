@@ -3362,7 +3362,8 @@ html[dir="rtl"] .product-detail-shell {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center top;
   transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -3493,6 +3494,68 @@ html[dir="rtl"] .product-detail-shell {
 @media (min-width: 768px) {
   .product-summary h1 {
     font-size: 2rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .announcement-bar {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.6875rem;
+    line-height: 1.5;
+  }
+
+  .product-breadcrumb {
+    margin-bottom: 0.75rem;
+    font-size: 0.6875rem;
+  }
+
+  .product-detail-shell > .grid {
+    gap: 1.5rem;
+  }
+
+  .product-info-column {
+    gap: 1.5rem;
+  }
+
+  .product-purchase-panel {
+    gap: 1.25rem;
+  }
+
+  .product-gallery-main,
+  .product-gallery-companion {
+    border-radius: 0.65rem;
+    background: #f7f5f1;
+  }
+
+  .product-gallery-thumb {
+    width: 3.5rem;
+    height: 4.375rem;
+  }
+
+  .product-summary h1 {
+    font-size: 1.65rem;
+  }
+
+  .bundle-option {
+    min-height: 3.5rem;
+    border-radius: 0.75rem;
+    padding: 0.65rem 0.85rem;
+  }
+
+  .bundle-option-main {
+    gap: 0.6rem;
+  }
+
+  .color-variant-swatch-inner {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  .product-mobile-order-cta {
+    right: 0.75rem;
+    bottom: 4.8rem;
+    left: 0.75rem;
+    padding: 0.75rem 1rem;
   }
 }
 

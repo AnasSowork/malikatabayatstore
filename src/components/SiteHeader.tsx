@@ -17,14 +17,14 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/15 bg-brand-black/95 backdrop-blur-xl">
       <p className="announcement-bar">{t("announcement")}</p>
-      <nav className="mx-auto flex w-full max-w-[1920px] items-center justify-between px-6 py-3.5 md:px-8 md:py-4">
+      <nav className="mx-auto flex w-full max-w-[1920px] items-center justify-between px-4 py-2 md:px-8 md:py-3">
         <div className="flex items-center gap-8 md:gap-10">
           <Link
             href="/"
             className="inline-flex items-center"
             aria-label={`${brand("name")} Home`}
           >
-            <BrandLogo height={46} priority variant="dark" alt={brand("name")} />
+            <BrandLogo height={36} priority variant="dark" alt={brand("name")} />
           </Link>
           <div className="hidden items-center gap-8 md:flex">
             <Link href="/products" className={navItem(onShop)}>
