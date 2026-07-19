@@ -102,7 +102,7 @@
     "customerName": "Nom complet",
     "customerNamePlaceholder": "Votre nom",
     "phone": "Téléphone",
-    "phonePlaceholder": "Téléphone",
+    "phonePlaceholder": "Numéro de contact",
     "phoneFormatHint": "Saisissez un numéro marocain valide, par exemple 06 12 34 56 78",
     "city": "Ville de livraison",
     "cityPlaceholder": "Votre ville",
