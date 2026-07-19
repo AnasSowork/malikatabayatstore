@@ -4,7 +4,7 @@ import {
   normalizeProductDetailContent,
   type ProductDetailContent,
 } from "@/lib/product-detail-content";
-import { PRODUCT_SIZES } from "@/lib/product-sizes";
+import { PRODUCT_SIZES, normalizeAvailableSizes, normalizeProductSize } from "@/lib/product-sizes";
 
 export type ColorVariantInput = { name: string; hex?: string };
 
@@ -117,16 +117,15 @@ export function parseProductPayload(body: Record<string, unknown>):
     return { ok: false, error: "Invalid merchandising values" };
   }
 
-  const sizeList = Array.isArray(availableSizes)
-    ? availableSizes
-        .filter((value): value is string => typeof value === "string")
-        .map((value) => value.trim().toUpperCase())
-        .filter((value, index, values) => value.length > 0 && value.length <= 12 && values.indexOf(value) === index)
-        .slice(0, 12)
-    : [...PRODUCT_SIZES];
-  if (sizeList.length === 0) {
-    return { ok: false, error: "Select at least one size" };
-  }
+  const sizeList = normalizeAvailableSizes(
+    Array.isArray(availableSizes)
+      ? availableSizes
+          .filter((value): value is string => typeof value === "string")
+          .map((value) => normalizeProductSize(value))
+          .filter((value) => value.length > 0 && value.length <= 12)
+          .slice(0, 12)
+      : [...PRODUCT_SIZES],
+  );
 
   let offers: BundleOffer[];
   if (Array.isArray(bundleOffers) && bundleOffers.length > 0) {

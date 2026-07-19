@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAdminAuthenticated } from "@/lib/auth";
 import { findBundleOffer, toOrderLineItems, type OrderLineItem } from "@/lib/bundle-offers";
+import { normalizeProductSize } from "@/lib/product-sizes";
 import { serializeProduct } from "@/lib/product-serialize";
 
 function serializeOrder(order: {
@@ -123,7 +124,9 @@ export async function POST(request: Request) {
     }
 
     for (const item of lineItems) {
-      if (!availableSizes.includes(item.size)) {
+      const size = normalizeProductSize(item.size);
+      item.size = size;
+      if (!availableSizes.includes(size)) {
         return NextResponse.json({ error: "Invalid size" }, { status: 400 });
       }
       if (variantNames.length > 0) {

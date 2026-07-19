@@ -6,7 +6,7 @@ import {
   normalizeProductDetailContent,
   type ProductDetailContent,
 } from "@/lib/product-detail-content";
-import { PRODUCT_SIZES } from "@/lib/product-sizes";
+import { normalizeAvailableSizes } from "@/lib/product-sizes";
 
 export type ProductColorVariant = {
   name: string;
@@ -80,9 +80,7 @@ export function serializeProduct(p: Product): ProductForClient {
     images,
     colorVariants: toColorVariants(p.colorVariants),
     bundleOffers: toBundleOffers(p.bundleOffers, basePrice),
-    availableSizes: toStringArray(p.availableSizes).length
-      ? toStringArray(p.availableSizes)
-      : [...PRODUCT_SIZES],
+    availableSizes: normalizeAvailableSizes(toStringArray(p.availableSizes)),
     detailContent: normalizeProductDetailContent(p.detailContent),
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
