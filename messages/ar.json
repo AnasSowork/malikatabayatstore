@@ -124,7 +124,7 @@
     "colorVariant": "اللون",
     "youMayAlsoLike": "قد يعجبك أيضاً",
     "bundleQuantity": "الكمية",
-    "bundleTier": "{count, plural, one {عباية واحدة بـ {price}} two {عبايتان بـ {price}} other {# عبايات بـ {price}}}",
+    "bundleTier": "{count, plural, one {عباية واحدة بـ {price}} two {# عبايات بـ {price}} other {# عبايات بـ {price}}}",
     "saveAmount": "وفّري {amount}",
     "offerCountdown": "الوقت المتبقي لانتهاء العرض",
     "mostRequested": "الأكثر طلباً",
