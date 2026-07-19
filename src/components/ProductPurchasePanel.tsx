@@ -60,15 +60,15 @@ export function ProductPurchasePanel({
     buildPieces(defaultQty, colorVariants, availableSizes, []),
   );
 
+  // Gallery color may drive the single-item selector only. Never broadcast it
+  // onto every piece — that overwrote independent multi-piece color picks.
   useEffect(() => {
     if (!preferredColor) return;
-    // Gallery navigation is an external product-selection input; synchronize
-    // all currently configured pieces only when that external color changes.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPieces((prev) => {
-      if (prev.length === 0) return prev;
-      if (prev.every((p) => p.color === preferredColor)) return prev;
-      return prev.map((p) => ({ ...p, color: preferredColor }));
+      if (prev.length !== 1) return prev;
+      if (prev[0]?.color === preferredColor) return prev;
+      return [{ ...prev[0], color: preferredColor }];
     });
   }, [preferredColor]);
 
