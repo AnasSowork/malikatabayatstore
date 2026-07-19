@@ -101,7 +101,7 @@
     "orderSubtitle": "Paiement à la livraison",
     "customerName": "Nom complet",
     "customerNamePlaceholder": "Votre nom",
-    "phone": "Numéro de contact",
+    "phone": "Téléphone",
     "phonePlaceholder": "06 12 34 56 78",
     "phoneFormatHint": "Saisissez un numéro marocain valide, par exemple 06 12 34 56 78",
     "city": "Ville de livraison",
