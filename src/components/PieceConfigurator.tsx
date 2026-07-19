@@ -11,13 +11,21 @@ type Props = {
   colorVariants: ProductColorVariant[];
   availableSizes: string[];
   onChange: (pieces: OrderLineItem[]) => void;
+  onColorChange?: (colorName: string) => void;
 };
 
-export function PieceConfigurator({ pieces, colorVariants, availableSizes, onChange }: Props) {
+export function PieceConfigurator({
+  pieces,
+  colorVariants,
+  availableSizes,
+  onChange,
+  onColorChange,
+}: Props) {
   const t = useTranslations("product");
 
   function updatePiece(index: number, patch: Partial<OrderLineItem>) {
     onChange(pieces.map((p, i) => (i === index ? { ...p, ...patch } : p)));
+    if (patch.color) onColorChange?.(patch.color);
   }
 
   return (

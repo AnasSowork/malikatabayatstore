@@ -11,6 +11,7 @@ import { normalizeAvailableSizes } from "@/lib/product-sizes";
 export type ProductColorVariant = {
   name: string;
   hex: string | null;
+  imageUrl: string | null;
 };
 
 export type ProductForClient = {
@@ -47,12 +48,16 @@ function toColorVariants(value: unknown): ProductColorVariant[] {
   if (!Array.isArray(value)) return [];
   return value
     .filter(
-      (v): v is { name: string; hex?: string | null } =>
+      (v): v is { name: string; hex?: string | null; imageUrl?: string | null } =>
         Boolean(v && typeof v === "object" && typeof (v as { name?: unknown }).name === "string"),
     )
     .map((v) => ({
       name: v.name,
       hex: typeof v.hex === "string" ? v.hex : null,
+      imageUrl:
+        typeof v.imageUrl === "string" && v.imageUrl.trim()
+          ? normalizeProductImageSrc(v.imageUrl)
+          : null,
     }));
 }
 
@@ -60,6 +65,11 @@ export function serializeProduct(p: Product): ProductForClient {
   const categories = toStringArray(p.categories);
   const images = toStringArray(p.images).map((u) => normalizeProductImageSrc(u));
   const basePrice = Number(p.price.toString());
+  const colorVariants = toColorVariants(p.colorVariants).map((variant, index) => ({
+    ...variant,
+    // Default mapping: color order follows gallery order until an explicit photo is set.
+    imageUrl: variant.imageUrl ?? images[index] ?? null,
+  }));
 
   return {
     id: p.id,
@@ -78,7 +88,7 @@ export function serializeProduct(p: Product): ProductForClient {
     descriptionFr: p.descriptionFr,
     categories,
     images,
-    colorVariants: toColorVariants(p.colorVariants),
+    colorVariants,
     bundleOffers: toBundleOffers(p.bundleOffers, basePrice),
     availableSizes: normalizeAvailableSizes(toStringArray(p.availableSizes)),
     detailContent: normalizeProductDetailContent(p.detailContent),

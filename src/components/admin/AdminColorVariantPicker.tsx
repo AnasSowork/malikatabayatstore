@@ -41,6 +41,7 @@ function newVariant(partial?: Partial<ColorVariantDraft>): ColorVariantDraft {
     id: crypto.randomUUID(),
     name: partial?.name ?? "",
     hex: normalizeHex(partial?.hex ?? "#1A1A1A"),
+    imageUrl: partial?.imageUrl ?? null,
   };
 }
 
@@ -49,10 +50,16 @@ type EditorMode = "create" | "edit";
 type Props = {
   value: ColorVariantDraft[];
   onChange: (variants: ColorVariantDraft[]) => void;
+  productImages?: string[];
   disabled?: boolean;
 };
 
-export function AdminColorVariantPicker({ value, onChange, disabled }: Props) {
+export function AdminColorVariantPicker({
+  value,
+  onChange,
+  productImages = [],
+  disabled,
+}: Props) {
   const t = useTranslations("admin");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -60,6 +67,7 @@ export function AdminColorVariantPicker({ value, onChange, disabled }: Props) {
   const [draftName, setDraftName] = useState("");
   const [draftHex, setDraftHex] = useState("#1A1A1A");
   const [hexInput, setHexInput] = useState("#1A1A1A");
+  const [draftImageUrl, setDraftImageUrl] = useState<string | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
 
   const selected = useMemo(
@@ -72,13 +80,14 @@ export function AdminColorVariantPicker({ value, onChange, disabled }: Props) {
     editorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [editorOpen, selectedId]);
 
-  function openCreate(initial?: { name?: string; hex?: string }) {
+  function openCreate(initial?: { name?: string; hex?: string; imageUrl?: string | null }) {
     const hex = normalizeHex(initial?.hex ?? "#1A1A1A");
     setEditorMode("create");
     setSelectedId(null);
     setDraftName(initial?.name ?? "");
     setDraftHex(hex);
     setHexInput(hex);
+    setDraftImageUrl(initial?.imageUrl ?? null);
     setEditorOpen(true);
   }
 
@@ -88,6 +97,7 @@ export function AdminColorVariantPicker({ value, onChange, disabled }: Props) {
     setDraftName(variant.name);
     setDraftHex(variant.hex);
     setHexInput(variant.hex);
+    setDraftImageUrl(variant.imageUrl);
     setEditorOpen(true);
   }
 
@@ -107,9 +117,13 @@ export function AdminColorVariantPicker({ value, onChange, disabled }: Props) {
     if (duplicate) return;
 
     if (editorMode === "edit" && selectedId) {
-      onChange(value.map((v) => (v.id === selectedId ? { ...v, name, hex } : v)));
+      onChange(
+        value.map((v) =>
+          v.id === selectedId ? { ...v, name, hex, imageUrl: draftImageUrl } : v,
+        ),
+      );
     } else {
-      onChange([...value, newVariant({ name, hex })]);
+      onChange([...value, newVariant({ name, hex, imageUrl: draftImageUrl })]);
     }
     closeEditor();
   }
@@ -294,6 +308,37 @@ export function AdminColorVariantPicker({ value, onChange, disabled }: Props) {
                 </div>
               </label>
 
+              <div className="admin-field">
+                <span>{t("colorImageLabel")}</span>
+                {productImages.length > 0 ? (
+                  <div className="admin-color-image-grid">
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      className={`admin-color-image-option ${draftImageUrl == null ? "admin-color-image-option-active" : ""}`}
+                      onClick={() => setDraftImageUrl(null)}
+                    >
+                      {t("colorImageNone")}
+                    </button>
+                    {productImages.map((url) => (
+                      <button
+                        key={url}
+                        type="button"
+                        disabled={disabled}
+                        className={`admin-color-image-option ${draftImageUrl === url ? "admin-color-image-option-active" : ""}`}
+                        onClick={() => setDraftImageUrl(url)}
+                        title={url}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt="" />
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="admin-color-picker-hint">{t("colorImageUploadFirst")}</p>
+                )}
+              </div>
+
               {duplicateName ? (
                 <p className="admin-color-editor-error">{t("duplicateColor")}</p>
               ) : null}
@@ -319,12 +364,20 @@ export function AdminColorVariantPicker({ value, onChange, disabled }: Props) {
   );
 }
 
-export function draftsFromProductVariants(variants: { name: string; hex: string | null }[]): ColorVariantDraft[] {
-  return variants.map((v) => newVariant({ name: v.name, hex: v.hex ?? "#000000" }));
+export function draftsFromProductVariants(
+  variants: { name: string; hex: string | null; imageUrl?: string | null }[],
+): ColorVariantDraft[] {
+  return variants.map((v) =>
+    newVariant({ name: v.name, hex: v.hex ?? "#000000", imageUrl: v.imageUrl ?? null }),
+  );
 }
 
 export function draftsToPayload(variants: ColorVariantDraft[]) {
   return variants
     .filter((v) => v.name.trim())
-    .map((v) => ({ name: v.name.trim(), hex: normalizeHex(v.hex) }));
+    .map((v) => ({
+      name: v.name.trim(),
+      hex: normalizeHex(v.hex),
+      imageUrl: v.imageUrl,
+    }));
 }

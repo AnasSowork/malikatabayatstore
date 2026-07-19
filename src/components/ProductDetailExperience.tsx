@@ -66,21 +66,37 @@ export function ProductDetailExperience({
   const syncColorToImage = useCallback(
     (colorName: string) => {
       setGalleryColor(colorName);
-      const colorIdx = colorVariants.findIndex((v) => v.name === colorName);
+      const variant = colorVariants.find((item) => item.name === colorName);
+      if (variant?.imageUrl) {
+        const byUrl = images.findIndex((image) => image === variant.imageUrl);
+        if (byUrl >= 0) {
+          setImageIndex(byUrl);
+          return;
+        }
+      }
+      const colorIdx = colorVariants.findIndex((item) => item.name === colorName);
       if (colorIdx >= 0 && colorIdx < images.length) {
         setImageIndex(colorIdx);
       }
     },
-    [colorVariants, images.length],
+    [colorVariants, images],
   );
 
   const syncImageToColor = useCallback(
     (idx: number) => {
       setImageIndex(idx);
+      const image = images[idx];
+      const linked = image
+        ? colorVariants.find((variant) => variant.imageUrl === image)
+        : undefined;
+      if (linked) {
+        setGalleryColor(linked.name);
+        return;
+      }
       const variant = colorVariants[idx];
       if (variant) setGalleryColor(variant.name);
     },
-    [colorVariants],
+    [colorVariants, images],
   );
   const inStock = stockQuantity == null || stockQuantity > 0;
 

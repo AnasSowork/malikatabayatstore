@@ -6,7 +6,7 @@ import {
 } from "@/lib/product-detail-content";
 import { PRODUCT_SIZES, normalizeAvailableSizes, normalizeProductSize } from "@/lib/product-sizes";
 
-export type ColorVariantInput = { name: string; hex?: string };
+export type ColorVariantInput = { name: string; hex?: string; imageUrl?: string | null };
 
 export type ParsedProductPayload = {
   name: string;
@@ -24,7 +24,7 @@ export type ParsedProductPayload = {
   descriptionFr: string | null;
   categoryList: string[];
   imageList: string[];
-  colorList: { name: string; hex: string | null }[];
+  colorList: { name: string; hex: string | null; imageUrl: string | null }[];
   bundleOffers: BundleOffer[];
   availableSizes: string[];
   detailContent: ProductDetailContent;
@@ -168,10 +168,17 @@ export function parseProductPayload(body: Record<string, unknown>):
         typeof descriptionFr === "string" && descriptionFr.trim() ? descriptionFr.trim() : null,
       categoryList,
       imageList,
-      colorList: colorList.map((v) => ({
-        name: v.name.trim(),
-        hex: typeof v.hex === "string" && v.hex.trim() ? v.hex.trim() : null,
-      })),
+      colorList: colorList.map((v) => {
+        const rawImage =
+          typeof (v as { imageUrl?: unknown }).imageUrl === "string"
+            ? (v as { imageUrl: string }).imageUrl.trim()
+            : "";
+        return {
+          name: v.name.trim(),
+          hex: typeof v.hex === "string" && v.hex.trim() ? v.hex.trim() : null,
+          imageUrl: rawImage ? normalizeProductImageSrc(rawImage) : null,
+        };
+      }),
       bundleOffers: offers,
       availableSizes: sizeList,
       detailContent: normalizeProductDetailContent(detailContent),

@@ -32,6 +32,7 @@ export type ColorVariantDraft = {
   id: string;
   name: string;
   hex: string;
+  imageUrl: string | null;
 };
 
 export type ProductFormState = {

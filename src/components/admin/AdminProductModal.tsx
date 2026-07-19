@@ -244,6 +244,7 @@ export function AdminProductModal({
             <AdminColorVariantPicker
               value={form.colorVariants}
               onChange={(colorVariants) => setForm((f) => ({ ...f, colorVariants }))}
+              productImages={form.imageUrls}
               disabled={creating}
             />
           </section>

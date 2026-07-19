@@ -116,6 +116,7 @@ export function ProductPurchasePanel({
           colorVariants={colorVariants}
           availableSizes={availableSizes}
           onChange={setPieces}
+          onColorChange={onColorChange}
         />
       ) : (
         <>
