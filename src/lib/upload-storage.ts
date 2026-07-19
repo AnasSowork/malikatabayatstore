@@ -1,4 +1,4 @@
-import { isAbsolute, join, resolve } from "node:path";
+import { isAbsolute, join, resolve, sep } from "node:path";
 
 const bundledUploadDirectory = join(process.cwd(), "public", "uploads", "p");
 
@@ -11,6 +11,17 @@ function configuredUploadDirectory(): string | null {
 export function getUploadWriteDirectory(): string {
   const configured = configuredUploadDirectory();
   if (configured) return configured;
+
+  const domainsSegment = `${sep}domains${sep}`;
+  const domainsIndex = process.cwd().indexOf(domainsSegment);
+  if (process.env.NODE_ENV === "production" && domainsIndex > 0) {
+    return join(
+      process.cwd().slice(0, domainsIndex),
+      ".malikat-abayat",
+      "uploads",
+      "p",
+    );
+  }
 
   // Production releases are replaced during deployment. Keeping user uploads
   // under the account home directory makes them independent of each release.
