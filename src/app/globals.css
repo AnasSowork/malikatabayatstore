@@ -3437,15 +3437,6 @@ html[dir="rtl"] .product-detail-shell {
   color: rgba(140, 34, 30, 0.72);
 }
 
-.product-price-row > span {
-  border-radius: 999px;
-  background: var(--color-on-surface);
-  padding: 0.3rem 0.6rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: white;
-}
-
 .product-short-description {
   font-family: var(--font-store);
   font-size: 0.875rem;
