@@ -55,8 +55,6 @@ export function ProductImageCarousel({ images, alt, activeIndex, onIndexChange }
     touchStartX.current = null;
   }
 
-  const counter = String(index + 1).padStart(2, "0");
-  const total = String(safeImages.length).padStart(2, "0");
   const currentSrc = safeImages[index]!;
 
   return (
@@ -84,15 +82,6 @@ export function ProductImageCarousel({ images, alt, activeIndex, onIndexChange }
 
         {safeImages.length > 1 ? (
           <>
-            <div
-              className="absolute left-4 top-4 z-10 flex items-baseline gap-0.5 rounded-full bg-black/70 px-3 py-1.5 font-store text-xs font-semibold text-white backdrop-blur-sm"
-              aria-live="polite"
-            >
-              <span className="text-sm">{counter}</span>
-              <span className="opacity-50">/</span>
-              <span>{total}</span>
-            </div>
-
             <div className="absolute inset-x-0 bottom-0 z-10 h-0.5 bg-white/20">
               <span
                 className="block h-full bg-white transition-all duration-300"
@@ -141,10 +130,7 @@ export function ProductImageCarousel({ images, alt, activeIndex, onIndexChange }
                     : "border-transparent opacity-70 hover:opacity-90"
                 }`}
               >
-                <ProductImage src={img} alt="" width={120} height={150} className="h-full w-full object-cover" />
-                <span className="absolute bottom-1 right-1 rounded-full bg-black/65 px-1.5 py-0.5 font-store text-[10px] font-bold text-white">
-                  {idx + 1}
-                </span>
+                <ProductImage src={img} alt="" width={120} height={150} className="h-full w-full object-contain" />
               </button>
             ))}
           </div>
