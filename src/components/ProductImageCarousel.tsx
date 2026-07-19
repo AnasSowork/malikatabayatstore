@@ -61,11 +61,17 @@ export function ProductImageCarousel({ images, alt, activeIndex, onIndexChange }
   const currentSrc = safeImages[index]!;
 
   return (
-    <div className="flex w-full flex-col gap-4">
+    <div className="product-gallery">
+      <div className="product-gallery-stage">
       <div
-        className="relative aspect-[4/5] w-full overflow-hidden rounded-xl bg-surface-container-low"
+        className="product-gallery-main"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowLeft") prev();
+          if (event.key === "ArrowRight") next();
+        }}
+        tabIndex={0}
       >
         <ProductImage
           key={currentSrc}
@@ -74,7 +80,7 @@ export function ProductImageCarousel({ images, alt, activeIndex, onIndexChange }
           width={960}
           height={1200}
           priority={index === 0}
-          className="absolute inset-0 h-full w-full object-cover"
+          className="product-gallery-image"
         />
 
         {safeImages.length > 1 ? (
@@ -116,10 +122,28 @@ export function ProductImageCarousel({ images, alt, activeIndex, onIndexChange }
       </div>
 
       {safeImages.length > 1 ? (
-        <div className="relative w-full">
+        <button
+          type="button"
+          className="product-gallery-companion"
+          onClick={() => setIndex(index + 1)}
+          aria-label={`View image ${((index + 1) % safeImages.length) + 1}`}
+        >
+          <ProductImage
+            src={safeImages[(index + 1) % safeImages.length]!}
+            alt={`${alt} ${((index + 1) % safeImages.length) + 1}`}
+            width={960}
+            height={1200}
+            className="product-gallery-image"
+          />
+        </button>
+      ) : null}
+      </div>
+
+      {safeImages.length > 1 ? (
+        <div className="product-gallery-thumbs">
           <div
             ref={thumbStripRef}
-            className="flex gap-2.5 overflow-x-auto pb-1 scroll-smooth [-ms-overflow-style:none] [scrollbar-width:thin]"
+            className="product-gallery-thumb-rail"
           >
             {safeImages.map((img, idx) => (
               <button
@@ -129,7 +153,7 @@ export function ProductImageCarousel({ images, alt, activeIndex, onIndexChange }
                 onClick={() => setIndex(idx)}
                 aria-label={`View image ${idx + 1}`}
                 aria-current={idx === index ? "true" : undefined}
-                className={`relative h-[5.75rem] w-[4.75rem] shrink-0 overflow-hidden rounded-lg border-2 transition md:h-[6.5rem] md:w-[5.25rem] ${
+                className={`product-gallery-thumb ${
                   idx === index
                     ? "border-brand-black opacity-100 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.35)]"
                     : "border-transparent opacity-70 hover:opacity-90"

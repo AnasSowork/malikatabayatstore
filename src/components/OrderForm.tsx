@@ -73,7 +73,7 @@ export function OrderForm({
     status === "loading" || !canSubmit || (requiresColorSelection && lineItems.some((i) => !i.color));
 
   return (
-    <div className="space-y-8 rounded-xl border border-brand-gold/15 bg-brand-cream/40 p-6 md:p-8">
+    <div id="order-form" className="space-y-8 scroll-mt-28 rounded-xl border border-brand-gold/15 bg-brand-cream/40 p-6 md:p-8">
       <div className="space-y-1">
         <h3 className="font-headline text-xl text-on-surface">{t("orderTitle")}</h3>
         <p className="brand-eyebrow">{t("orderSubtitle")}</p>

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAdminAuthenticated } from "@/lib/auth";
 import { findBundleOffer, toOrderLineItems, type OrderLineItem } from "@/lib/bundle-offers";
-import { DEFAULT_PRODUCT_SIZE, isValidProductSize } from "@/lib/product-sizes";
 import { serializeProduct } from "@/lib/product-serialize";
 
 function serializeOrder(order: {
@@ -96,10 +95,12 @@ export async function POST(request: Request) {
     }
 
     const variantNames = serialized.colorVariants.map((v) => v.name);
+    const availableSizes = serialized.availableSizes;
+    const defaultSize = availableSizes[0] ?? "M";
     let lineItems: OrderLineItem[] = toOrderLineItems(rawLineItems);
 
     if (lineItems.length === 0 && typeof selectedColor === "string" && selectedColor.trim()) {
-      lineItems = [{ size: DEFAULT_PRODUCT_SIZE, color: selectedColor.trim() }];
+      lineItems = [{ size: defaultSize, color: selectedColor.trim() }];
     }
 
     if (lineItems.length !== quantity) {
@@ -110,7 +111,7 @@ export async function POST(request: Request) {
     }
 
     for (const item of lineItems) {
-      if (!isValidProductSize(item.size)) {
+      if (!availableSizes.includes(item.size)) {
         return NextResponse.json({ error: "Invalid size" }, { status: 400 });
       }
       if (variantNames.length > 0) {

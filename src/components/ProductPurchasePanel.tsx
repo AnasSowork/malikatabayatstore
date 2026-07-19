@@ -18,13 +18,15 @@ type Props = {
   unitPrice: number;
   colorVariants: ProductColorVariant[];
   bundleOffers: BundleOffer[];
+  availableSizes: string[];
+  inStock: boolean;
   preferredColor?: string | null;
   onColorChange?: (colorName: string) => void;
 };
 
-function defaultPiece(colorVariants: ProductColorVariant[]): OrderLineItem {
+function defaultPiece(colorVariants: ProductColorVariant[], availableSizes: string[]): OrderLineItem {
   return {
-    size: DEFAULT_PRODUCT_SIZE,
+    size: availableSizes[0] ?? DEFAULT_PRODUCT_SIZE,
     color: colorVariants.length > 0 ? colorVariants[0].name : null,
   };
 }
@@ -32,9 +34,10 @@ function defaultPiece(colorVariants: ProductColorVariant[]): OrderLineItem {
 function buildPieces(
   quantity: number,
   colorVariants: ProductColorVariant[],
+  availableSizes: string[],
   prev: OrderLineItem[],
 ): OrderLineItem[] {
-  const base = defaultPiece(colorVariants);
+  const base = defaultPiece(colorVariants, availableSizes);
   return Array.from({ length: quantity }, (_, i) => prev[i] ?? { ...base });
 }
 
@@ -43,6 +46,8 @@ export function ProductPurchasePanel({
   unitPrice,
   colorVariants,
   bundleOffers,
+  availableSizes,
+  inStock,
   preferredColor,
   onColorChange,
 }: Props) {
@@ -52,11 +57,14 @@ export function ProductPurchasePanel({
 
   const [selectedQuantity, setSelectedQuantity] = useState(defaultQty);
   const [pieces, setPieces] = useState<OrderLineItem[]>(() =>
-    buildPieces(defaultQty, colorVariants, []),
+    buildPieces(defaultQty, colorVariants, availableSizes, []),
   );
 
   useEffect(() => {
     if (!preferredColor) return;
+    // Gallery navigation is an external product-selection input; synchronize
+    // all currently configured pieces only when that external color changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPieces((prev) => {
       if (prev.length === 0) return prev;
       if (prev.every((p) => p.color === preferredColor)) return prev;
@@ -75,7 +83,7 @@ export function ProductPurchasePanel({
 
   function onQuantityChange(qty: number) {
     setSelectedQuantity(qty);
-    setPieces((prev) => buildPieces(qty, colorVariants, prev));
+    setPieces((prev) => buildPieces(qty, colorVariants, availableSizes, prev));
   }
 
   function onSingleSizeChange(size: string) {
@@ -87,7 +95,7 @@ export function ProductPurchasePanel({
     onColorChange?.(color);
   }
 
-  const singlePiece = pieces[0] ?? defaultPiece(colorVariants);
+  const singlePiece = pieces[0] ?? defaultPiece(colorVariants, availableSizes);
   const lineItemsValid =
     pieces.length === selectedQuantity &&
     pieces.every((p) => p.size && (!requiresColor || p.color));
@@ -110,10 +118,19 @@ export function ProductPurchasePanel({
       />
 
       {isMultiPiece ? (
-        <PieceConfigurator pieces={pieces} colorVariants={colorVariants} onChange={setPieces} />
+        <PieceConfigurator
+          pieces={pieces}
+          colorVariants={colorVariants}
+          availableSizes={availableSizes}
+          onChange={setPieces}
+        />
       ) : (
         <>
-          <SizeSelector selectedSize={singlePiece.size} onSelect={onSingleSizeChange} />
+          <SizeSelector
+            selectedSize={singlePiece.size}
+            onSelect={onSingleSizeChange}
+            sizes={availableSizes}
+          />
           <ColorVariantSelector
             variants={colorVariants}
             selectedColor={preferredColor ?? singlePiece.color}
@@ -122,15 +139,21 @@ export function ProductPurchasePanel({
         </>
       )}
 
-      <OrderForm
-        productId={productId}
-        quantity={selectedQuantity}
-        totalPrice={totalPrice}
-        lineItems={pieces}
-        requiresColorSelection={requiresColor}
-        canSubmit={lineItemsValid}
-        locale={locale}
-      />
+      {inStock ? (
+        <OrderForm
+          productId={productId}
+          quantity={selectedQuantity}
+          totalPrice={totalPrice}
+          lineItems={pieces}
+          requiresColorSelection={requiresColor}
+          canSubmit={lineItemsValid}
+          locale={locale}
+        />
+      ) : (
+        <div className="product-out-of-stock" role="status">
+          {t("outOfStockMessage")}
+        </div>
+      )}
     </div>
   );
 }

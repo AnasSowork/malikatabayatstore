@@ -2,6 +2,11 @@ import type { Product } from "@prisma/client";
 
 import { normalizeProductImageSrc } from "@/lib/normalize-product-image-src";
 import { toBundleOffers, type BundleOffer } from "@/lib/bundle-offers";
+import {
+  normalizeProductDetailContent,
+  type ProductDetailContent,
+} from "@/lib/product-detail-content";
+import { PRODUCT_SIZES } from "@/lib/product-sizes";
 
 export type ProductColorVariant = {
   name: string;
@@ -14,6 +19,12 @@ export type ProductForClient = {
   nameAr: string | null;
   nameFr: string | null;
   price: string;
+  compareAtPrice: string | null;
+  sku: string | null;
+  stockQuantity: number | null;
+  soldCount: number;
+  rating: number | null;
+  reviewCount: number;
   description: string;
   descriptionAr: string | null;
   descriptionFr: string | null;
@@ -21,7 +32,10 @@ export type ProductForClient = {
   images: string[];
   colorVariants: ProductColorVariant[];
   bundleOffers: BundleOffer[];
+  availableSizes: string[];
+  detailContent: ProductDetailContent;
   createdAt: string;
+  updatedAt: string;
 };
 
 export function toStringArray(value: unknown): string[] {
@@ -53,6 +67,12 @@ export function serializeProduct(p: Product): ProductForClient {
     nameAr: p.nameAr,
     nameFr: p.nameFr,
     price: p.price.toString(),
+    compareAtPrice: p.compareAtPrice?.toString() ?? null,
+    sku: p.sku,
+    stockQuantity: p.stockQuantity,
+    soldCount: p.soldCount,
+    rating: p.rating == null ? null : Number(p.rating.toString()),
+    reviewCount: p.reviewCount,
     description: p.description,
     descriptionAr: p.descriptionAr,
     descriptionFr: p.descriptionFr,
@@ -60,6 +80,11 @@ export function serializeProduct(p: Product): ProductForClient {
     images,
     colorVariants: toColorVariants(p.colorVariants),
     bundleOffers: toBundleOffers(p.bundleOffers, basePrice),
+    availableSizes: toStringArray(p.availableSizes).length
+      ? toStringArray(p.availableSizes)
+      : [...PRODUCT_SIZES],
+    detailContent: normalizeProductDetailContent(p.detailContent),
     createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString(),
   };
 }

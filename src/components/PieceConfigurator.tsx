@@ -9,10 +9,11 @@ import type { OrderLineItem } from "@/lib/bundle-offers";
 type Props = {
   pieces: OrderLineItem[];
   colorVariants: ProductColorVariant[];
+  availableSizes: string[];
   onChange: (pieces: OrderLineItem[]) => void;
 };
 
-export function PieceConfigurator({ pieces, colorVariants, onChange }: Props) {
+export function PieceConfigurator({ pieces, colorVariants, availableSizes, onChange }: Props) {
   const t = useTranslations("product");
 
   function updatePiece(index: number, patch: Partial<OrderLineItem>) {
@@ -29,6 +30,7 @@ export function PieceConfigurator({ pieces, colorVariants, onChange }: Props) {
             <SizeSelector
               selectedSize={piece.size}
               onSelect={(size) => updatePiece(index, { size })}
+              sizes={availableSizes}
               compact
             />
             <ColorVariantSelector

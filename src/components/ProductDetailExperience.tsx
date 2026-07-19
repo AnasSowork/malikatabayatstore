@@ -1,13 +1,20 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { ProductColorVariant } from "@/lib/product-serialize";
 import type { BundleOffer } from "@/lib/bundle-offers";
 import type { AppLocale } from "@/lib/product-i18n";
 import { formatMad } from "@/lib/format-price";
 import { ProductImageCarousel } from "@/components/ProductImageCarousel";
 import { ProductPurchasePanel } from "@/components/ProductPurchasePanel";
+import { ProductAssuranceSections } from "@/components/ProductAssuranceSections";
+import { MaterialIcon } from "@/components/MaterialIcon";
+import { Link } from "@/i18n/navigation";
+import {
+  localizeProductText,
+  type ProductDetailContent,
+} from "@/lib/product-detail-content";
 
 type Props = {
   productId: string;
@@ -18,6 +25,15 @@ type Props = {
   editionLine: string;
   colorVariants: ProductColorVariant[];
   bundleOffers: BundleOffer[];
+  category: string;
+  compareAtPrice: number | null;
+  sku: string | null;
+  stockQuantity: number | null;
+  soldCount: number;
+  rating: number | null;
+  reviewCount: number;
+  availableSizes: string[];
+  detailContent: ProductDetailContent;
 };
 
 export function ProductDetailExperience({
@@ -29,9 +45,20 @@ export function ProductDetailExperience({
   editionLine,
   colorVariants,
   bundleOffers,
+  category,
+  compareAtPrice,
+  sku,
+  stockQuantity,
+  soldCount,
+  rating,
+  reviewCount,
+  availableSizes,
+  detailContent,
 }: Props) {
   const locale = useLocale() as AppLocale;
+  const t = useTranslations("product");
   const [imageIndex, setImageIndex] = useState(0);
+  const [favorite, setFavorite] = useState(false);
   const [galleryColor, setGalleryColor] = useState<string | null>(
     colorVariants[0]?.name ?? null,
   );
@@ -55,9 +82,23 @@ export function ProductDetailExperience({
     },
     [colorVariants],
   );
+  const discount =
+    compareAtPrice && compareAtPrice > unitPrice
+      ? Math.round(((compareAtPrice - unitPrice) / compareAtPrice) * 100)
+      : 0;
+  const inStock = stockQuantity == null || stockQuantity > 0;
 
   return (
-    <div className="grid min-w-0 grid-cols-1 items-start gap-12 lg:grid-cols-2 lg:gap-20">
+    <div className="product-detail-shell">
+      <nav className="product-breadcrumb" aria-label={t("breadcrumbLabel")}>
+        <Link href="/">{t("breadcrumbHome")}</Link>
+        <MaterialIcon name="chevron_left" className="!text-base" />
+        <Link href="/products">{t("breadcrumbProducts")}</Link>
+        <MaterialIcon name="chevron_left" className="!text-base" />
+        <span>{category}</span>
+      </nav>
+
+      <div className="grid min-w-0 grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,1.18fr)_minmax(24rem,0.82fr)] lg:gap-14 xl:gap-20">
       <section className="relative w-full min-w-0 lg:sticky lg:top-24 lg:self-start">
         <ProductImageCarousel
           images={images}
@@ -68,17 +109,58 @@ export function ProductDetailExperience({
       </section>
 
       <section className="flex min-w-0 flex-col gap-10">
-        <div className="space-y-4">
-          <span className="brand-eyebrow">{editionLine}</span>
-          <h1 className="font-headline text-4xl font-medium tracking-tight text-on-surface md:text-5xl lg:text-6xl">
-            {productName}
-          </h1>
-          <p className="font-headline text-2xl italic brand-gold-text md:text-3xl">
-            {formatMad(unitPrice.toString(), locale)}
+        <div className="product-summary">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <span className="brand-eyebrow">{editionLine}</span>
+              <h1>{productName}</h1>
+            </div>
+            <button
+              type="button"
+              className={`product-favorite ${favorite ? "product-favorite-active" : ""}`}
+              aria-label={favorite ? t("removeFavorite") : t("addFavorite")}
+              aria-pressed={favorite}
+              onClick={() => setFavorite((current) => !current)}
+            >
+              <MaterialIcon name={favorite ? "favorite" : "favorite_border"} />
+            </button>
+          </div>
+
+          {(rating != null || reviewCount > 0 || soldCount > 0) ? (
+            <div className="product-social-proof">
+              {rating != null ? (
+                <span className="product-rating">
+                  <span aria-hidden>★★★★★</span>
+                  <strong>{rating.toFixed(1)}</strong>
+                </span>
+              ) : null}
+              {reviewCount > 0 ? <span>{t("reviewsCount", { count: reviewCount })}</span> : null}
+              {soldCount > 0 ? <span>{t("soldCount", { count: soldCount })}</span> : null}
+            </div>
+          ) : null}
+
+          <div className="product-price-row">
+            <strong>{formatMad(unitPrice.toString(), locale)}</strong>
+            {compareAtPrice ? <del>{formatMad(compareAtPrice, locale)}</del> : null}
+            {discount > 0 ? <span>-{discount}%</span> : null}
+          </div>
+
+          <p className="product-short-description">
+            {localizeProductText(detailContent.shortDescription, locale)}
           </p>
-          <p className="font-store max-w-xl text-base leading-relaxed text-on-surface/70 md:text-lg">
-            {description}
-          </p>
+          <p className="product-full-description">{description}</p>
+
+          <div className="product-inventory-meta">
+            <span className={inStock ? "product-stock-ok" : "product-stock-out"}>
+              <i />
+              {inStock
+                ? stockQuantity == null
+                  ? t("inStock")
+                  : t("stockRemaining", { count: stockQuantity })
+                : t("outOfStock")}
+            </span>
+            {sku ? <span>{t("skuLabel")}: {sku}</span> : null}
+          </div>
         </div>
 
         <ProductPurchasePanel
@@ -86,10 +168,21 @@ export function ProductDetailExperience({
           unitPrice={unitPrice}
           colorVariants={colorVariants}
           bundleOffers={bundleOffers}
+          availableSizes={availableSizes}
+          inStock={inStock}
           preferredColor={galleryColor}
           onColorChange={syncColorToImage}
         />
+        <ProductAssuranceSections content={detailContent} />
       </section>
+      </div>
+
+      {inStock ? (
+        <a href="#order-form" className="product-mobile-order-cta">
+          <span>{t("submit")}</span>
+          <strong>{formatMad(unitPrice, locale)}</strong>
+        </a>
+      ) : null}
     </div>
   );
 }

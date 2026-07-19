@@ -7,9 +7,10 @@ type Props = {
   selectedSize: string;
   onSelect: (size: string) => void;
   compact?: boolean;
+  sizes?: readonly string[];
 };
 
-export function SizeSelector({ selectedSize, onSelect, compact }: Props) {
+export function SizeSelector({ selectedSize, onSelect, compact, sizes = PRODUCT_SIZES }: Props) {
   const t = useTranslations("product");
 
   return (
@@ -25,7 +26,7 @@ export function SizeSelector({ selectedSize, onSelect, compact }: Props) {
         <span className="font-sans text-[10px] uppercase tracking-widest text-on-surface-variant">{t("selectSize")}</span>
       )}
       <div className="flex flex-wrap gap-2.5">
-        {PRODUCT_SIZES.map((size) => {
+        {sizes.map((size) => {
           const selected = selectedSize === size;
           const wide = size.length > 1;
           return (

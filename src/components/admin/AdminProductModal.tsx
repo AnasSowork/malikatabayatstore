@@ -4,11 +4,13 @@ import { useTranslations } from "next-intl";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { ProductImageUploader } from "@/components/ProductImageUploader";
 import { AdminColorVariantPicker } from "@/components/admin/AdminColorVariantPicker";
+import { AdminProductDetailsEditor } from "@/components/admin/AdminProductDetailsEditor";
 import { PRESET_CATEGORIES, type ProductFormState } from "@/components/admin/types";
 import type { CategoryForClient } from "@/lib/category-serialize";
 import { getLocalizedCategoryLabel } from "@/lib/category-serialize";
 import type { AppLocale } from "@/lib/product-i18n";
 import { useLocale } from "next-intl";
+import { PRODUCT_SIZES } from "@/lib/product-sizes";
 
 type Props = {
   open: boolean;
@@ -50,7 +52,12 @@ export function AdminProductModal({
           sortOrder: index,
         }));
 
-  const canSave = form.imageUrls.length > 0 && !imageUploadBusy && !creating;
+  const canSave =
+    form.imageUrls.length > 0 &&
+    form.availableSizes.length > 0 &&
+    Boolean(form.nameAr.trim() && form.descriptionAr.trim()) &&
+    !imageUploadBusy &&
+    !creating;
 
   return (
     <div className="admin-modal-backdrop" role="dialog" aria-modal="true" onClick={onClose}>
@@ -63,7 +70,7 @@ export function AdminProductModal({
           <div>
             <p className="brand-eyebrow">{editingId ? t("editProduct") : t("addProduct")}</p>
             <h2 className="font-headline text-2xl text-on-surface">
-              {editingId ? form.name || t("editProduct") : t("addProduct")}
+              {editingId ? form.nameAr || t("editProduct") : t("addProduct")}
             </h2>
           </div>
           <button type="button" onClick={onClose} className="admin-icon-btn" aria-label={t("cancel")}>
@@ -79,12 +86,8 @@ export function AdminProductModal({
             </h3>
             <div className="admin-form-grid">
               <label className="admin-field sm:col-span-2">
-                <span>{t("nameEn")}</span>
-                <input required className="admin-input" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
-              </label>
-              <label className="admin-field">
                 <span>{t("nameAr")}</span>
-                <input className="admin-input" dir="rtl" value={form.nameAr} onChange={(e) => setForm((f) => ({ ...f, nameAr: e.target.value }))} />
+                <input required className="admin-input" dir="rtl" value={form.nameAr} onChange={(e) => setForm((f) => ({ ...f, nameAr: e.target.value, name: e.target.value }))} />
               </label>
               <label className="admin-field">
                 <span>{t("nameFr")}</span>
@@ -110,6 +113,30 @@ export function AdminProductModal({
               <label className="admin-field">
                 <span>{t("priceFor3")}</span>
                 <input type="number" min={0} step="0.01" className="admin-input" placeholder={t("priceFor3Hint")} value={form.priceFor3} onChange={(e) => setForm((f) => ({ ...f, priceFor3: e.target.value }))} />
+              </label>
+              <label className="admin-field">
+                <span>{t("compareAtPrice")}</span>
+                <input type="number" min={0} step="0.01" className="admin-input" value={form.compareAtPrice} onChange={(e) => setForm((f) => ({ ...f, compareAtPrice: e.target.value }))} />
+              </label>
+              <label className="admin-field">
+                <span>{t("productSku")}</span>
+                <input className="admin-input" value={form.sku} onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))} />
+              </label>
+              <label className="admin-field">
+                <span>{t("productStock")}</span>
+                <input type="number" min={0} className="admin-input" value={form.stockQuantity} onChange={(e) => setForm((f) => ({ ...f, stockQuantity: e.target.value }))} />
+              </label>
+              <label className="admin-field">
+                <span>{t("productSoldCount")}</span>
+                <input type="number" min={0} className="admin-input" value={form.soldCount} onChange={(e) => setForm((f) => ({ ...f, soldCount: e.target.value }))} />
+              </label>
+              <label className="admin-field">
+                <span>{t("productRating")}</span>
+                <input type="number" min={0} max={5} step="0.1" className="admin-input" value={form.rating} onChange={(e) => setForm((f) => ({ ...f, rating: e.target.value }))} />
+              </label>
+              <label className="admin-field">
+                <span>{t("productReviewCount")}</span>
+                <input type="number" min={0} className="admin-input" value={form.reviewCount} onChange={(e) => setForm((f) => ({ ...f, reviewCount: e.target.value }))} />
               </label>
             </div>
           </section>
@@ -151,17 +178,43 @@ export function AdminProductModal({
             </h3>
             <div className="admin-form-grid">
               <label className="admin-field sm:col-span-2">
-                <span>{t("descriptionEn")}</span>
-                <textarea required rows={3} className="admin-input" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
-              </label>
-              <label className="admin-field sm:col-span-2">
                 <span>{t("descriptionAr")}</span>
-                <textarea rows={2} dir="rtl" className="admin-input" value={form.descriptionAr} onChange={(e) => setForm((f) => ({ ...f, descriptionAr: e.target.value }))} />
+                <textarea required rows={3} dir="rtl" className="admin-input" value={form.descriptionAr} onChange={(e) => setForm((f) => ({ ...f, descriptionAr: e.target.value, description: e.target.value }))} />
               </label>
               <label className="admin-field sm:col-span-2">
                 <span>{t("descriptionFr")}</span>
                 <textarea rows={2} className="admin-input" value={form.descriptionFr} onChange={(e) => setForm((f) => ({ ...f, descriptionFr: e.target.value }))} />
               </label>
+            </div>
+          </section>
+
+          <section className="admin-form-section">
+            <h3 className="admin-form-section-title">
+              <MaterialIcon name="straighten" className="!text-lg brand-gold-text" />
+              {t("productAvailableSizes")}
+            </h3>
+            <div className="admin-category-grid">
+              {PRODUCT_SIZES.map((size) => {
+                const checked = form.availableSizes.includes(size);
+                return (
+                  <label key={size} className={`admin-category-chip ${checked ? "admin-category-chip-active" : ""}`}>
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={checked}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          availableSizes: event.target.checked
+                            ? [...current.availableSizes, size]
+                            : current.availableSizes.filter((item) => item !== size),
+                        }))
+                      }
+                    />
+                    {size}
+                  </label>
+                );
+              })}
             </div>
           </section>
 
@@ -191,6 +244,18 @@ export function AdminProductModal({
             <AdminColorVariantPicker
               value={form.colorVariants}
               onChange={(colorVariants) => setForm((f) => ({ ...f, colorVariants }))}
+              disabled={creating}
+            />
+          </section>
+
+          <section className="admin-form-section">
+            <h3 className="admin-form-section-title">
+              <MaterialIcon name="storefront" className="!text-lg brand-gold-text" />
+              {t("productPageContent")}
+            </h3>
+            <AdminProductDetailsEditor
+              value={form.detailContent}
+              onChange={(detailContent) => setForm((current) => ({ ...current, detailContent }))}
               disabled={creating}
             />
           </section>

@@ -1,5 +1,10 @@
 import { normalizeProductImageSrc } from "@/lib/normalize-product-image-src";
 import { buildBundleOffersFromPrices, toBundleOffers, type BundleOffer } from "@/lib/bundle-offers";
+import {
+  normalizeProductDetailContent,
+  type ProductDetailContent,
+} from "@/lib/product-detail-content";
+import { PRODUCT_SIZES } from "@/lib/product-sizes";
 
 export type ColorVariantInput = { name: string; hex?: string };
 
@@ -8,6 +13,12 @@ export type ParsedProductPayload = {
   nameAr: string | null;
   nameFr: string | null;
   price: number;
+  compareAtPrice: number | null;
+  sku: string | null;
+  stockQuantity: number | null;
+  soldCount: number;
+  rating: number | null;
+  reviewCount: number;
   description: string;
   descriptionAr: string | null;
   descriptionFr: string | null;
@@ -15,6 +26,8 @@ export type ParsedProductPayload = {
   imageList: string[];
   colorList: { name: string; hex: string | null }[];
   bundleOffers: BundleOffer[];
+  availableSizes: string[];
+  detailContent: ProductDetailContent;
 };
 
 export function parseProductPayload(body: Record<string, unknown>):
@@ -25,6 +38,12 @@ export function parseProductPayload(body: Record<string, unknown>):
     nameAr,
     nameFr,
     price,
+    compareAtPrice,
+    sku,
+    stockQuantity,
+    soldCount,
+    rating,
+    reviewCount,
     priceFor2,
     priceFor3,
     description,
@@ -34,6 +53,8 @@ export function parseProductPayload(body: Record<string, unknown>):
     images,
     colorVariants,
     bundleOffers,
+    availableSizes,
+    detailContent,
   } = body;
 
   const categoryList = Array.isArray(categories)
@@ -74,6 +95,39 @@ export function parseProductPayload(body: Record<string, unknown>):
     return { ok: false, error: "Invalid price" };
   }
 
+  const optionalNumber = (value: unknown): number | null =>
+    value === undefined || value === null || value === "" ? null : Number(value);
+  const compareAtPriceNum = optionalNumber(compareAtPrice);
+  const stockQuantityNum = optionalNumber(stockQuantity);
+  const ratingNum = optionalNumber(rating);
+  const soldCountNum = soldCount === undefined || soldCount === "" ? 0 : Number(soldCount);
+  const reviewCountNum = reviewCount === undefined || reviewCount === "" ? 0 : Number(reviewCount);
+
+  if (
+    (compareAtPriceNum != null &&
+      (!Number.isFinite(compareAtPriceNum) || compareAtPriceNum <= priceNum)) ||
+    (stockQuantityNum != null &&
+      (!Number.isInteger(stockQuantityNum) || stockQuantityNum < 0)) ||
+    !Number.isInteger(soldCountNum) ||
+    soldCountNum < 0 ||
+    (ratingNum != null && (!Number.isFinite(ratingNum) || ratingNum < 0 || ratingNum > 5)) ||
+    !Number.isInteger(reviewCountNum) ||
+    reviewCountNum < 0
+  ) {
+    return { ok: false, error: "Invalid merchandising values" };
+  }
+
+  const sizeList = Array.isArray(availableSizes)
+    ? availableSizes
+        .filter((value): value is string => typeof value === "string")
+        .map((value) => value.trim().toUpperCase())
+        .filter((value, index, values) => value.length > 0 && value.length <= 12 && values.indexOf(value) === index)
+        .slice(0, 12)
+    : [...PRODUCT_SIZES];
+  if (sizeList.length === 0) {
+    return { ok: false, error: "Select at least one size" };
+  }
+
   let offers: BundleOffer[];
   if (Array.isArray(bundleOffers) && bundleOffers.length > 0) {
     offers = toBundleOffers(bundleOffers, priceNum);
@@ -99,9 +153,15 @@ export function parseProductPayload(body: Record<string, unknown>):
     ok: true,
     data: {
       name: name.trim(),
-      nameAr: typeof nameAr === "string" && nameAr.trim() ? nameAr.trim() : null,
+      nameAr: typeof nameAr === "string" && nameAr.trim() ? nameAr.trim() : name.trim(),
       nameFr: typeof nameFr === "string" && nameFr.trim() ? nameFr.trim() : null,
       price: priceNum,
+      compareAtPrice: compareAtPriceNum,
+      sku: typeof sku === "string" && sku.trim() ? sku.trim() : null,
+      stockQuantity: stockQuantityNum,
+      soldCount: soldCountNum,
+      rating: ratingNum == null ? null : Math.round(ratingNum * 10) / 10,
+      reviewCount: reviewCountNum,
       description: description.trim(),
       descriptionAr:
         typeof descriptionAr === "string" && descriptionAr.trim() ? descriptionAr.trim() : null,
@@ -114,6 +174,8 @@ export function parseProductPayload(body: Record<string, unknown>):
         hex: typeof v.hex === "string" && v.hex.trim() ? v.hex.trim() : null,
       })),
       bundleOffers: offers,
+      availableSizes: sizeList,
+      detailContent: normalizeProductDetailContent(detailContent),
     },
   };
 }

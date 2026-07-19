@@ -21,20 +21,29 @@ model Category {
 }
 
 model Product {
-  id              String   @id @default(cuid())
-  name            String
-  nameAr          String?  @db.VarChar(255)
-  nameFr          String?  @db.VarChar(255)
-  price           Decimal  @db.Decimal(10, 2)
-  description     String   @db.Text
-  descriptionAr   String?  @db.Text
-  descriptionFr   String?  @db.Text
-  categories      Json
-  images          Json
-  colorVariants   Json
-  bundleOffers    Json?
-  createdAt       DateTime @default(now())
-  orders          Order[]
+  id             String   @id @default(cuid())
+  name           String
+  nameAr         String?  @db.VarChar(255)
+  nameFr         String?  @db.VarChar(255)
+  sku            String?  @unique @db.VarChar(100)
+  price          Decimal  @db.Decimal(10, 2)
+  compareAtPrice Decimal? @db.Decimal(10, 2)
+  stockQuantity  Int?
+  soldCount      Int      @default(0)
+  rating         Decimal? @db.Decimal(2, 1)
+  reviewCount    Int      @default(0)
+  description    String   @db.Text
+  descriptionAr  String?  @db.Text
+  descriptionFr  String?  @db.Text
+  categories     Json
+  images         Json
+  colorVariants  Json
+  bundleOffers   Json?
+  availableSizes Json?
+  detailContent  Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  orders         Order[]
 
   @@map("products")
 }
@@ -74,6 +83,6 @@ model Order {
   product       Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
   createdAt     DateTime @default(now())
 
-  @@map("orders")
   @@index([productId])
+  @@map("orders")
 }

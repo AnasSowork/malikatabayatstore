@@ -1,5 +1,10 @@
 import type { OrderLineItem } from "@/lib/bundle-offers";
 import type { ProductForClient } from "@/lib/product-serialize";
+import {
+  createDefaultProductDetailContent,
+  type ProductDetailContent,
+} from "@/lib/product-detail-content";
+import { PRODUCT_SIZES } from "@/lib/product-sizes";
 
 export type OrderWithProduct = {
   id: string;
@@ -36,12 +41,20 @@ export type ProductFormState = {
   price: string;
   priceFor2: string;
   priceFor3: string;
+  compareAtPrice: string;
+  sku: string;
+  stockQuantity: string;
+  soldCount: string;
+  rating: string;
+  reviewCount: string;
   description: string;
   descriptionAr: string;
   descriptionFr: string;
   categories: string[];
   imageUrls: string[];
   colorVariants: ColorVariantDraft[];
+  availableSizes: string[];
+  detailContent: ProductDetailContent;
 };
 
 export const PRESET_CATEGORIES = [
@@ -55,17 +68,29 @@ export const PRESET_CATEGORIES = [
   "Occasion",
 ] as const;
 
-export const EMPTY_PRODUCT_FORM: ProductFormState = {
-  name: "",
-  nameAr: "",
-  nameFr: "",
-  price: "",
-  priceFor2: "",
-  priceFor3: "",
-  description: "",
-  descriptionAr: "",
-  descriptionFr: "",
-  categories: [],
-  imageUrls: [],
-  colorVariants: [],
-};
+export function createEmptyProductForm(): ProductFormState {
+  return {
+    name: "",
+    nameAr: "",
+    nameFr: "",
+    price: "",
+    priceFor2: "",
+    priceFor3: "",
+    compareAtPrice: "",
+    sku: "",
+    stockQuantity: "",
+    soldCount: "0",
+    rating: "",
+    reviewCount: "0",
+    description: "",
+    descriptionAr: "",
+    descriptionFr: "",
+    categories: [],
+    imageUrls: [],
+    colorVariants: [],
+    availableSizes: [...PRODUCT_SIZES],
+    detailContent: createDefaultProductDetailContent(),
+  };
+}
+
+export const EMPTY_PRODUCT_FORM: ProductFormState = createEmptyProductForm();

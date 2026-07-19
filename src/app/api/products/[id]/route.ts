@@ -31,7 +31,13 @@ export async function PATCH(request: Request, { params }: Params) {
         name: d.name,
         nameAr: d.nameAr,
         nameFr: d.nameFr,
+        sku: d.sku,
         price: d.price,
+        compareAtPrice: d.compareAtPrice,
+        stockQuantity: d.stockQuantity,
+        soldCount: d.soldCount,
+        rating: d.rating,
+        reviewCount: d.reviewCount,
         description: d.description,
         descriptionAr: d.descriptionAr,
         descriptionFr: d.descriptionFr,
@@ -39,6 +45,8 @@ export async function PATCH(request: Request, { params }: Params) {
         images: d.imageList,
         colorVariants: d.colorList,
         bundleOffers: d.bundleOffers,
+        availableSizes: d.availableSizes,
+        detailContent: d.detailContent,
       },
     });
 

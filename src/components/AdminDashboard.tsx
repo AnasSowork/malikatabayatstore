@@ -23,7 +23,7 @@ import { AdminHomeView } from "@/components/admin/AdminHomeView";
 import { AdminDeliveryView } from "@/components/admin/AdminDeliveryView";
 import { draftsFromProductVariants, draftsToPayload } from "@/components/admin/AdminColorVariantPicker";
 import {
-  EMPTY_PRODUCT_FORM,
+  createEmptyProductForm,
   type AdminView,
   type OrderWithProduct,
 } from "@/components/admin/types";
@@ -62,7 +62,7 @@ export function AdminDashboard({ view }: { view: AdminView }) {
   const [homeSections, setHomeSections] = useState<HomeSectionForClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [form, setForm] = useState({ ...EMPTY_PRODUCT_FORM });
+  const [form, setForm] = useState(() => createEmptyProductForm());
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
@@ -104,12 +104,12 @@ export function AdminDashboard({ view }: { view: AdminView }) {
   function closeProductModal() {
     setEditingProductId(null);
     setShowCreateForm(false);
-    setForm({ ...EMPTY_PRODUCT_FORM });
+    setForm(createEmptyProductForm());
   }
 
   function openCreateModal() {
     setEditingProductId(null);
-    setForm({ ...EMPTY_PRODUCT_FORM });
+    setForm(createEmptyProductForm());
     setShowCreateForm(true);
   }
 
@@ -119,17 +119,25 @@ export function AdminDashboard({ view }: { view: AdminView }) {
     setEditingProductId(product.id);
     setForm({
       name: product.name,
-      nameAr: product.nameAr ?? "",
+      nameAr: product.nameAr ?? product.name,
       nameFr: product.nameFr ?? "",
       price: product.price,
       priceFor2: offer2 ? String(offer2.price) : "",
       priceFor3: offer3 ? String(offer3.price) : "",
+      compareAtPrice: product.compareAtPrice ?? "",
+      sku: product.sku ?? "",
+      stockQuantity: product.stockQuantity == null ? "" : String(product.stockQuantity),
+      soldCount: String(product.soldCount),
+      rating: product.rating == null ? "" : String(product.rating),
+      reviewCount: String(product.reviewCount),
       description: product.description,
-      descriptionAr: product.descriptionAr ?? "",
+      descriptionAr: product.descriptionAr ?? product.description,
       descriptionFr: product.descriptionFr ?? "",
       categories: [...product.categories],
       imageUrls: [...product.images],
       colorVariants: draftsFromProductVariants(product.colorVariants),
+      availableSizes: [...product.availableSizes],
+      detailContent: product.detailContent,
     });
     setShowCreateForm(true);
   }
@@ -141,18 +149,26 @@ export function AdminDashboard({ view }: { view: AdminView }) {
       const colorVariants = draftsToPayload(form.colorVariants);
 
       const payload = {
-        name: form.name,
-        nameAr: form.nameAr || undefined,
+        name: form.nameAr,
+        nameAr: form.nameAr,
         nameFr: form.nameFr || undefined,
         price: Number(form.price),
+        compareAtPrice: form.compareAtPrice ? Number(form.compareAtPrice) : undefined,
+        sku: form.sku || undefined,
+        stockQuantity: form.stockQuantity === "" ? undefined : Number(form.stockQuantity),
+        soldCount: Number(form.soldCount || 0),
+        rating: form.rating === "" ? undefined : Number(form.rating),
+        reviewCount: Number(form.reviewCount || 0),
         priceFor2: form.priceFor2 ? Number(form.priceFor2) : undefined,
         priceFor3: form.priceFor3 ? Number(form.priceFor3) : undefined,
-        description: form.description,
-        descriptionAr: form.descriptionAr || undefined,
+        description: form.descriptionAr,
+        descriptionAr: form.descriptionAr,
         descriptionFr: form.descriptionFr || undefined,
         categories: form.categories,
         images: form.imageUrls,
         colorVariants,
+        availableSizes: form.availableSizes,
+        detailContent: form.detailContent,
       };
 
       const res = editingProductId

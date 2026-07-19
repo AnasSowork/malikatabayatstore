@@ -20,6 +20,11 @@ export function ProductCard({ product, isNew, isExclusive }: Props) {
   const { name } = getLocalizedProductFields(product, locale);
   const variantLabel = product.categories[0] ?? "-";
   const image = product.images[0] ?? "https://via.placeholder.com/600x800?text=No+Image";
+  const compareAtPrice = product.compareAtPrice == null ? null : Number(product.compareAtPrice);
+  const discount =
+    compareAtPrice && compareAtPrice > Number(product.price)
+      ? Math.round(((compareAtPrice - Number(product.price)) / compareAtPrice) * 100)
+      : 0;
 
   return (
     <article className="group">
@@ -35,6 +40,11 @@ export function ProductCard({ product, isNew, isExclusive }: Props) {
               {t("badgeExclusive")}
             </div>
           )}
+          {discount > 0 ? (
+            <div className="shop-badge absolute right-4 top-4 z-10 rounded-full bg-white px-3 py-1 text-brand-black">
+              -{discount}%
+            </div>
+          ) : null}
           <ProductImage
             src={image}
             alt={name}
@@ -54,9 +64,16 @@ export function ProductCard({ product, isNew, isExclusive }: Props) {
             </h2>
             <p className="shop-product-meta mt-1">{variantLabel}</p>
           </div>
-          <p className="shop-product-price shrink-0 brand-gold-text">
-            {formatMad(product.price.toString(), locale)}
-          </p>
+          <div className="shrink-0 text-end">
+            <p className="shop-product-price brand-gold-text">
+              {formatMad(product.price.toString(), locale)}
+            </p>
+            {compareAtPrice ? (
+              <del className="font-store text-xs text-on-surface/40">
+                {formatMad(compareAtPrice, locale)}
+              </del>
+            ) : null}
+          </div>
         </div>
       </Link>
     </article>
