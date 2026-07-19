@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import type { AppLocale } from "@/lib/product-i18n";
 import { formatMad } from "@/lib/format-price";
 import { bundleSavings, type BundleOffer } from "@/lib/bundle-offers";
+import { MaterialIcon } from "@/components/MaterialIcon";
 
 type Props = {
   offers: BundleOffer[];
@@ -35,21 +36,26 @@ export function BundleQuantitySelector({
               key={offer.quantity}
               type="button"
               onClick={() => onSelect(offer.quantity)}
-              className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-start transition-all ${
-                selected
-                  ? "border-primary bg-surface-container-high"
-                  : "border-outline-variant/50 hover:border-primary/50"
-              }`}
+              className={`bundle-option ${selected ? "bundle-option-selected" : ""}`}
               aria-pressed={selected}
             >
-              <span className="font-store text-lg font-semibold text-on-surface">
-                {t("bundleTier", { count: offer.quantity, price: formatMad(offer.price, locale) })}
+              <span className="bundle-option-main">
+                <span className="bundle-option-radio" aria-hidden>
+                  {selected ? <MaterialIcon name="check" className="!text-sm" /> : null}
+                </span>
+                <span className="font-store text-lg font-semibold text-on-surface">
+                  {t("bundleTier", { count: offer.quantity, price: formatMad(offer.price, locale) })}
+                </span>
               </span>
               {savings > 0 ? (
-                <span className="font-store text-[11px] font-semibold brand-gold-text">
+                <span className="bundle-option-saving">
                   {t("saveAmount", { amount: formatMad(savings, locale) })}
                 </span>
-              ) : null}
+              ) : (
+                <span className="bundle-option-current">
+                  {selected ? <MaterialIcon name="done_all" className="!text-lg" /> : null}
+                </span>
+              )}
             </button>
           );
         })}
