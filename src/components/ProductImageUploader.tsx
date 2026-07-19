@@ -4,6 +4,11 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
 import { normalizeProductImageSrc } from "@/lib/normalize-product-image-src";
+import {
+  isHeicUpload,
+  isSupportedImageUpload,
+  prepareImageForUpload,
+} from "@/lib/prepare-image-upload";
 
 type UploadResultItem =
   | { ok: true; url: string }
@@ -23,12 +28,6 @@ type Props = {
   /** True while local previews exist or a file is uploading — block form submit until copies finish. */
   onBusyChange?: (busy: boolean) => void;
 };
-
-function isLikelyImageFile(f: File): boolean {
-  if (f.type.startsWith("image/")) return true;
-  if (f.type === "application/octet-stream") return /\.(jpe?g|png|gif|webp|avif)$/i.test(f.name || "");
-  return /\.(jpe?g|png|gif|webp|avif)$/i.test(f.name || "");
-}
 
 export function ProductImageUploader({ value, setUrls, disabled, maxFiles = 12, onBusyChange }: Props) {
   const t = useTranslations("admin");
@@ -65,7 +64,7 @@ export function ProductImageUploader({ value, setUrls, disabled, maxFiles = 12, 
 
   const uploadFiles = useCallback(
     async (fileList: FileList | File[]) => {
-      const arr = Array.from(fileList).filter(isLikelyImageFile);
+      const arr = Array.from(fileList).filter(isSupportedImageUpload);
       if (arr.length === 0) {
         setError(t("noRecognizedImages"));
         return;
@@ -73,19 +72,29 @@ export function ProductImageUploader({ value, setUrls, disabled, maxFiles = 12, 
       const slice = arr.slice(0, Math.max(0, maxFiles - value.length - pending.length));
       if (slice.length === 0) return;
 
-      const batch: PendingItem[] = slice.map((file) => ({
-        id: crypto.randomUUID(),
-        blobUrl: URL.createObjectURL(file),
-        file,
-      }));
-
       setError(null);
-      setPending((p) => [...p, ...batch]);
       setUploading(true);
-
       const failures: string[] = [];
+      const batch: PendingItem[] = [];
 
       try {
+        for (const original of slice) {
+          try {
+            const file = await prepareImageForUpload(original);
+            batch.push({
+              id: crypto.randomUUID(),
+              blobUrl: URL.createObjectURL(file),
+              file,
+            });
+          } catch {
+            failures.push(
+              `${original.name}: ${isHeicUpload(original) ? t("heicConversionError") : t("uploadError")}`,
+            );
+          }
+        }
+
+        setPending((p) => [...p, ...batch]);
+
         for (const item of batch) {
           const body = new FormData();
           body.append("file", item.file);
@@ -173,7 +182,7 @@ export function ProductImageUploader({ value, setUrls, disabled, maxFiles = 12, 
       <input
         ref={inputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif,image/*,.jpg,.jpeg,.png,.gif,.webp,.avif,.heic"
+        accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif,image/*,.jpg,.jpeg,.png,.gif,.webp,.avif,.heic,.heif"
         multiple
         className="sr-only"
         disabled={disabled || uploading || remaining <= 0}

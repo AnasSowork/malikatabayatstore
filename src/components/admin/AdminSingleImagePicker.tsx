@@ -5,6 +5,11 @@ import { useTranslations } from "next-intl";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { AdminMediaLibraryModal } from "@/components/admin/AdminMediaLibraryModal";
 import { normalizeProductImageSrc } from "@/lib/normalize-product-image-src";
+import {
+  isHeicUpload,
+  isSupportedImageUpload,
+  prepareImageForUpload,
+} from "@/lib/prepare-image-upload";
 
 type UploadResultItem =
   | { ok: true; url: string }
@@ -27,12 +32,6 @@ const ASPECT_CLASS: Record<Aspect, string> = {
   wide: "aspect-[16/10]",
   square: "aspect-square",
 };
-
-function isLikelyImageFile(f: File): boolean {
-  if (f.type.startsWith("image/")) return true;
-  if (f.type === "application/octet-stream") return /\.(jpe?g|png|gif|webp|avif)$/i.test(f.name || "");
-  return /\.(jpe?g|png|gif|webp|avif)$/i.test(f.name || "");
-}
 
 export function AdminSingleImagePicker({
   label,
@@ -63,19 +62,29 @@ export function AdminSingleImagePicker({
 
   const uploadFile = useCallback(
     async (file: File) => {
-      if (!isLikelyImageFile(file)) {
+      if (!isSupportedImageUpload(file)) {
         setError(t("noRecognizedImages"));
         return;
       }
 
       setError("");
-      const preview = URL.createObjectURL(file);
-      setPendingPreview(preview);
       setUploading(true);
 
+      let preparedFile: File;
       try {
+        preparedFile = await prepareImageForUpload(file);
+      } catch {
+        setError(isHeicUpload(file) ? t("heicConversionError") : t("uploadError"));
+        setUploading(false);
+        if (inputRef.current) inputRef.current.value = "";
+        return;
+      }
+
+      try {
+        const preview = URL.createObjectURL(preparedFile);
+        setPendingPreview(preview);
         const body = new FormData();
-        body.append("file", file);
+        body.append("file", preparedFile);
         const res = await fetch("/api/admin/product-images", { method: "POST", body });
         const data = (await res.json().catch(() => ({}))) as {
           results?: UploadResultItem[];
@@ -165,7 +174,7 @@ export function AdminSingleImagePicker({
       <input
         ref={inputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/*,.jpg,.jpeg,.png,.gif,.webp,.avif"
+        accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif,image/*,.jpg,.jpeg,.png,.gif,.webp,.avif,.heic,.heif"
         className="sr-only"
         disabled={disabled || uploading}
         onChange={(e) => {
