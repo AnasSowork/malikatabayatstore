@@ -24,15 +24,10 @@ export function ColorVariantSelector({ variants, selectedColor, onSelect }: Prop
   const t = useTranslations("product");
   if (variants.length === 0) return null;
 
-  const active = variants.find((v) => v.name === selectedColor) ?? variants[0];
-
   return (
     <div className="color-variant-picker">
       <div className="color-variant-picker-head">
         <span className="shop-toolbar-label">{t("colorVariant")}</span>
-        {active ? (
-          <span className="color-variant-picker-active-name">{active.name}</span>
-        ) : null}
       </div>
 
       <div className="color-variant-picker-rail" role="listbox" aria-label={t("colorVariant")}>
@@ -56,7 +51,7 @@ export function ColorVariantSelector({ variants, selectedColor, onSelect }: Prop
                 {selected ? (
                   <MaterialIcon
                     name="check"
-                    className={`!text-base ${light ? "!text-brand-black" : "!text-white"}`}
+                    className={`!text-sm ${light ? "!text-brand-black" : "!text-white"}`}
                   />
                 ) : null}
               </span>

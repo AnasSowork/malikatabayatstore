@@ -25,7 +25,7 @@ export function SizeSelector({ selectedSize, onSelect, compact, sizes = PRODUCT_
       ) : (
         <span className="font-store text-xs font-semibold text-on-surface-variant">{t("selectSize")}</span>
       )}
-      <div className="flex flex-wrap gap-2.5">
+      <div className="flex flex-wrap gap-2">
         {sizes.map((size) => {
           const selected = selectedSize === size;
           const wide = size.length > 1;
@@ -34,8 +34,8 @@ export function SizeSelector({ selectedSize, onSelect, compact, sizes = PRODUCT_
               key={size}
               type="button"
               onClick={() => onSelect(size)}
-              className={`flex h-11 items-center justify-center rounded-full border font-store text-sm font-semibold transition-all hover:border-primary ${
-                wide ? "min-w-[3rem] px-3" : "w-11"
+              className={`flex h-8 items-center justify-center rounded-full border font-store text-xs font-semibold transition-all hover:border-primary ${
+                wide ? "min-w-[2.35rem] px-2.5" : "w-8"
               } ${
                 selected
                   ? "border-black bg-black text-white shadow-sm"
