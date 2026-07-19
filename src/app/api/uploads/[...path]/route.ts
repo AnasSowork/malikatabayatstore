@@ -2,6 +2,7 @@ import { readFile, stat } from "node:fs/promises";
 import { join, normalize } from "node:path";
 
 import { NextResponse } from "next/server";
+import { getUploadReadDirectories } from "@/lib/upload-storage";
 
 export const runtime = "nodejs";
 
@@ -40,23 +41,29 @@ export async function GET(_: Request, ctx: { params: Promise<{ path: string[] }>
 
   // Legacy compatibility: `/api/uploads/products/*` reads from `/public/uploads/p/*`.
   const realBucket = bucket === "products" ? "p" : bucket;
-  const abs = join(process.cwd(), "public", "uploads", realBucket, safeName);
+  const directories =
+    realBucket === "p"
+      ? getUploadReadDirectories()
+      : [join(process.cwd(), "public", "uploads", realBucket)];
 
-  try {
-    const file = await readFile(abs);
-    const info = await stat(abs);
-    if (!info.isFile()) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+  for (const directory of directories) {
+    try {
+      const abs = join(directory, safeName);
+      const file = await readFile(abs);
+      const info = await stat(abs);
+      if (!info.isFile()) continue;
+      const contentType = mimeFromName(safeName) ?? "application/octet-stream";
+      return new NextResponse(file, {
+        status: 200,
+        headers: {
+          "content-type": contentType,
+          "cache-control": "public, max-age=31536000, immutable",
+        },
+      });
+    } catch {
+      // Try the bundled fallback directory before returning a missing response.
     }
-    const contentType = mimeFromName(safeName) ?? "application/octet-stream";
-    return new NextResponse(file, {
-      status: 200,
-      headers: {
-        "content-type": contentType,
-        "cache-control": "public, max-age=31536000, immutable",
-      },
-    });
-  } catch {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  return NextResponse.json({ error: "Not found" }, { status: 404 });
 }

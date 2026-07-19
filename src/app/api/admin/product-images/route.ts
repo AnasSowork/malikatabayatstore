@@ -6,11 +6,10 @@ import { NextResponse } from "next/server";
 
 import { isAdminAuthenticated } from "@/lib/auth";
 import { resolveImageMimeAndExt } from "@/lib/detect-image-upload";
+import { getUploadWriteDirectory } from "@/lib/upload-storage";
 
 export const runtime = "nodejs";
 
-/** Under `public/uploads/p/`; served via `/api/uploads/p/...` to avoid locale-route collisions. */
-const UPLOAD_SUBDIR = join("public", "uploads", "p");
 const MAX_FILES = 12;
 const MAX_BYTES = 6 * 1024 * 1024;
 
@@ -36,7 +35,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `At most ${MAX_FILES} images per request` }, { status: 400 });
     }
 
-    const dir = join(process.cwd(), UPLOAD_SUBDIR);
+    const dir = getUploadWriteDirectory();
     await mkdir(dir, { recursive: true });
 
     const results: UploadResultItem[] = [];

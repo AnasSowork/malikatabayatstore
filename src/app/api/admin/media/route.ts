@@ -5,10 +5,10 @@ import { NextResponse } from "next/server";
 
 import { isAdminAuthenticated } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getUploadReadDirectories } from "@/lib/upload-storage";
 
 export const runtime = "nodejs";
 
-const UPLOAD_DIR = join(process.cwd(), "public", "uploads", "p");
 const IMAGE_EXT = /\.(jpe?g|png|gif|webp|avif)$/i;
 
 export type MediaItem = {
@@ -30,25 +30,27 @@ export async function GET() {
 
     const byUrl = new Map<string, MediaItem>();
 
-    try {
-      const files = await readdir(UPLOAD_DIR);
-      await Promise.all(
-        files.map(async (name) => {
-          if (!IMAGE_EXT.test(name)) return;
-          const filepath = join(UPLOAD_DIR, name);
-          const st = await stat(filepath);
-          if (!st.isFile()) return;
-          const url = `/api/uploads/p/${name}`;
-          byUrl.set(url, {
-            url,
-            name,
-            source: "upload",
-            updatedAt: st.mtime.toISOString(),
-          });
-        }),
-      );
-    } catch {
-      // uploads folder may not exist yet
+    for (const uploadDirectory of getUploadReadDirectories()) {
+      try {
+        const files = await readdir(uploadDirectory);
+        await Promise.all(
+          files.map(async (name) => {
+            if (!IMAGE_EXT.test(name)) return;
+            const filepath = join(uploadDirectory, name);
+            const st = await stat(filepath);
+            if (!st.isFile()) return;
+            const url = `/api/uploads/p/${name}`;
+            byUrl.set(url, {
+              url,
+              name,
+              source: "upload",
+              updatedAt: st.mtime.toISOString(),
+            });
+          }),
+        );
+      } catch {
+        // This storage location may not exist until its first upload.
+      }
     }
 
     const products = await prisma.product.findMany({ select: { images: true } });
