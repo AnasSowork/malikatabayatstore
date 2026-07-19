@@ -3118,7 +3118,42 @@ html[dir="rtl"] .product-detail-shell {
   font-family: var(--font-store);
 }
 
+.offer-countdown {
+  display: grid;
+  justify-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.25rem;
+  text-align: center;
+}
+
+.offer-countdown::after {
+  content: "";
+  width: 100%;
+  border-bottom: 4px dotted var(--color-on-surface);
+}
+
+.offer-countdown span {
+  border-radius: 0.4rem;
+  background: #ef5a4f;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: white;
+}
+
+.offer-countdown strong {
+  order: 3;
+  border-radius: 0.55rem;
+  background: var(--color-on-surface);
+  padding: 0.35rem 0.7rem;
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  color: white;
+}
+
 .bundle-option {
+  position: relative;
   display: flex;
   width: 100%;
   min-height: 3.75rem;
@@ -3135,6 +3170,18 @@ html[dir="rtl"] .product-detail-shell {
     border-color 0.2s ease,
     background-color 0.2s ease,
     box-shadow 0.25s ease;
+}
+
+.bundle-option-featured {
+  position: absolute;
+  inset-inline-end: 0.75rem;
+  top: -0.55rem;
+  border-radius: 0.35rem;
+  background: #ef5a4f;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: white;
 }
 
 .bundle-option:hover {
@@ -3254,6 +3301,11 @@ html[dir="rtl"] .product-detail-shell {
   letter-spacing: 0.08em;
 }
 
+.product-rating small {
+  font-size: 0.625rem;
+  font-weight: 600;
+}
+
 .product-price-row {
   display: flex;
   flex-wrap: wrap;
@@ -3269,8 +3321,11 @@ html[dir="rtl"] .product-detail-shell {
 }
 
 .product-price-row del {
-  font-size: 0.9rem;
-  color: rgba(0, 0, 0, 0.42);
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-decoration-color: #dc352f;
+  text-decoration-thickness: 3px;
+  color: #dc352f;
 }
 
 .product-price-row > span {
@@ -3362,7 +3417,7 @@ html[dir="rtl"] .product-detail-shell {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center top;
   transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -3464,6 +3519,14 @@ html[dir="rtl"] .product-detail-shell {
   font-size: 0.85rem;
   line-height: 1.7;
   color: #8a2828;
+}
+
+.order-cost-summary {
+  display: grid;
+  gap: 0.4rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 4px dotted var(--color-on-surface);
+  padding: 0.9rem 0 0.75rem;
 }
 
 .product-mobile-order-cta {

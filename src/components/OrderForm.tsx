@@ -20,7 +20,7 @@ type Props = {
 };
 
 const inputClass =
-  "h-[3.25rem] w-full rounded-xl border border-black/30 bg-white px-4 font-store text-base font-medium text-on-surface placeholder:text-outline transition-all focus:border-black focus:outline-none focus:ring-1 focus:ring-black/10";
+  "h-16 w-full rounded-2xl border border-black/30 bg-white px-4 font-store text-lg font-semibold text-on-surface placeholder:text-outline transition-all focus:border-black focus:outline-none focus:ring-1 focus:ring-black/10";
 
 const labelClass = "px-1 font-store text-xs font-semibold text-on-surface-variant";
 
@@ -73,7 +73,7 @@ export function OrderForm({
     status === "loading" || !canSubmit || (requiresColorSelection && lineItems.some((i) => !i.color));
 
   return (
-    <div id="order-form" className="space-y-5 scroll-mt-24 rounded-2xl border border-black/15 bg-white p-4 md:p-6">
+    <div id="order-form" className="space-y-6 scroll-mt-24 rounded-2xl border border-black/15 bg-white p-5 md:p-6">
       <div className="space-y-1">
         <h3 className="font-store text-lg font-semibold text-on-surface">{t("orderTitle")}</h3>
         <p className="brand-eyebrow">{t("orderSubtitle")}</p>
@@ -92,27 +92,27 @@ export function OrderForm({
             />
           </div>
           <div className="space-y-2">
-            <label className={labelClass}>{t("phone")}</label>
+            <label className={labelClass}>{t("city")}</label>
             <input
               required
-              type="tel"
               className={inputClass}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              autoComplete="tel"
-              placeholder={t("phonePlaceholder")}
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              autoComplete="address-level2"
+              placeholder={t("cityPlaceholder")}
             />
           </div>
         </div>
         <div className="space-y-2">
-          <label className={labelClass}>{t("city")}</label>
+          <label className={labelClass}>{t("phone")}</label>
           <input
             required
+            type="tel"
             className={inputClass}
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            autoComplete="address-level2"
-            placeholder={t("cityPlaceholder")}
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            autoComplete="tel"
+            placeholder={t("phonePlaceholder")}
           />
         </div>
 
@@ -120,16 +120,16 @@ export function OrderForm({
           <p className="text-center text-sm text-on-surface-variant">{t("completeSelections")}</p>
         ) : null}
 
-        <div className="space-y-2 border-t border-black/10 pt-4">
-          <div className="flex items-center justify-between font-store text-xs text-on-surface-variant">
-            <span>{t("delivery")}</span>
-            <strong className="text-on-surface">{t("freeDelivery")}</strong>
-          </div>
+        <div className="order-cost-summary">
           <div className="flex items-center justify-between">
             <span className="font-store text-xs font-semibold text-on-surface-variant">
               {quantity > 1 ? t("bundleTotal", { count: quantity }) : t("total")}
             </span>
             <span className="font-headline text-xl font-bold text-on-surface">{formatMad(totalPrice, locale)}</span>
+          </div>
+          <div className="flex items-center justify-between font-store text-xs text-on-surface-variant">
+            <span>{t("delivery")}</span>
+            <strong className="text-on-surface">{t("freeDelivery")}</strong>
           </div>
         </div>
 

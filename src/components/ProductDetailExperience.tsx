@@ -81,10 +81,6 @@ export function ProductDetailExperience({
     },
     [colorVariants],
   );
-  const discount =
-    compareAtPrice && compareAtPrice > unitPrice
-      ? Math.round(((compareAtPrice - unitPrice) / compareAtPrice) * 100)
-      : 0;
   const inStock = stockQuantity == null || stockQuantity > 0;
 
   return (
@@ -125,23 +121,18 @@ export function ProductDetailExperience({
             </button>
           </div>
 
-          {(rating != null || reviewCount > 0 || soldCount > 0) ? (
-            <div className="product-social-proof">
-              {rating != null ? (
-                <span className="product-rating">
-                  <span aria-hidden>★★★★★</span>
-                  <strong>{rating.toFixed(1)}</strong>
-                </span>
-              ) : null}
-              {reviewCount > 0 ? <span>{t("reviewsCount", { count: reviewCount })}</span> : null}
-              {soldCount > 0 ? <span>{t("soldCount", { count: soldCount })}</span> : null}
-            </div>
-          ) : null}
+          <div className="product-social-proof">
+            <span className="product-rating">
+              <span aria-hidden>{rating != null && rating > 0 ? "★★★★★" : "☆☆☆☆☆"}</span>
+              <strong>{t("reviewsLabel")}</strong>
+              {reviewCount > 0 ? <small>({reviewCount})</small> : null}
+            </span>
+            {soldCount > 0 ? <span>{t("soldCount", { count: soldCount })}</span> : null}
+          </div>
 
           <div className="product-price-row">
             <strong>{formatMad(unitPrice.toString(), locale)}</strong>
             {compareAtPrice ? <del>{formatMad(compareAtPrice, locale)}</del> : null}
-            {discount > 0 ? <span>-{discount}%</span> : null}
           </div>
 
           <p className="product-short-description">
