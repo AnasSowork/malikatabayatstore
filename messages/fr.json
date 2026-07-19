@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Malikat Abayat",
-    "description": "Abayas élégantes pour femmes — confectionnées avec soin, livrées au Maroc avec paiement à la livraison."
+    "description": "Abayas élégantes pour femmes, confectionnées avec soin, livrées au Maroc avec paiement à la livraison."
   },
   "brand": {
     "name": "Malikat Abayat",
@@ -13,7 +13,7 @@
     "products": "Abayas",
     "classic": "Classiques",
     "embroidered": "Brodées",
-    "announcement": "Livraison gratuite partout au Maroc — Paiement à la livraison"
+    "announcement": "Livraison gratuite partout au Maroc. Paiement à la livraison"
   },
   "home": {
     "heroLine1": "Reine",
@@ -47,13 +47,13 @@
     "newsletterBody": "Soyez les premières informées des nouvelles abayas, réassorts et offres exclusives.",
     "newsletterPlaceholder": "Adresse e-mail",
     "newsletterCta": "S'inscrire",
-    "newsletterThanks": "Merci — nous vous contacterons.",
+    "newsletterThanks": "Merci, nous vous contacterons.",
     "articlesEyebrow": "Journal abaya",
     "articlesTitle": "Style & entretien",
     "articlesRead": "Lire",
     "article1Category": "Tissu",
     "article1Title": "Choisir le bon tissu d'abaya",
-    "article1Excerpt": "Du crêpe respirant au nida fluide — comment le grammage influence la tombée, le confort et la saison.",
+    "article1Excerpt": "Du crêpe respirant au nida fluide, comment le grammage influence la tombée, le confort et la saison.",
     "article2Category": "Coupe",
     "article2Title": "Longueur, manches & silhouette",
     "article2Excerpt": "Un guide simple pour trouver une abaya flatteuse sans compromettre la pudeur.",
@@ -62,7 +62,7 @@
     "article3Excerpt": "Lavage, repassage et rangement pour une abaya élégante à chaque port."
   },
   "footer": {
-    "mission": "Malikat Abayat célèbre l'abaya comme symbole de grâce — modeste, raffinée et faite pour les femmes du Maroc.",
+    "mission": "Malikat Abayat célèbre l'abaya comme symbole de grâce, modeste, raffinée et faite pour les femmes du Maroc.",
     "copyright": "© 2026 MALIKAT ABAYAT. TOUS DROITS RÉSERVÉS.",
     "columnCompany": "Marque",
     "columnConnect": "Réseaux",
@@ -82,7 +82,7 @@
   "products": {
     "title": "Nos",
     "titleItalic": "Abayas",
-    "intro": "Découvrez des abayas classiques, brodées et ouvertes — pour le quotidien, la prière et les occasions.",
+    "intro": "Découvrez des abayas classiques, brodées et ouvertes pour le quotidien, la prière et les occasions.",
     "empty": "Aucune abaya pour le moment.",
     "view": "Voir",
     "filterAll": "Toutes les abayas",
@@ -261,8 +261,8 @@
     "lineItemsLabel": "Sélections",
     "priceFor2": "Prix lot (2 pièces)",
     "priceFor3": "Prix lot (3 pièces)",
-    "priceFor2Hint": "Optionnel — laisser vide pour une seule pièce",
-    "priceFor3Hint": "Optionnel — nécessite le prix pour 2",
+    "priceFor2Hint": "Optionnel : laisser vide pour une seule pièce",
+    "priceFor3Hint": "Optionnel : nécessite le prix pour 2",
     "panelLabel": "Panneau admin",
     "viewShop": "Voir la boutique",
     "logout": "Déconnexion",
@@ -291,7 +291,7 @@
     "pickColor": "Choisir la couleur",
     "removeColor": "Supprimer",
     "addColor": "Ajouter une couleur",
-    "noColorsYet": "Aucune couleur — ajoutez-en une ou choisissez un nuancier.",
+    "noColorsYet": "Aucune couleur. Ajoutez-en une ou choisissez un nuancier.",
     "quickColors": "Nuanciers rapides",
     "applyColor": "Appliquer",
     "duplicateColor": "Ce nom de couleur existe déjà.",
@@ -311,7 +311,7 @@
     "categoryDeleteError": "Impossible de supprimer la catégorie.",
     "categoryDeleteInUse": "Cette catégorie est utilisée par {count} abaya(s). Retirez-la des produits d'abord.",
     "navHome": "Page d'accueil",
-    "homeIntro": "Modifiez chaque section de la page d'accueil — textes, images et liens dans toutes les langues.",
+    "homeIntro": "Modifiez chaque section de la page d'accueil : textes, images et liens dans toutes les langues.",
     "homeSubtitle": "Gérer les sections de la page d'accueil",
     "homeSaveError": "Impossible d'enregistrer la section.",
     "homeVisible": "Afficher sur la page d'accueil",
@@ -393,8 +393,8 @@
     "deliveryCreatePackage": "Créer un colis",
     "deliveryCreateHint": "Le colis commence au statut CREATED pour être vérifié avant confirmation.",
     "deliveryRiskCheck": "Vérifier le risque",
-    "deliveryRisky": "Destination risquée — {count} colis retournés.",
-    "deliverySafe": "Aucun signalement — {delivered} livraisons réussies.",
+    "deliveryRisky": "Destination risquée : {count} colis retournés.",
+    "deliverySafe": "Aucun signalement : {delivered} livraisons réussies.",
     "deliveryAddress": "Adresse",
     "deliveryPackageName": "Nom du colis",
     "deliveryDescription": "Description du contenu",

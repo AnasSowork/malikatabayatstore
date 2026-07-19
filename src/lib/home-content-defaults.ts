@@ -142,9 +142,9 @@ export function defaultArticlesContent(): ArticlesContent {
           "Choisir le bon tissu d'abaya",
         ),
         excerpt: lt(
-          "From breathable crepe to flowing nida — how fabric weight shapes drape, comfort, and season.",
-          "من الكريب الخفيف إلى النيدا الانسيابي — كيف يؤثر وزن القماش على الانسدال والراحة والموسم.",
-          "Du crêpe respirant au nida fluide — comment le grammage influence la tombée, le confort et la saison.",
+          "From breathable crepe to flowing nida, how fabric weight shapes drape, comfort, and season.",
+          "من الكريب الخفيف إلى النيدا الانسيابي، كيف يؤثر وزن القماش على الانسدال والراحة والموسم.",
+          "Du crêpe respirant au nida fluide, comment le grammage influence la tombée, le confort et la saison.",
         ),
         image: FEATURED[0].src,
         href: "/products",
