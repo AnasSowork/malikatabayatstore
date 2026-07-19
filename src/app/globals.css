@@ -3622,7 +3622,7 @@ html[dir="rtl"] .product-detail-shell {
   position: fixed;
   z-index: 35;
   right: 1rem;
-  bottom: 5.2rem;
+  bottom: calc(1rem + env(safe-area-inset-bottom));
   left: 1rem;
   display: flex;
   align-items: center;
@@ -3711,7 +3711,7 @@ html[dir="rtl"] .product-detail-shell {
 
   .product-mobile-order-cta {
     right: 0.75rem;
-    bottom: 4.8rem;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom));
     left: 0.75rem;
     padding: 0.75rem 1rem;
   }

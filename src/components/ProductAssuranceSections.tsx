@@ -60,24 +60,6 @@ export function ProductAssuranceSections({ content }: Props) {
           </div>
         </section>
       ) : null}
-
-      <aside className="product-trust-card">
-        <div className="product-trust-card-head">
-          <span className="product-trust-mark" aria-hidden>
-            <MaterialIcon name="workspace_premium" className="!text-2xl" />
-          </span>
-          <div>
-            <p className="product-trust-eyebrow">{localizeProductText(content.trust.eyebrow, locale)}</p>
-            <h2>{localizeProductText(content.trust.title, locale)}</h2>
-          </div>
-        </div>
-        <p>{localizeProductText(content.trust.body, locale)}</p>
-        <ul>
-          {content.trust.points.map((point, index) => (
-            <li key={index}>{localizeProductText(point, locale)}</li>
-          ))}
-        </ul>
-      </aside>
     </div>
   );
 }

@@ -7,7 +7,6 @@ import { routing } from "@/i18n/routing";
 import "../globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { StorefrontMain } from "@/components/StorefrontMain";
 import { StorefrontOnly } from "@/components/StorefrontOnly";
 
@@ -98,7 +97,6 @@ export default async function LocaleLayout({ children, params }: Props) {
           <StorefrontMain>{children}</StorefrontMain>
           <StorefrontOnly>
             <SiteFooter />
-            <MobileBottomNav />
           </StorefrontOnly>
         </NextIntlClientProvider>
       </body>
