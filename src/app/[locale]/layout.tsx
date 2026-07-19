@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { Geist_Mono, Inter, Newsreader, Cairo, Noto_Kufi_Arabic } from "next/font/google";
+import { Geist_Mono, Inter, Cairo, Noto_Kufi_Arabic } from "next/font/google";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -15,12 +15,6 @@ const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-});
-
-const newsreader = Newsreader({
-  variable: "--font-newsreader",
-  subsets: ["latin"],
-  style: ["normal", "italic"],
 });
 
 const cairo = Cairo({
@@ -84,7 +78,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   setRequestLocale(locale);
   const messages = await getMessages();
   const dir = locale === "ar" ? "rtl" : "ltr";
-  const fontVars = `${inter.variable} ${newsreader.variable} ${cairo.variable} ${notoKufiArabic.variable} ${geistMono.variable}`;
+  const fontVars = `${inter.variable} ${cairo.variable} ${notoKufiArabic.variable} ${geistMono.variable}`;
 
   return (
     <html lang={locale} dir={dir} className={`h-full ${fontVars} antialiased`}>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MaterialIcon } from "@/components/MaterialIcon";
 import { ProductImage } from "@/components/ProductImage";
 
 type Props = {
@@ -93,23 +92,6 @@ export function ProductImageCarousel({ images, alt, activeIndex, onIndexChange }
               <span className="opacity-50">/</span>
               <span>{total}</span>
             </div>
-
-            <button
-              type="button"
-              onClick={prev}
-              className="absolute left-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/55 text-white backdrop-blur-md transition hover:bg-black/75"
-              aria-label="Previous image"
-            >
-              <MaterialIcon name="chevron_left" className="!text-2xl" />
-            </button>
-            <button
-              type="button"
-              onClick={next}
-              className="absolute right-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/55 text-white backdrop-blur-md transition hover:bg-black/75"
-              aria-label="Next image"
-            >
-              <MaterialIcon name="chevron_right" className="!text-2xl" />
-            </button>
 
             <div className="absolute inset-x-0 bottom-0 z-10 h-0.5 bg-white/20">
               <span
