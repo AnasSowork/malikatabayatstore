@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { MaterialIcon } from "@/components/MaterialIcon";
 import { BrandButton } from "@/components/BrandButton";
 import { useRouter } from "@/i18n/navigation";
 import type { AppLocale } from "@/lib/product-i18n";
@@ -153,16 +152,6 @@ export function OrderForm({
         )}
         {status === "error" && <p className="text-center text-sm text-error">{t("error")}</p>}
       </form>
-      <div className="flex flex-wrap items-center justify-center gap-6 border-t border-brand-gold/15 pt-6 font-sans text-[10px] uppercase tracking-widest text-on-surface-variant">
-        <span className="flex items-center gap-2 brand-gold-text">
-          <MaterialIcon name="local_shipping" className="!text-lg" />
-          {t("trustShipping")}
-        </span>
-        <span className="flex items-center gap-2 brand-gold-text">
-          <MaterialIcon name="verified" className="!text-lg" />
-          {t("trustAuthentic")}
-        </span>
-      </div>
     </div>
   );
 }
