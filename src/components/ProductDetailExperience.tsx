@@ -8,6 +8,7 @@ import type { AppLocale } from "@/lib/product-i18n";
 import { formatMad } from "@/lib/format-price";
 import { ProductImageCarousel } from "@/components/ProductImageCarousel";
 import { ProductPurchasePanel } from "@/components/ProductPurchasePanel";
+import { CustomerReviewsSection } from "@/components/CustomerReviewsSection";
 import { ProductAssuranceSections } from "@/components/ProductAssuranceSections";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { Link } from "@/i18n/navigation";
@@ -152,6 +153,7 @@ export function ProductDetailExperience({
           preferredColor={galleryColor}
           onColorChange={syncColorToImage}
         />
+        <CustomerReviewsSection />
         <ProductAssuranceSections content={detailContent} />
       </section>
       </div>
