@@ -70,7 +70,7 @@ export function BundleQuantitySelector({
                 <span className="bundle-option-radio" aria-hidden>
                   {selected ? <MaterialIcon name="check" className="!text-sm" /> : null}
                 </span>
-                <span className="font-store text-lg font-semibold text-on-surface">
+                <span className="bundle-option-title">
                   {t("bundleTier", { count: offer.quantity, price: formatMad(offer.price, locale) })}
                 </span>
               </span>

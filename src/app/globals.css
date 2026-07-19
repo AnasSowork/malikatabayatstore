@@ -3119,36 +3119,33 @@ html[dir="rtl"] .product-detail-shell {
 }
 
 .offer-countdown {
-  display: grid;
-  justify-items: center;
-  gap: 0.45rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin-bottom: 0.25rem;
-  text-align: center;
-}
-
-.offer-countdown::after {
-  content: "";
-  width: 100%;
-  border-bottom: 4px dotted var(--color-on-surface);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 0.8rem;
+  background: #f7f5f1;
+  padding: 0.65rem 0.75rem;
 }
 
 .offer-countdown span {
-  border-radius: 0.4rem;
-  background: #ef5a4f;
-  padding: 0.2rem 0.6rem;
-  font-size: 0.6875rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  color: white;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.72);
 }
 
 .offer-countdown strong {
-  order: 3;
+  flex: 0 0 auto;
   border-radius: 0.55rem;
   background: var(--color-on-surface);
-  padding: 0.35rem 0.7rem;
-  font-size: 1.35rem;
+  padding: 0.4rem 0.65rem;
+  font-size: 1rem;
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
+  letter-spacing: 0.04em;
   color: white;
 }
 
@@ -3177,11 +3174,11 @@ html[dir="rtl"] .product-detail-shell {
   inset-inline-end: 0.75rem;
   top: -0.55rem;
   border-radius: 0.35rem;
-  background: #ef5a4f;
+  background: #d8bd88;
   padding: 0.15rem 0.45rem;
   font-size: 0.625rem;
   font-weight: 700;
-  color: white;
+  color: #17130d;
 }
 
 .bundle-option:hover {
@@ -3208,6 +3205,14 @@ html[dir="rtl"] .product-detail-shell {
   min-width: 0;
   align-items: center;
   gap: 0.75rem;
+}
+
+.bundle-option-title {
+  font-family: var(--font-store);
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.5;
+  color: var(--color-on-surface);
 }
 
 .bundle-option-radio {
@@ -3325,7 +3330,7 @@ html[dir="rtl"] .product-detail-shell {
   font-weight: 700;
   text-decoration-color: #dc352f;
   text-decoration-thickness: 3px;
-  color: #dc352f;
+  color: rgba(140, 34, 30, 0.72);
 }
 
 .product-price-row > span {
@@ -3525,8 +3530,9 @@ html[dir="rtl"] .product-detail-shell {
   display: grid;
   gap: 0.4rem;
   border-top: 1px solid rgba(0, 0, 0, 0.1);
-  border-bottom: 4px dotted var(--color-on-surface);
-  padding: 0.9rem 0 0.75rem;
+  border-radius: 0.75rem;
+  background: #f8f7f4;
+  padding: 0.85rem 0.9rem;
 }
 
 .product-mobile-order-cta {

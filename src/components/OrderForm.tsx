@@ -20,7 +20,7 @@ type Props = {
 };
 
 const inputClass =
-  "h-16 w-full rounded-2xl border border-black/30 bg-white px-4 font-store text-lg font-semibold text-on-surface placeholder:text-outline transition-all focus:border-black focus:outline-none focus:ring-1 focus:ring-black/10";
+  "h-14 w-full rounded-xl border border-black/25 bg-white px-4 font-store text-base font-medium text-on-surface placeholder:text-outline transition-all focus:border-black focus:outline-none focus:ring-2 focus:ring-black/5";
 
 const labelClass = "px-1 font-store text-xs font-semibold text-on-surface-variant";
 
