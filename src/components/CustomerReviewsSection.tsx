@@ -24,6 +24,7 @@ export function CustomerReviewsSection() {
                 alt={t("reviewImageAlt", { number: index + 1 })}
                 fill
                 sizes="(max-width: 767px) 86vw, (max-width: 1199px) 45vw, 30vw"
+                unoptimized
               />
             </div>
           </div>
