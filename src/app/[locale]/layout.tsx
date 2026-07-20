@@ -10,6 +10,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { StorefrontMain } from "@/components/StorefrontMain";
 import { StorefrontOnly } from "@/components/StorefrontOnly";
 import { MetaPixel } from "@/components/MetaPixel";
+import { SiteAnalyticsBeacon } from "@/components/SiteAnalyticsBeacon";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -95,6 +96,7 @@ export default async function LocaleLayout({ children, params }: Props) {
       <body className="flex min-h-full flex-col bg-surface font-sans text-on-surface">
         <NextIntlClientProvider messages={messages}>
           <MetaPixel />
+          <SiteAnalyticsBeacon />
           <SiteHeader />
           <StorefrontMain>{children}</StorefrontMain>
           <StorefrontOnly>

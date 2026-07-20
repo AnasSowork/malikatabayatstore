@@ -33,6 +33,22 @@ import type { HomeSectionContent, HomeSectionForClient, HomeSectionKey } from "@
 import { formatMad } from "@/lib/format-price";
 import type { AppLocale } from "@/lib/product-i18n";
 
+type PlatformAnalytics = {
+  viewsToday: number;
+  views7d: number;
+  views30d: number;
+  viewsPrev7d: number;
+  productViews7d: number;
+  homeViews7d: number;
+  ordersToday: number;
+  orders7d: number;
+  revenueToday: number;
+  revenue7d: number;
+  conversion7d: number;
+  topProductViews: Array<{ productId: string; views: number }>;
+  daily: Array<{ day: string; views: number; orders: number; revenue: number }>;
+};
+
 function dayKey(daysAgo: number): string {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
@@ -72,18 +88,20 @@ export function AdminDashboard({ view }: { view: AdminView }) {
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [chartRange, setChartRange] = useState<7 | 30>(7);
   const [imageUploadBusy, setImageUploadBusy] = useState(false);
+  const [analytics, setAnalytics] = useState<PlatformAnalytics | null>(null);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     else setRefreshing(true);
     try {
-      const [o, p, c, h] = await Promise.all([
+      const [o, p, c, h, a] = await Promise.all([
         fetch("/api/orders"),
         fetch("/api/products"),
         fetch("/api/categories"),
         fetch("/api/home-sections"),
+        fetch("/api/admin/analytics"),
       ]);
-      if (o.status === 401 || p.status === 401 || c.status === 401) {
+      if (o.status === 401 || p.status === 401 || c.status === 401 || a.status === 401) {
         window.location.href = "/admin/login";
         return;
       }
@@ -91,6 +109,7 @@ export function AdminDashboard({ view }: { view: AdminView }) {
       if (p.ok) setProducts(await p.json());
       if (c.ok) setCategories(await c.json());
       if (h.ok) setHomeSections(await h.json());
+      if (a.ok) setAnalytics(await a.json());
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -293,13 +312,14 @@ export function AdminDashboard({ view }: { view: AdminView }) {
   const avgOrder = orders.length ? totalRevenue / orders.length : 0;
 
   const chartData = useMemo(() => {
-    const rows: { label: string; orders: number; revenue: number }[] = [];
+    const rows: { label: string; orders: number; revenue: number; views: number }[] = [];
     for (let k = chartRange - 1; k >= 0; k--) {
       const d = new Date();
       d.setHours(0, 0, 0, 0);
       d.setDate(d.getDate() - k);
       const key = d.toISOString().slice(0, 10);
       const dayOrders = orders.filter((o) => o.createdAt.slice(0, 10) === key);
+      const dayViews = analytics?.daily.find((row) => row.day === key)?.views ?? 0;
       rows.push({
         label:
           chartRange <= 14
@@ -307,10 +327,24 @@ export function AdminDashboard({ view }: { view: AdminView }) {
             : d.toLocaleDateString(locale, { month: "short", day: "numeric" }),
         orders: dayOrders.length,
         revenue: dayOrders.reduce((s, o) => s + Number(o.totalPrice), 0),
+        views: dayViews,
       });
     }
     return rows;
-  }, [orders, chartRange, locale]);
+  }, [orders, chartRange, locale, analytics]);
+
+  const viewsDeltaPct = useMemo(() => {
+    if (!analytics) return 0;
+    return pctDelta(analytics.views7d, analytics.viewsPrev7d);
+  }, [analytics]);
+
+  const productNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const product of products) {
+      map.set(product.id, locale === "ar" ? product.nameAr || product.name : product.nameFr || product.name);
+    }
+    return map;
+  }, [products, locale]);
 
   const orderDeltaPct = useMemo(() => {
     const cur = ordersInDayOffsets(orders, chartRange - 1, 0).length;
@@ -393,6 +427,36 @@ export function AdminDashboard({ view }: { view: AdminView }) {
         <>
           <section className="admin-kpi-grid">
             <AdminKpiCard
+              label={t("kpiViewsToday")}
+              icon="visibility"
+              value={analytics?.viewsToday ?? 0}
+              hint={<span className="text-xs text-on-surface-variant">{t("viewsHint")}</span>}
+            />
+            <AdminKpiCard
+              label={t("kpiViews7d")}
+              icon="monitoring"
+              accent="dark"
+              value={analytics?.views7d ?? 0}
+              hint={<AdminDeltaBadge value={viewsDeltaPct} suffix={t("changeVsPrev")} />}
+            />
+            <AdminKpiCard
+              label={t("kpiOrdersToday")}
+              icon="shopping_bag"
+              accent="green"
+              value={analytics?.ordersToday ?? 0}
+              hint={
+                <span className="text-xs text-on-surface-variant">
+                  {formatMad((analytics?.revenueToday ?? 0).toFixed(2), locale)}
+                </span>
+              }
+            />
+            <AdminKpiCard
+              label={t("kpiConversion")}
+              icon="conversion_path"
+              value={`${(analytics?.conversion7d ?? 0).toFixed(1)}%`}
+              hint={<span className="text-xs text-on-surface-variant">{t("conversionHint")}</span>}
+            />
+            <AdminKpiCard
               label={t("kpiOrders")}
               icon="receipt_long"
               value={orders.length}
@@ -423,8 +487,8 @@ export function AdminDashboard({ view }: { view: AdminView }) {
           <section className="admin-section admin-chart-section">
             <div className="admin-section-head">
               <div>
-                <h2 className="admin-section-title">{t("salesOverview")}</h2>
-                <p className="admin-section-subtitle">{t("chartOrders")} · {t("chartRevenue")}</p>
+                <h2 className="admin-section-title">{t("trackingSection")}</h2>
+                <p className="admin-section-subtitle">{t("trackingSubtitle")}</p>
               </div>
               <div className="admin-segmented">
                 <button type="button" className={chartRange === 7 ? "admin-segmented-active" : ""} onClick={() => setChartRange(7)}>{t("range7d")}</button>
@@ -449,13 +513,34 @@ export function AdminDashboard({ view }: { view: AdminView }) {
                     formatter={(value, name) => {
                       const n = value == null ? 0 : typeof value === "number" ? value : Number(value);
                       if (name === "revenue") return [formatMad((Number.isFinite(n) ? n : 0).toFixed(2), locale), t("chartRevenue")];
+                      if (name === "views") return [Number.isFinite(n) ? n : 0, t("chartViews")];
                       return [Number.isFinite(n) ? n : 0, t("chartOrders")];
                     }}
                   />
-                  <Bar yAxisId="ord" dataKey="orders" fill="#000000" radius={[6, 6, 0, 0]} maxBarSize={28} opacity={0.85} />
+                  <Bar yAxisId="ord" dataKey="views" fill="#8a8a8a" radius={[6, 6, 0, 0]} maxBarSize={18} opacity={0.55} />
+                  <Bar yAxisId="ord" dataKey="orders" fill="#000000" radius={[6, 6, 0, 0]} maxBarSize={18} opacity={0.9} />
                   <Area yAxisId="rev" type="monotone" dataKey="revenue" stroke="#000000" strokeWidth={2} fill="url(#adminRevFill)" dot={false} activeDot={{ r: 4, fill: "#000000" }} />
                 </ComposedChart>
               </ResponsiveContainer>
+            </div>
+            <div className="mt-4 rounded-xl border border-black/10 bg-white/70 p-4">
+              <h3 className="font-store text-sm font-semibold text-on-surface">{t("topViewedProducts")}</h3>
+              {analytics?.topProductViews?.length ? (
+                <ul className="mt-3 space-y-2">
+                  {analytics.topProductViews.map((row) => (
+                    <li key={row.productId} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="truncate text-on-surface">
+                        {productNameById.get(row.productId) ?? row.productId}
+                      </span>
+                      <span className="shrink-0 text-on-surface-variant">
+                        {t("viewsCount", { count: row.views })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-sm text-on-surface-variant">{t("noViewDataYet")}</p>
+              )}
             </div>
           </section>
 

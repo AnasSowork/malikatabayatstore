@@ -86,3 +86,18 @@ model Order {
   @@index([productId])
   @@map("orders")
 }
+
+/// Additive storefront traffic counters only. Never write Order/Product/Meta data from this.
+model SiteDailyMetric {
+  id        String   @id @default(cuid())
+  day       DateTime @db.Date
+  pathType  String   @db.VarChar(32)
+  productId String   @default("") @db.VarChar(64)
+  views     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([day, pathType, productId])
+  @@index([day])
+  @@map("site_daily_metrics")
+}
