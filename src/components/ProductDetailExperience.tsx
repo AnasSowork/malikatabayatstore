@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { ProductColorVariant } from "@/lib/product-serialize";
 import type { BundleOffer } from "@/lib/bundle-offers";
@@ -17,6 +17,7 @@ import {
   localizeProductText,
   type ProductDetailContent,
 } from "@/lib/product-detail-content";
+import { trackViewContent } from "@/lib/meta-pixel-events";
 
 type Props = {
   productId: string;
@@ -63,6 +64,14 @@ export function ProductDetailExperience({
   const [galleryColor, setGalleryColor] = useState<string | null>(
     colorVariants[0]?.name ?? null,
   );
+
+  useEffect(() => {
+    trackViewContent({
+      productId,
+      productName,
+      value: unitPrice,
+    });
+  }, [productId, productName, unitPrice]);
 
   const syncColorToImage = useCallback(
     (colorName: string) => {
