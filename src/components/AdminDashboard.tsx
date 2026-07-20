@@ -544,11 +544,17 @@ export function AdminDashboard({ view }: { view: AdminView }) {
             </div>
           </section>
 
-          <AdminOrdersView orders={orders} compact />
+          <AdminOrdersView orders={orders} products={products} compact />
         </>
       )}
 
-      {view === "orders" && <AdminOrdersView orders={orders} />}
+      {view === "orders" && (
+        <AdminOrdersView
+          orders={orders}
+          products={products}
+          onChanged={() => void load(true)}
+        />
+      )}
 
       {view === "products" && (
         <>

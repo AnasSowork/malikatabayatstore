@@ -33,34 +33,28 @@ function serializeOrder(order: {
   };
 }
 
-export async function GET() {
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function PATCH(request: Request, context: Ctx) {
   try {
-    const isAdmin = await isAdminAuthenticated();
-    if (!isAdmin) {
+    if (!(await isAdminAuthenticated())) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const orders = await prisma.order.findMany({
-      include: { product: true },
-      orderBy: { createdAt: "desc" },
-    });
-    return NextResponse.json(orders.map(serializeOrder));
-  } catch (e) {
-    console.error(e);
-    return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 });
-  }
-}
+    const { id } = await context.params;
+    const existing = await prisma.order.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
 
-export async function POST(request: Request) {
-  try {
     const body = (await request.json()) as Record<string, unknown>;
-    const isAdmin = await isAdminAuthenticated();
-    const parsed = await parseOrderInput(body, { allowCustomTotalPrice: isAdmin });
+    const parsed = await parseOrderInput(body, { allowCustomTotalPrice: true });
     if ("error" in parsed) {
       return NextResponse.json({ error: parsed.error }, { status: parsed.status });
     }
 
-    const order = await prisma.order.create({
+    const order = await prisma.order.update({
+      where: { id },
       data: {
         customerName: parsed.customerName,
         phone: parsed.phone,
@@ -74,13 +68,33 @@ export async function POST(request: Request) {
       include: { product: true },
     });
 
-    return NextResponse.json(serializeOrder(order), { status: 201 });
+    return NextResponse.json(serializeOrder(order));
   } catch (e) {
     const err = e as { code?: string };
     if (err.code === "P2003") {
       return NextResponse.json({ error: "Product not found" }, { status: 400 });
     }
     console.error(e);
-    return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to update order" }, { status: 500 });
+  }
+}
+
+export async function DELETE(_request: Request, context: Ctx) {
+  try {
+    if (!(await isAdminAuthenticated())) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await context.params;
+    const existing = await prisma.order.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    await prisma.order.delete({ where: { id } });
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "Failed to delete order" }, { status: 500 });
   }
 }
