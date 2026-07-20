@@ -12,6 +12,10 @@ declare global {
   }
 }
 
+function isAdminPath(pathname: string) {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}
+
 function trackPageView() {
   window.fbq?.("track", "PageView");
 }
@@ -19,9 +23,10 @@ function trackPageView() {
 export function MetaPixel() {
   const pathname = usePathname();
   const skipInitialRouteEffect = useRef(true);
+  const onAdmin = isAdminPath(pathname);
 
   useEffect(() => {
-    if (!PIXEL_ID || pathname.startsWith("/admin")) return;
+    if (!PIXEL_ID || onAdmin) return;
 
     if (skipInitialRouteEffect.current) {
       skipInitialRouteEffect.current = false;
@@ -29,9 +34,9 @@ export function MetaPixel() {
     }
 
     trackPageView();
-  }, [pathname]);
+  }, [pathname, onAdmin]);
 
-  if (!PIXEL_ID || pathname.startsWith("/admin")) {
+  if (!PIXEL_ID || onAdmin) {
     return null;
   }
 
@@ -51,6 +56,7 @@ export function MetaPixel() {
           fbq('track', 'PageView');
         `}
       </Script>
+      {/* eslint-disable-next-line @next/next/no-img-element -- Meta Pixel noscript fallback */}
       <noscript>
         <img
           height="1"
