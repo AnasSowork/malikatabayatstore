@@ -7,7 +7,7 @@ import { useRouter } from "@/i18n/navigation";
 import type { AppLocale } from "@/lib/product-i18n";
 import { MadPrice } from "@/components/MadPrice";
 import type { OrderLineItem } from "@/lib/bundle-offers";
-import { trackInitiateCheckout, savePendingPurchase } from "@/lib/meta-pixel-events";
+import { savePendingPurchase } from "@/lib/meta-pixel-events";
 
 type Props = {
   productId: string;
@@ -49,7 +49,6 @@ export function OrderForm({
     e.preventDefault();
     if (!canSubmit) return;
     setStatus("loading");
-    trackInitiateCheckout({ productId, value: totalPrice, quantity });
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
@@ -65,7 +64,8 @@ export function OrderForm({
         }),
       });
       if (!res.ok) throw new Error("order failed");
-      savePendingPurchase({ productId, value: totalPrice, quantity });
+      const order = (await res.json()) as { id: string };
+      savePendingPurchase({ productId, value: totalPrice, quantity, orderId: order.id });
       setStatus("success");
       setCustomerName("");
       setPhone("");

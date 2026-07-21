@@ -2,11 +2,13 @@
 
 const CURRENCY = "MAD";
 export const META_PENDING_PURCHASE_KEY = "meta_pending_purchase";
+const META_PURCHASE_FIRED_KEY = "meta_purchase_fired";
 
 export type PendingPurchase = {
   productId: string;
   value: number;
   quantity: number;
+  orderId: string;
 };
 
 declare global {
@@ -92,19 +94,50 @@ export function trackInitiateCheckout(input: {
   });
 }
 
-export function trackPurchase(input: PendingPurchase) {
-  track("Purchase", {
+function purchaseParams(input: PendingPurchase) {
+  return {
     content_ids: [input.productId],
     content_type: "product",
     value: input.value,
     currency: CURRENCY,
     num_items: input.quantity,
-  });
+  };
 }
 
+function sendPurchase(input: PendingPurchase) {
+  const params = purchaseParams(input);
+  if (input.orderId) {
+    window.fbq?.("track", "Purchase", params, { eventID: input.orderId });
+    return;
+  }
+  window.fbq?.("track", "Purchase", params);
+}
+
+export function trackPurchase(input: PendingPurchase) {
+  whenFbqReady(() => sendPurchase(input));
+}
+
+function purchaseFiredKey(orderId: string) {
+  return `${META_PURCHASE_FIRED_KEY}:${orderId}`;
+}
+
+/** Fires Purchase once on the thank-you page after a successful order. */
 export function flushPendingPurchase() {
+  if (typeof window === "undefined") return;
+
   const pending = readPendingPurchase();
   if (!pending) return;
-  clearPendingPurchase();
-  trackPurchase(pending);
+
+  const firedKey = purchaseFiredKey(pending.orderId || META_PENDING_PURCHASE_KEY);
+  if (sessionStorage.getItem(firedKey)) {
+    clearPendingPurchase();
+    return;
+  }
+
+  sessionStorage.setItem(firedKey, "1");
+
+  whenFbqReady(() => {
+    sendPurchase(pending);
+    clearPendingPurchase();
+  });
 }

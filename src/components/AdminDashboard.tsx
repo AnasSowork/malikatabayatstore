@@ -2,18 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import {
-  Area,
-  Bar,
-  CartesianGrid,
-  ComposedChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { AdminShell } from "@/components/admin/AdminShell";
-import { AdminKpiCard, AdminDeltaBadge } from "@/components/admin/AdminKpiCard";
+import { AdminDeltaBadge } from "@/components/admin/AdminKpiCard";
+import { AdminKpiChartCard } from "@/components/admin/AdminKpiChartCard";
 import { AdminLoadingState } from "@/components/admin/AdminLoadingState";
 import { AdminOrdersView } from "@/components/admin/AdminOrdersView";
 import { AdminProductsView } from "@/components/admin/AdminProductsView";
@@ -312,13 +303,24 @@ export function AdminDashboard({ view }: { view: AdminView }) {
   const avgOrder = orders.length ? totalRevenue / orders.length : 0;
 
   const chartData = useMemo(() => {
-    const rows: { label: string; orders: number; revenue: number; views: number }[] = [];
+    const rows: {
+      label: string;
+      orders: number;
+      revenue: number;
+      views: number;
+      conversion: number;
+      avgOrder: number;
+      newProducts: number;
+      totalOrders: number;
+    }[] = [];
+
     for (let k = chartRange - 1; k >= 0; k--) {
       const d = new Date();
       d.setHours(0, 0, 0, 0);
       d.setDate(d.getDate() - k);
       const key = d.toISOString().slice(0, 10);
       const dayOrders = orders.filter((o) => o.createdAt.slice(0, 10) === key);
+      const dayRevenue = dayOrders.reduce((s, o) => s + Number(o.totalPrice), 0);
       const dayViews = analytics?.daily.find((row) => row.day === key)?.views ?? 0;
       rows.push({
         label:
@@ -326,12 +328,22 @@ export function AdminDashboard({ view }: { view: AdminView }) {
             ? d.toLocaleDateString(locale, { weekday: "short" })
             : d.toLocaleDateString(locale, { month: "short", day: "numeric" }),
         orders: dayOrders.length,
-        revenue: dayOrders.reduce((s, o) => s + Number(o.totalPrice), 0),
+        revenue: dayRevenue,
         views: dayViews,
+        conversion: dayViews > 0 ? (dayOrders.length / dayViews) * 100 : 0,
+        avgOrder: dayOrders.length > 0 ? dayRevenue / dayOrders.length : 0,
+        newProducts: products.filter((p) => p.createdAt.slice(0, 10) === key).length,
+        totalOrders: orders.filter((o) => o.createdAt.slice(0, 10) <= key).length,
       });
     }
     return rows;
-  }, [orders, chartRange, locale, analytics]);
+  }, [orders, products, chartRange, locale, analytics]);
+
+  const chartSeries = useCallback(
+    (key: "views" | "orders" | "revenue" | "conversion" | "avgOrder" | "newProducts" | "totalOrders") =>
+      chartData.map((row) => ({ label: row.label, value: row[key] })),
+    [chartData],
+  );
 
   const viewsDeltaPct = useMemo(() => {
     if (!analytics) return 0;
@@ -425,66 +437,7 @@ export function AdminDashboard({ view }: { view: AdminView }) {
     >
       {view === "overview" && (
         <>
-          <section className="admin-kpi-grid">
-            <AdminKpiCard
-              label={t("kpiViewsToday")}
-              icon="visibility"
-              value={analytics?.viewsToday ?? 0}
-              hint={<span className="text-xs text-on-surface-variant">{t("viewsHint")}</span>}
-            />
-            <AdminKpiCard
-              label={t("kpiViews7d")}
-              icon="monitoring"
-              accent="dark"
-              value={analytics?.views7d ?? 0}
-              hint={<AdminDeltaBadge value={viewsDeltaPct} suffix={t("changeVsPrev")} />}
-            />
-            <AdminKpiCard
-              label={t("kpiOrdersToday")}
-              icon="shopping_bag"
-              accent="green"
-              value={analytics?.ordersToday ?? 0}
-              hint={
-                <span className="text-xs text-on-surface-variant">
-                  {formatMad((analytics?.revenueToday ?? 0).toFixed(2), locale)}
-                </span>
-              }
-            />
-            <AdminKpiCard
-              label={t("kpiConversion")}
-              icon="conversion_path"
-              value={`${(analytics?.conversion7d ?? 0).toFixed(1)}%`}
-              hint={<span className="text-xs text-on-surface-variant">{t("conversionHint")}</span>}
-            />
-            <AdminKpiCard
-              label={t("kpiOrders")}
-              icon="receipt_long"
-              value={orders.length}
-              hint={<AdminDeltaBadge value={orderDeltaPct} suffix={t("changeVsPrev")} />}
-            />
-            <AdminKpiCard
-              label={t("kpiProducts")}
-              icon="inventory_2"
-              accent="dark"
-              value={products.length}
-              hint={<span className="text-xs text-on-surface-variant">{t("newProductsCaption", { count: newProducts30d })}</span>}
-            />
-            <AdminKpiCard
-              label={t("kpiRevenue")}
-              icon="payments"
-              value={formatMad(totalRevenue.toFixed(2), locale)}
-              hint={<AdminDeltaBadge value={revenueDeltaPct} suffix={t("changeVsPrev")} />}
-            />
-            <AdminKpiCard
-              label={t("kpiAvgOrder")}
-              icon="show_chart"
-              accent="green"
-              value={formatMad(avgOrder.toFixed(2), locale)}
-              hint={<span className="text-xs text-on-surface-variant">{t("avgOrderHint")}</span>}
-            />
-          </section>
-
-          <section className="admin-section admin-chart-section">
+          <section className="admin-section admin-kpi-charts-section">
             <div className="admin-section-head">
               <div>
                 <h2 className="admin-section-title">{t("trackingSection")}</h2>
@@ -495,35 +448,88 @@ export function AdminDashboard({ view }: { view: AdminView }) {
                 <button type="button" className={chartRange === 30 ? "admin-segmented-active" : ""} onClick={() => setChartRange(30)}>{t("range30d")}</button>
               </div>
             </div>
-            <div className="admin-chart-wrap">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="adminRevFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#000000" stopOpacity={0.25} />
-                      <stop offset="100%" stopColor="#000000" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#000000" strokeOpacity={0.12} vertical={false} />
-                  <XAxis dataKey="label" tick={{ fill: "#000000", fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="rev" tick={{ fill: "#000000", fontSize: 11 }} axisLine={false} tickLine={false} width={44} />
-                  <YAxis yAxisId="ord" orientation="right" tick={{ fill: "#000000", fontSize: 11 }} axisLine={false} tickLine={false} width={36} allowDecimals={false} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: "12px", border: "1px solid #000000", fontSize: "12px" }}
-                    formatter={(value, name) => {
-                      const n = value == null ? 0 : typeof value === "number" ? value : Number(value);
-                      if (name === "revenue") return [formatMad((Number.isFinite(n) ? n : 0).toFixed(2), locale), t("chartRevenue")];
-                      if (name === "views") return [Number.isFinite(n) ? n : 0, t("chartViews")];
-                      return [Number.isFinite(n) ? n : 0, t("chartOrders")];
-                    }}
-                  />
-                  <Bar yAxisId="ord" dataKey="views" fill="#8a8a8a" radius={[6, 6, 0, 0]} maxBarSize={18} opacity={0.55} />
-                  <Bar yAxisId="ord" dataKey="orders" fill="#000000" radius={[6, 6, 0, 0]} maxBarSize={18} opacity={0.9} />
-                  <Area yAxisId="rev" type="monotone" dataKey="revenue" stroke="#000000" strokeWidth={2} fill="url(#adminRevFill)" dot={false} activeDot={{ r: 4, fill: "#000000" }} />
-                </ComposedChart>
-              </ResponsiveContainer>
+
+            <div className="admin-kpi-grid">
+              <AdminKpiChartCard
+                label={t("kpiViewsToday")}
+                icon="visibility"
+                value={analytics?.viewsToday ?? 0}
+                data={chartSeries("views")}
+                chartType="area"
+                color="#5c5c5c"
+                hint={<span className="text-xs text-on-surface-variant">{t("viewsHint")}</span>}
+              />
+              <AdminKpiChartCard
+                label={t("kpiViews7d")}
+                icon="monitoring"
+                accent="dark"
+                value={analytics?.views7d ?? 0}
+                data={chartSeries("views")}
+                chartType="area"
+                hint={<AdminDeltaBadge value={viewsDeltaPct} suffix={t("changeVsPrev")} />}
+              />
+              <AdminKpiChartCard
+                label={t("kpiOrdersToday")}
+                icon="shopping_bag"
+                accent="green"
+                value={analytics?.ordersToday ?? 0}
+                data={chartSeries("orders")}
+                chartType="bar"
+                hint={
+                  <span className="text-xs text-on-surface-variant">
+                    {formatMad((analytics?.revenueToday ?? 0).toFixed(2), locale)}
+                  </span>
+                }
+              />
+              <AdminKpiChartCard
+                label={t("kpiConversion")}
+                icon="conversion_path"
+                value={`${(analytics?.conversion7d ?? 0).toFixed(1)}%`}
+                data={chartSeries("conversion")}
+                chartType="line"
+                formatTooltip={(value) => `${value.toFixed(1)}%`}
+                hint={<span className="text-xs text-on-surface-variant">{t("conversionHint")}</span>}
+              />
+              <AdminKpiChartCard
+                label={t("kpiOrders")}
+                icon="receipt_long"
+                value={orders.length}
+                data={chartSeries("totalOrders")}
+                chartType="area"
+                hint={<AdminDeltaBadge value={orderDeltaPct} suffix={t("changeVsPrev")} />}
+              />
+              <AdminKpiChartCard
+                label={t("kpiProducts")}
+                icon="inventory_2"
+                accent="dark"
+                value={products.length}
+                data={chartSeries("newProducts")}
+                chartType="bar"
+                color="#3d3d3d"
+                hint={<span className="text-xs text-on-surface-variant">{t("newProductsCaption", { count: newProducts30d })}</span>}
+              />
+              <AdminKpiChartCard
+                label={t("kpiRevenue")}
+                icon="payments"
+                value={formatMad(totalRevenue.toFixed(2), locale)}
+                data={chartSeries("revenue")}
+                chartType="area"
+                formatTooltip={(value) => formatMad(value.toFixed(2), locale)}
+                hint={<AdminDeltaBadge value={revenueDeltaPct} suffix={t("changeVsPrev")} />}
+              />
+              <AdminKpiChartCard
+                label={t("kpiAvgOrder")}
+                icon="show_chart"
+                accent="green"
+                value={formatMad(avgOrder.toFixed(2), locale)}
+                data={chartSeries("avgOrder")}
+                chartType="line"
+                formatTooltip={(value) => formatMad(value.toFixed(2), locale)}
+                hint={<span className="text-xs text-on-surface-variant">{t("avgOrderHint")}</span>}
+              />
             </div>
-            <div className="mt-4 rounded-xl border border-black/10 bg-white/70 p-4">
+
+            <div className="admin-top-products">
               <h3 className="font-store text-sm font-semibold text-on-surface">{t("topViewedProducts")}</h3>
               {analytics?.topProductViews?.length ? (
                 <ul className="mt-3 space-y-2">

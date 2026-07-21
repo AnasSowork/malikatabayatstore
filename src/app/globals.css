@@ -877,6 +877,54 @@ html[dir="rtl"] .product-detail-shell {
   color: var(--color-brand-gold-dark);
 }
 
+.admin-kpi-charts-section {
+  margin-top: 0;
+}
+
+.admin-kpi-charts-section .admin-kpi-grid {
+  margin-top: 0;
+}
+
+.admin-kpi-chart-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: var(--color-surface-container-lowest);
+  padding: 1rem 1rem 0.875rem;
+  box-shadow: 0 16px 40px -28px rgba(0, 0, 0, 0.15);
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+
+.admin-kpi-chart-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 48px -24px rgba(0, 0, 0, 0.2);
+}
+
+.admin-kpi-chart-head {
+  display: flex;
+  gap: 0.875rem;
+  align-items: flex-start;
+}
+
+.admin-kpi-chart-value {
+  font-size: 1.5rem !important;
+}
+
+.admin-kpi-chart-wrap {
+  height: 88px;
+  width: 100%;
+}
+
+.admin-top-products {
+  margin-top: 1.5rem;
+  border-radius: 0.875rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.7);
+  padding: 1rem;
+}
+
 .admin-kpi-grid {
   display: grid;
   gap: 1rem;
