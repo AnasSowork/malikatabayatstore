@@ -1,5 +1,8 @@
 "use client";
 
+import { buildMetaCommerceData } from "@/lib/meta-commerce";
+import { createMetaEventId, purchaseEventId } from "@/lib/meta-event-id";
+
 const CURRENCY = "MAD";
 export const META_PENDING_PURCHASE_KEY = "meta_pending_purchase";
 const META_PURCHASE_FIRED_KEY = "meta_purchase_fired";
@@ -9,6 +12,22 @@ export type PendingPurchase = {
   value: number;
   quantity: number;
   orderId: string;
+  productName?: string;
+};
+
+export type MetaTrackInput = {
+  productId: string;
+  productName?: string;
+  value: number;
+  quantity: number;
+  unitPrice?: number;
+  eventId: string;
+  user?: {
+    phone?: string;
+    fullName?: string;
+    city?: string;
+    externalId?: string;
+  };
 };
 
 declare global {
@@ -33,14 +52,61 @@ function whenFbqReady(run: () => void, maxWaitMs = 8000) {
   attempt();
 }
 
-function track(event: string, params?: Record<string, unknown>) {
+function getMetaCookie(name: "_fbp" | "_fbc"): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
+
+function commerceParams(input: Pick<MetaTrackInput, "productId" | "productName" | "value" | "quantity" | "unitPrice">) {
+  const data = buildMetaCommerceData(input);
+  if (input.productName) {
+    return { ...data, content_name: input.productName };
+  }
+  return data;
+}
+
+function trackPixel(eventName: string, params: Record<string, unknown>, eventId: string) {
   whenFbqReady(() => {
-    if (params) {
-      window.fbq?.("track", event, params);
-      return;
-    }
-    window.fbq?.("track", event);
+    window.fbq?.("track", eventName, params, { eventID: eventId });
   });
+}
+
+function sendCapiEvent(
+  eventName: "ViewContent" | "AddToCart" | "InitiateCheckout" | "Purchase",
+  input: MetaTrackInput,
+) {
+  if (typeof window === "undefined") return;
+
+  void fetch("/api/meta/events", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    keepalive: true,
+    body: JSON.stringify({
+      eventName,
+      eventId: input.eventId,
+      eventSourceUrl: window.location.href,
+      fbp: getMetaCookie("_fbp"),
+      fbc: getMetaCookie("_fbc"),
+      productId: input.productId,
+      productName: input.productName,
+      value: input.value,
+      quantity: input.quantity,
+      unitPrice: input.unitPrice,
+      user: input.user,
+    }),
+  }).catch(() => {
+    /* CAPI is best-effort; Pixel remains primary on the client */
+  });
+}
+
+function trackDual(
+  eventName: "ViewContent" | "AddToCart" | "InitiateCheckout" | "Purchase",
+  input: MetaTrackInput,
+) {
+  const params = commerceParams(input);
+  trackPixel(eventName, params, input.eventId);
+  sendCapiEvent(eventName, input);
 }
 
 export function savePendingPurchase(input: PendingPurchase) {
@@ -70,65 +136,80 @@ export function trackViewContent(input: {
   productId: string;
   productName: string;
   value: number;
+  eventId?: string;
 }) {
-  track("ViewContent", {
-    content_ids: [input.productId],
-    content_name: input.productName,
-    content_type: "product",
+  const eventId = input.eventId ?? createMetaEventId("vc");
+  trackDual("ViewContent", {
+    productId: input.productId,
+    productName: input.productName,
     value: input.value,
-    currency: CURRENCY,
+    quantity: 1,
+    unitPrice: input.value,
+    eventId,
   });
+  return eventId;
+}
+
+export function trackAddToCart(input: {
+  productId: string;
+  productName?: string;
+  value: number;
+  quantity: number;
+  unitPrice?: number;
+  eventId?: string;
+}) {
+  const eventId = input.eventId ?? createMetaEventId("atc");
+  trackDual("AddToCart", { ...input, eventId });
+  return eventId;
 }
 
 export function trackInitiateCheckout(input: {
   productId: string;
+  productName?: string;
   value: number;
   quantity: number;
+  unitPrice?: number;
+  eventId?: string;
+  user?: MetaTrackInput["user"];
 }) {
-  track("InitiateCheckout", {
-    content_ids: [input.productId],
-    content_type: "product",
-    value: input.value,
-    currency: CURRENCY,
-    num_items: input.quantity,
-  });
+  const eventId = input.eventId ?? createMetaEventId("ic");
+  trackDual("InitiateCheckout", { ...input, eventId });
+  return eventId;
 }
 
-function purchaseParams(input: PendingPurchase) {
+function sendPurchasePixelOnly(input: PendingPurchase) {
+  const eventId = purchaseEventId(input.orderId);
+  trackPixel(
+    "Purchase",
+    commerceParams({
+      productId: input.productId,
+      productName: input.productName,
+      value: input.value,
+      quantity: input.quantity,
+    }),
+    eventId,
+  );
+}
+
+export function getMetaBrowserIds() {
   return {
-    content_ids: [input.productId],
-    content_type: "product",
-    value: input.value,
-    currency: CURRENCY,
-    num_items: input.quantity,
+    fbp: getMetaCookie("_fbp"),
+    fbc: getMetaCookie("_fbc"),
   };
-}
-
-function sendPurchase(input: PendingPurchase) {
-  const params = purchaseParams(input);
-  if (input.orderId) {
-    window.fbq?.("track", "Purchase", params, { eventID: input.orderId });
-    return;
-  }
-  window.fbq?.("track", "Purchase", params);
-}
-
-export function trackPurchase(input: PendingPurchase) {
-  whenFbqReady(() => sendPurchase(input));
 }
 
 function purchaseFiredKey(orderId: string) {
   return `${META_PURCHASE_FIRED_KEY}:${orderId}`;
 }
 
-/** Fires Purchase once on the thank-you page after a successful order. */
+/** Fires Purchase once on the thank-you page (browser Pixel only; CAPI Purchase is sent server-side). */
 export function flushPendingPurchase() {
   if (typeof window === "undefined") return;
 
   const pending = readPendingPurchase();
   if (!pending) return;
 
-  const firedKey = purchaseFiredKey(pending.orderId || META_PENDING_PURCHASE_KEY);
+  const firedKey = purchaseFiredKey(pending.orderId);
   if (sessionStorage.getItem(firedKey)) {
     clearPendingPurchase();
     return;
@@ -137,7 +218,9 @@ export function flushPendingPurchase() {
   sessionStorage.setItem(firedKey, "1");
 
   whenFbqReady(() => {
-    sendPurchase(pending);
+    sendPurchasePixelOnly(pending);
     clearPendingPurchase();
   });
 }
+
+export { CURRENCY, createMetaEventId, purchaseEventId };

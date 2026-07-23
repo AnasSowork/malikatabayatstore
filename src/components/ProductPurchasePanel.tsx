@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { SizeSelector } from "@/components/SizeSelector";
 import { ColorVariantSelector } from "@/components/ColorVariantSelector";
@@ -13,9 +13,11 @@ import { findBundleOffer, type BundleOffer, type OrderLineItem } from "@/lib/bun
 import { MadPrice } from "@/components/MadPrice";
 import { DEFAULT_PRODUCT_SIZE } from "@/lib/product-sizes";
 import type { ProductPurchaseUi } from "@/lib/product-detail-content";
+import { trackAddToCart } from "@/lib/meta-pixel-events";
 
 type Props = {
   productId: string;
+  productName: string;
   unitPrice: number;
   colorVariants: ProductColorVariant[];
   bundleOffers: BundleOffer[];
@@ -45,6 +47,7 @@ function buildPieces(
 
 export function ProductPurchasePanel({
   productId,
+  productName,
   unitPrice,
   colorVariants,
   bundleOffers,
@@ -62,18 +65,7 @@ export function ProductPurchasePanel({
   const [pieces, setPieces] = useState<OrderLineItem[]>(() =>
     buildPieces(defaultQty, colorVariants, availableSizes, []),
   );
-
-  // Gallery color may drive the single-item selector only. Never broadcast it
-  // onto every piece — that overwrote independent multi-piece color picks.
-  useEffect(() => {
-    if (!preferredColor) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPieces((prev) => {
-      if (prev.length !== 1) return prev;
-      if (prev[0]?.color === preferredColor) return prev;
-      return [{ ...prev[0], color: preferredColor }];
-    });
-  }, [preferredColor]);
+  const addToCartSent = useRef<Set<number>>(new Set());
 
   const selectedOffer = useMemo(
     () => findBundleOffer(bundleOffers, selectedQuantity) ?? bundleOffers[0],
@@ -81,6 +73,34 @@ export function ProductPurchasePanel({
   );
 
   const totalPrice = selectedOffer?.price ?? unitPrice;
+
+  function fireAddToCart(qty: number, price: number) {
+    if (addToCartSent.current.has(qty)) return;
+    addToCartSent.current.add(qty);
+    trackAddToCart({
+      productId,
+      productName,
+      value: price,
+      quantity: qty,
+      unitPrice: price / qty,
+    });
+  }
+
+  useEffect(() => {
+    fireAddToCart(defaultQty, selectedOffer?.price ?? unitPrice);
+    // Initial bundle tier only — user-driven changes handled in onQuantityChange.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId]);
+
+  useEffect(() => {
+    if (!preferredColor) return;
+    setPieces((prev) => {
+      if (prev.length !== 1) return prev;
+      if (prev[0]?.color === preferredColor) return prev;
+      return [{ ...prev[0], color: preferredColor }];
+    });
+  }, [preferredColor]);
+
   const requiresColor = colorVariants.length > 0;
   const isMultiPiece = selectedQuantity > 1;
 
@@ -97,6 +117,9 @@ export function ProductPurchasePanel({
     const prevQty = selectedQuantity;
     setSelectedQuantity(qty);
     setPieces((prev) => buildPieces(qty, colorVariants, availableSizes, prev));
+
+    const offer = findBundleOffer(bundleOffers, qty) ?? bundleOffers[0];
+    fireAddToCart(qty, offer?.price ?? unitPrice);
 
     if (qty > 1 && qty > prevQty) {
       scrollToPiece(qty - 1);
@@ -154,6 +177,7 @@ export function ProductPurchasePanel({
       {inStock ? (
         <OrderForm
           productId={productId}
+          productName={productName}
           quantity={selectedQuantity}
           totalPrice={totalPrice}
           lineItems={pieces}

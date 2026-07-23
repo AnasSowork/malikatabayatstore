@@ -4,6 +4,14 @@ import { isAdminAuthenticated } from "@/lib/auth";
 import { toOrderLineItems } from "@/lib/bundle-offers";
 import { serializeProduct } from "@/lib/product-serialize";
 import { parseOrderInput } from "@/lib/order-admin";
+import { clientIpFromRequest, sendMetaCapiEvent } from "@/lib/meta-capi-server";
+
+function readMetaString(body: Record<string, unknown>, key: string): string | null {
+  const meta = body.meta;
+  if (!meta || typeof meta !== "object") return null;
+  const value = (meta as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
 
 function serializeOrder(order: {
   id: string;
@@ -73,6 +81,33 @@ export async function POST(request: Request) {
       },
       include: { product: true },
     });
+
+    if (!isAdmin) {
+      const purchaseValue = Number(order.totalPrice);
+      void sendMetaCapiEvent({
+        eventName: "Purchase",
+        eventId: order.id,
+        eventTime: Math.floor(order.createdAt.getTime() / 1000),
+        eventSourceUrl: readMetaString(body, "eventSourceUrl"),
+        productName: readMetaString(body, "productName"),
+        commerce: {
+          productId: order.productId,
+          value: purchaseValue,
+          quantity: order.quantity,
+          unitPrice: purchaseValue / order.quantity,
+        },
+        user: {
+          phone: order.phone,
+          fullName: order.customerName,
+          city: order.city,
+          externalId: order.id,
+          fbp: readMetaString(body, "fbp"),
+          fbc: readMetaString(body, "fbc"),
+          clientIpAddress: clientIpFromRequest(request),
+          clientUserAgent: request.headers.get("user-agent"),
+        },
+      });
+    }
 
     return NextResponse.json(serializeOrder(order), { status: 201 });
   } catch (e) {

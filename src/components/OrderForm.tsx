@@ -7,10 +7,11 @@ import { useRouter } from "@/i18n/navigation";
 import type { AppLocale } from "@/lib/product-i18n";
 import { MadPrice } from "@/components/MadPrice";
 import type { OrderLineItem } from "@/lib/bundle-offers";
-import { savePendingPurchase } from "@/lib/meta-pixel-events";
+import { getMetaBrowserIds, savePendingPurchase, trackInitiateCheckout } from "@/lib/meta-pixel-events";
 
 type Props = {
   productId: string;
+  productName: string;
   quantity: number;
   totalPrice: number;
   lineItems: OrderLineItem[];
@@ -26,6 +27,7 @@ const labelClass = "px-1 font-store text-xs font-semibold text-on-surface-varian
 
 export function OrderForm({
   productId,
+  productName,
   quantity,
   totalPrice,
   lineItems,
@@ -50,6 +52,20 @@ export function OrderForm({
     if (!canSubmit) return;
     setStatus("loading");
     try {
+      trackInitiateCheckout({
+        productId,
+        productName,
+        value: totalPrice,
+        quantity,
+        unitPrice: totalPrice / quantity,
+        user: {
+          phone,
+          fullName: customerName,
+          city,
+        },
+      });
+
+      const { fbp, fbc } = getMetaBrowserIds();
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -61,11 +77,23 @@ export function OrderForm({
           quantity,
           lineItems,
           selectedColor: lineItems[0]?.color ?? null,
+          meta: {
+            fbp,
+            fbc,
+            eventSourceUrl: window.location.href,
+            productName,
+          },
         }),
       });
       if (!res.ok) throw new Error("order failed");
       const order = (await res.json()) as { id: string };
-      savePendingPurchase({ productId, value: totalPrice, quantity, orderId: order.id });
+      savePendingPurchase({
+        productId,
+        productName,
+        value: totalPrice,
+        quantity,
+        orderId: order.id,
+      });
       setStatus("success");
       setCustomerName("");
       setPhone("");

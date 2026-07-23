@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { ProductColorVariant } from "@/lib/product-serialize";
 import type { BundleOffer } from "@/lib/bundle-offers";
@@ -65,7 +65,11 @@ export function ProductDetailExperience({
     colorVariants[0]?.name ?? null,
   );
 
+  const viewContentSent = useRef(false);
+
   useEffect(() => {
+    if (viewContentSent.current) return;
+    viewContentSent.current = true;
     trackViewContent({
       productId,
       productName,
@@ -168,6 +172,7 @@ export function ProductDetailExperience({
 
         <ProductPurchasePanel
           productId={productId}
+          productName={productName}
           unitPrice={unitPrice}
           colorVariants={colorVariants}
           bundleOffers={bundleOffers}
