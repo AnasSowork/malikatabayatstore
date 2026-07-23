@@ -11,6 +11,7 @@ const ALLOWED_EVENTS = new Set<MetaCapiEventName>([
   "ViewContent",
   "AddToCart",
   "InitiateCheckout",
+  "Purchase",
 ]);
 
 type Body = {

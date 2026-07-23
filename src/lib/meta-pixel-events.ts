@@ -36,7 +36,7 @@ declare global {
   }
 }
 
-function whenFbqReady(run: () => void, maxWaitMs = 8000) {
+function whenFbqReady(run: () => void, maxWaitMs = 15000) {
   if (typeof window === "undefined") return;
 
   const start = Date.now();
@@ -216,6 +216,16 @@ export function flushPendingPurchase() {
   }
 
   sessionStorage.setItem(firedKey, "1");
+
+  // Backup server Purchase if order-route CAPI did not run (same event_id dedupes in Meta).
+  sendCapiEvent("Purchase", {
+    productId: pending.productId,
+    productName: pending.productName,
+    value: pending.value,
+    quantity: pending.quantity,
+    eventId: purchaseEventId(pending.orderId),
+    user: { externalId: pending.orderId },
+  });
 
   whenFbqReady(() => {
     sendPurchasePixelOnly(pending);

@@ -63,12 +63,19 @@ function buildUserData(user?: MetaCapiUserInput): GraphUserData {
 }
 
 export function isMetaCapiConfigured(): boolean {
-  const pixelId = process.env.META_PIXEL_ID || process.env.NEXT_PUBLIC_META_PIXEL_ID;
-  return Boolean(pixelId && process.env.META_CAPI_ACCESS_TOKEN);
+  return Boolean(getMetaPixelId() && process.env.META_CAPI_ACCESS_TOKEN);
+}
+
+function getMetaPixelId(): string | undefined {
+  return (
+    process.env.META_PIXEL_ID ||
+    process.env.NEXT_PUBLIC_META_PIXEL_ID ||
+    "1348553670819805"
+  );
 }
 
 export async function sendMetaCapiEvent(input: MetaCapiEventInput): Promise<boolean> {
-  const pixelId = process.env.META_PIXEL_ID || process.env.NEXT_PUBLIC_META_PIXEL_ID;
+  const pixelId = getMetaPixelId();
   const accessToken = process.env.META_CAPI_ACCESS_TOKEN;
 
   if (!pixelId || !accessToken) {
