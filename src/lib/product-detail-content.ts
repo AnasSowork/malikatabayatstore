@@ -21,6 +21,12 @@ export type ProductFaqItem = {
   answer: ProductLocalizedText;
 };
 
+export type ProductPurchaseUi = {
+  pieceLabel: ProductLocalizedText;
+  selectSizeLabel: ProductLocalizedText;
+  colorLabel: ProductLocalizedText;
+};
+
 export type ProductDetailContent = {
   shortDescription: ProductLocalizedText;
   benefits: ProductInfoItem[];
@@ -33,6 +39,7 @@ export type ProductDetailContent = {
     body: ProductLocalizedText;
     points: ProductLocalizedText[];
   };
+  purchaseUi: ProductPurchaseUi;
 };
 
 const text = (ar: string, fr: string): ProductLocalizedText => ({ ar, fr });
@@ -132,11 +139,32 @@ export function createDefaultProductDetailContent(): ProductDetailContent {
         text("توصيل إلى جميع المدن", "Livraison dans toutes les villes"),
       ],
     },
+    purchaseUi: {
+      pieceLabel: text("", ""),
+      selectSizeLabel: text("", ""),
+      colorLabel: text("", ""),
+    },
   };
 }
 
 export function localizeProductText(value: ProductLocalizedText, locale: AppLocale): string {
   return value[locale]?.trim() || value.ar?.trim() || value.fr?.trim() || "";
+}
+
+export function resolvePurchaseLabel(
+  custom: ProductLocalizedText,
+  locale: AppLocale,
+  fallback: string,
+  vars?: Record<string, string | number>,
+): string {
+  let resolved = localizeProductText(custom, locale);
+  if (!resolved) resolved = fallback;
+  if (vars) {
+    for (const [key, value] of Object.entries(vars)) {
+      resolved = resolved.replaceAll(`{${key}}`, String(value));
+    }
+  }
+  return resolved;
 }
 
 function localized(value: unknown, fallback: ProductLocalizedText): ProductLocalizedText {
@@ -202,6 +230,11 @@ export function normalizeProductDetailContent(value: unknown): ProductDetailCont
     .slice(0, 6)
     .map((entry, index) => localized(entry, fallback.trust.points[index] ?? fallback.trust.points[0]!));
 
+  const purchaseSource =
+    source.purchaseUi && typeof source.purchaseUi === "object"
+      ? (source.purchaseUi as Record<string, unknown>)
+      : {};
+
   return {
     shortDescription: localized(source.shortDescription, fallback.shortDescription),
     benefits: normalizeInfo(source.benefits, fallback.benefits),
@@ -213,6 +246,11 @@ export function normalizeProductDetailContent(value: unknown): ProductDetailCont
       title: localized(trustSource.title, fallback.trust.title),
       body: localized(trustSource.body, fallback.trust.body),
       points: trustPoints,
+    },
+    purchaseUi: {
+      pieceLabel: localized(purchaseSource.pieceLabel, fallback.purchaseUi.pieceLabel),
+      selectSizeLabel: localized(purchaseSource.selectSizeLabel, fallback.purchaseUi.selectSizeLabel),
+      colorLabel: localized(purchaseSource.colorLabel, fallback.purchaseUi.colorLabel),
     },
   };
 }

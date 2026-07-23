@@ -61,6 +61,68 @@ export function AdminProductDetailsEditor({ value, onChange, disabled }: Props) 
         />
       </label>
 
+      <section className="product-detail-editor-group">
+        <h4>{t("productPurchaseLabels")}</h4>
+        <p className="text-xs text-on-surface-variant">{t("productPurchaseLabelsHint")}</p>
+        <label className="admin-field">
+          <span>{t("productPieceLabel")}</span>
+          <input
+            className="admin-input"
+            dir={language === "ar" ? "rtl" : "ltr"}
+            disabled={disabled}
+            placeholder={t("productPieceLabelPlaceholder")}
+            value={value.purchaseUi.pieceLabel[language]}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                purchaseUi: {
+                  ...value.purchaseUi,
+                  pieceLabel: setText(value.purchaseUi.pieceLabel, event.target.value),
+                },
+              })
+            }
+          />
+        </label>
+        <label className="admin-field">
+          <span>{t("productSelectSizeLabel")}</span>
+          <input
+            className="admin-input"
+            dir={language === "ar" ? "rtl" : "ltr"}
+            disabled={disabled}
+            placeholder={t("productSelectSizePlaceholder")}
+            value={value.purchaseUi.selectSizeLabel[language]}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                purchaseUi: {
+                  ...value.purchaseUi,
+                  selectSizeLabel: setText(value.purchaseUi.selectSizeLabel, event.target.value),
+                },
+              })
+            }
+          />
+        </label>
+        <label className="admin-field">
+          <span>{t("productColorLabel")}</span>
+          <input
+            className="admin-input"
+            dir={language === "ar" ? "rtl" : "ltr"}
+            disabled={disabled}
+            placeholder={t("productColorPlaceholder")}
+            value={value.purchaseUi.colorLabel[language]}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                purchaseUi: {
+                  ...value.purchaseUi,
+                  colorLabel: setText(value.purchaseUi.colorLabel, event.target.value),
+                },
+              })
+            }
+          />
+        </label>
+      </section>
+
       {(["benefits", "services"] as const).map((group) => (
         <section key={group} className="product-detail-editor-group">
           <h4>{t(group === "benefits" ? "productBenefits" : "productServices")}</h4>

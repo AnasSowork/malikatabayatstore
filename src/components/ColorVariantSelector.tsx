@@ -8,6 +8,8 @@ type Props = {
   variants: ProductColorVariant[];
   selectedColor: string | null;
   onSelect: (colorName: string) => void;
+  compact?: boolean;
+  label?: string;
 };
 
 function isLightHex(hex: string | null): boolean {
@@ -20,14 +22,16 @@ function isLightHex(hex: string | null): boolean {
   return (r * 299 + g * 587 + b * 114) / 1000 > 180;
 }
 
-export function ColorVariantSelector({ variants, selectedColor, onSelect }: Props) {
+export function ColorVariantSelector({ variants, selectedColor, onSelect, compact, label }: Props) {
   const t = useTranslations("product");
   if (variants.length === 0) return null;
 
+  const colorLabel = label ?? t("colorVariant");
+
   return (
-    <div className="color-variant-picker">
+    <div className={`color-variant-picker ${compact ? "color-variant-picker-compact" : ""}`}>
       <div className="color-variant-picker-head">
-        <span className="shop-toolbar-label">{t("colorVariant")}</span>
+        <span className="shop-toolbar-label">{colorLabel}</span>
       </div>
 
       <div className="color-variant-picker-rail" role="listbox" aria-label={t("colorVariant")}>

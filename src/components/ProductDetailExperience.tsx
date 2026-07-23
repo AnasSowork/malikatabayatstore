@@ -174,6 +174,7 @@ export function ProductDetailExperience({
           availableSizes={availableSizes}
           inStock={inStock}
           preferredColor={galleryColor}
+          purchaseUi={detailContent.purchaseUi}
           onColorChange={syncColorToImage}
         />
         <CustomerReviewsSection />

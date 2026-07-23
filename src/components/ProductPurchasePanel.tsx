@@ -12,6 +12,7 @@ import type { AppLocale } from "@/lib/product-i18n";
 import { findBundleOffer, type BundleOffer, type OrderLineItem } from "@/lib/bundle-offers";
 import { MadPrice } from "@/components/MadPrice";
 import { DEFAULT_PRODUCT_SIZE } from "@/lib/product-sizes";
+import type { ProductPurchaseUi } from "@/lib/product-detail-content";
 
 type Props = {
   productId: string;
@@ -21,6 +22,7 @@ type Props = {
   availableSizes: string[];
   inStock: boolean;
   preferredColor?: string | null;
+  purchaseUi: ProductPurchaseUi;
   onColorChange?: (colorName: string) => void;
 };
 
@@ -49,6 +51,7 @@ export function ProductPurchasePanel({
   availableSizes,
   inStock,
   preferredColor,
+  purchaseUi,
   onColorChange,
 }: Props) {
   const t = useTranslations("product");
@@ -81,9 +84,23 @@ export function ProductPurchasePanel({
   const requiresColor = colorVariants.length > 0;
   const isMultiPiece = selectedQuantity > 1;
 
+  function scrollToPiece(index: number) {
+    window.setTimeout(() => {
+      document.getElementById(`product-piece-${index}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 80);
+  }
+
   function onQuantityChange(qty: number) {
+    const prevQty = selectedQuantity;
     setSelectedQuantity(qty);
     setPieces((prev) => buildPieces(qty, colorVariants, availableSizes, prev));
+
+    if (qty > 1 && qty > prevQty) {
+      scrollToPiece(qty - 1);
+    }
   }
 
   function onSingleSizeChange(size: string) {
@@ -115,6 +132,7 @@ export function ProductPurchasePanel({
           pieces={pieces}
           colorVariants={colorVariants}
           availableSizes={availableSizes}
+          purchaseUi={purchaseUi}
           onChange={setPieces}
           onColorChange={onColorChange}
         />
