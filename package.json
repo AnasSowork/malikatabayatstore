@@ -16,7 +16,9 @@
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "mysql:start": "bash scripts/start-mysql.sh",
-    "setup:local": "bash scripts/local-setup.sh"
+    "setup:local": "bash scripts/local-setup.sh",
+    "meta:verify": "node scripts/verify-meta-capi.mjs",
+    "meta:verify:test": "node scripts/verify-meta-capi.mjs --send-test"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

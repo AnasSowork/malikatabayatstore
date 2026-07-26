@@ -1,13 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { BrandButton } from "@/components/BrandButton";
 import { useRouter } from "@/i18n/navigation";
 import type { AppLocale } from "@/lib/product-i18n";
 import { MadPrice } from "@/components/MadPrice";
 import type { OrderLineItem } from "@/lib/bundle-offers";
-import { getMetaBrowserIds, savePendingPurchase, trackInitiateCheckout } from "@/lib/meta-pixel-events";
+import {
+  getMetaBrowserIds,
+  savePendingPurchase,
+  setMetaPixelUserData,
+  trackInitiateCheckout,
+} from "@/lib/meta-pixel-events";
 
 type Props = {
   productId: string;
@@ -46,6 +51,17 @@ export function OrderForm({
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setMetaPixelUserData({
+        phone,
+        fullName: customerName,
+        city,
+      });
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [phone, customerName, city]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -93,6 +109,9 @@ export function OrderForm({
         value: totalPrice,
         quantity,
         orderId: order.id,
+        phone,
+        fullName: customerName,
+        city,
       });
       setStatus("success");
       setCustomerName("");

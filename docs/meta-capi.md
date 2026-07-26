@@ -74,14 +74,31 @@ Optional alias: `META_PIXEL_ID` (server-only override; defaults to `NEXT_PUBLIC_
 - `src/lib/meta-capi-server.ts` — Graph API v21.0 POST to `/events`
 - `src/lib/meta-capi-hash.ts` — PII hashing
 - `src/lib/meta-commerce.ts` — shared commerce payload
+- `src/lib/meta-pixel-user.ts` — Pixel Advanced Matching user fields
 - `src/lib/meta-event-id.ts` — `event_id` generation
 
 ## Diagnostics checklist
 
 - **Missing currency / value:** enforced in `buildMetaCommerceData` (`MAD` + numeric value).
 - **Missing event_id:** rejected by API route and CAPI sender.
-- **Poor Event Match Quality:** ensure phone/name/city are filled on checkout; verify `_fbp` cookie exists after Pixel loads.
+- **Poor Event Match Quality:** phone/name/city are sent to Pixel (`fbq('set', 'userData')`) as the customer fills the order form, and on InitiateCheckout + Purchase CAPI.
 - **Double Purchase counts:** Purchase Pixel only on thank-you; InitiateCheckout is separate from Purchase (not counted as a lead conversion).
+- **Lead / `__missing_event` in Events Manager:** not emitted by this codebase. `Lead` is usually Meta automatic form detection; disabled via `fbq('set', 'autoConfig', false, false)` in `MetaPixel.tsx`. Old events remain in the dataset until they age out.
+
+## Verify setup
+
+```bash
+# Check env vars (loads .env if present)
+npm run meta:verify
+
+# POST a test ViewContent to Graph API (use META_CAPI_TEST_EVENT_CODE to see it in Test events)
+npm run meta:verify:test
+
+# Include production health check
+BASE_URL=https://malikatalabayat.com npm run meta:verify
+```
+
+`/api/health` returns `meta.capiConfigured`, masked `meta.pixelId`, and `meta.testMode` (true when `META_CAPI_TEST_EVENT_CODE` is set).
 
 ## Maintenance
 

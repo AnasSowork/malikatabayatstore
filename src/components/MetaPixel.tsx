@@ -53,6 +53,7 @@ export function MetaPixel() {
           s.parentNode.insertBefore(t,s)}(window, document,'script',
           'https://connect.facebook.net/en_US/fbevents.js');
           fbq('init', '${PIXEL_ID}');
+          fbq('set', 'autoConfig', false, false);
           fbq('track', 'PageView');
         `}
       </Script>

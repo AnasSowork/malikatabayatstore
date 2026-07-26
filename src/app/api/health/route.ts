@@ -2,9 +2,19 @@ import { NextResponse } from "next/server";
 import { isMetaCapiConfigured } from "@/lib/meta-capi-server";
 import { getDbEnvDebug, prisma } from "@/lib/prisma";
 
+function metaPixelId(): string | null {
+  return (
+    process.env.META_PIXEL_ID ||
+    process.env.NEXT_PUBLIC_META_PIXEL_ID ||
+    null
+  );
+}
+
 /** Safe DB connectivity check for production debugging (no secrets returned). */
 export async function GET() {
   const env = getDbEnvDebug();
+  const pixelId = metaPixelId();
+  const metaTestMode = Boolean(process.env.META_CAPI_TEST_EVENT_CODE?.trim());
   try {
     await prisma.$queryRaw`SELECT 1`;
     const tables = await prisma.$queryRaw<Array<{ n: bigint }>>`
@@ -16,12 +26,17 @@ export async function GET() {
       db: "connected",
       tables: Number(tables[0]?.n ?? 0),
       metaCapi: isMetaCapiConfigured(),
+      meta: {
+        pixelId: pixelId ? `${pixelId.slice(0, 4)}…${pixelId.slice(-4)}` : null,
+        capiConfigured: isMetaCapiConfigured(),
+        testMode: metaTestMode,
+      },
       env,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     return NextResponse.json(
-      { ok: false, db: "error", message, metaCapi: isMetaCapiConfigured(), env },
+      { ok: false, db: "error", message, metaCapi: isMetaCapiConfigured(), meta: { testMode: Boolean(process.env.META_CAPI_TEST_EVENT_CODE?.trim()) }, env },
       { status: 500 },
     );
   }

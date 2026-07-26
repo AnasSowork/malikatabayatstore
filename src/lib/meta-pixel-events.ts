@@ -2,6 +2,7 @@
 
 import { buildMetaCommerceData } from "@/lib/meta-commerce";
 import { createMetaEventId, purchaseEventId } from "@/lib/meta-event-id";
+import { buildMetaPixelUserData, type MetaPixelUserData } from "@/lib/meta-pixel-user";
 
 const CURRENCY = "MAD";
 export const META_PENDING_PURCHASE_KEY = "meta_pending_purchase";
@@ -13,6 +14,9 @@ export type PendingPurchase = {
   quantity: number;
   orderId: string;
   productName?: string;
+  phone?: string;
+  fullName?: string;
+  city?: string;
 };
 
 export type MetaTrackInput = {
@@ -69,6 +73,16 @@ function commerceParams(input: Pick<MetaTrackInput, "productId" | "productName" 
 function trackPixel(eventName: string, params: Record<string, unknown>, eventId: string) {
   whenFbqReady(() => {
     window.fbq?.("track", eventName, params, { eventID: eventId });
+  });
+}
+
+/** Updates Pixel Advanced Matching when the customer fills checkout fields. */
+export function setMetaPixelUserData(user: MetaPixelUserData) {
+  if (typeof window === "undefined") return;
+  const data = buildMetaPixelUserData(user);
+  if (Object.keys(data).length === 0) return;
+  whenFbqReady(() => {
+    window.fbq?.("set", "userData", data);
   });
 }
 
@@ -172,6 +186,9 @@ export function trackInitiateCheckout(input: {
   eventId?: string;
   user?: MetaTrackInput["user"];
 }) {
+  if (input.user) {
+    setMetaPixelUserData(input.user);
+  }
   const eventId = input.eventId ?? createMetaEventId("ic");
   trackDual("InitiateCheckout", { ...input, eventId });
   return eventId;
@@ -224,7 +241,12 @@ export function flushPendingPurchase() {
     value: pending.value,
     quantity: pending.quantity,
     eventId: purchaseEventId(pending.orderId),
-    user: { externalId: pending.orderId },
+    user: {
+      phone: pending.phone,
+      fullName: pending.fullName,
+      city: pending.city,
+      externalId: pending.orderId,
+    },
   });
 
   whenFbqReady(() => {
