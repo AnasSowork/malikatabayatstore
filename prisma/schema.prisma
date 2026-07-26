@@ -70,20 +70,40 @@ model HomeSection {
   @@map("home_sections")
 }
 
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
 model Order {
-  id            String   @id @default(cuid())
-  customerName  String
-  phone         String
-  city          String
-  selectedColor String?
-  quantity      Int      @default(1)
-  totalPrice    Decimal  @db.Decimal(10, 2)
-  lineItems     Json?
-  productId     String
-  product       Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
-  createdAt     DateTime @default(now())
+  id                    String      @id @default(cuid())
+  customerName          String
+  phone                 String
+  city                  String
+  selectedColor         String?
+  quantity              Int         @default(1)
+  totalPrice            Decimal     @db.Decimal(10, 2)
+  lineItems             Json?
+  productId             String
+  product               Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
+  status                OrderStatus @default(PENDING)
+  statusNote            String?     @db.Text
+  statusUpdatedAt       DateTime?
+  streetAddress         String?     @db.VarChar(500)
+  shippingComment       String?     @db.VarChar(500)
+  shippingDescription   String?     @db.VarChar(500)
+  shippingNoOpen        Boolean     @default(false)
+  olivraisonTrackingId  String?     @db.VarChar(100)
+  shippedAt             DateTime?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
 
   @@index([productId])
+  @@index([status])
   @@map("orders")
 }
 
