@@ -74,6 +74,27 @@ if (isPassenger) {
   PhusionPassenger.configure({ autoInstall: false });
 }
 
+function runMigrationsInBackground() {
+  if (dev) return;
+  const hasDb =
+    process.env.DATABASE_URL ||
+    (process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME);
+  if (!hasDb) return;
+
+  const { spawn } = require("node:child_process");
+  const child = spawn("npx", ["prisma", "migrate", "deploy"], {
+    cwd: __dirname,
+    env: process.env,
+    stdio: "ignore",
+    detached: true,
+  });
+  child.unref();
+  child.on("error", (err) => {
+    console.warn("[server] background migrate spawn failed:", err.message);
+  });
+  console.log("[server] prisma migrate deploy started in background");
+}
+
 const app = next({ dev, dir: __dirname, hostname, port });
 const handle = app.getRequestHandler();
 
@@ -93,12 +114,14 @@ app
       server.listen("passenger", () => {
         console.log("[server] Next.js listening through Phusion Passenger");
         console.log("[server] UPLOAD_STORAGE_DIR=", process.env.UPLOAD_STORAGE_DIR || "(unset)");
+        runMigrationsInBackground();
       });
       return;
     }
 
     server.listen(port, hostname, () => {
       console.log(`[server] Next.js listening on http://${hostname}:${port}`);
+      runMigrationsInBackground();
     });
   })
   .catch((error) => {
