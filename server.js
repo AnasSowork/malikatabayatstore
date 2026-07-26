@@ -3,6 +3,7 @@
 const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
+const { execSync } = require("node:child_process");
 const next = require("next");
 
 /** Hostinger Passenger does not always inject vars added only to `.env` later. */
@@ -30,6 +31,27 @@ function loadEnvFile() {
 }
 
 loadEnvFile();
+
+/** Run pending migrations at startup when DB env is available (Hostinger injects at runtime, not build). */
+function runMigrationsAtStartup() {
+  if (process.env.SKIP_MIGRATE === "1" || process.env.SKIP_MIGRATE === "true") return;
+  if (process.env.NODE_ENV !== "production") return;
+  const hasDb =
+    process.env.DATABASE_URL ||
+    (process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME);
+  if (!hasDb) return;
+  try {
+    execSync("npx prisma migrate deploy", {
+      stdio: "inherit",
+      env: process.env,
+      timeout: 120000,
+    });
+  } catch (error) {
+    console.warn("[server] prisma migrate deploy skipped or failed:", error?.message || error);
+  }
+}
+
+runMigrationsAtStartup();
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOSTNAME || "0.0.0.0";
