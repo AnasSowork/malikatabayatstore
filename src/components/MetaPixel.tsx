@@ -3,6 +3,7 @@
 import Script from "next/script";
 import { useEffect, useRef } from "react";
 import { usePathname } from "@/i18n/navigation";
+import { flushCapiQueue, captureMetaBrowserIds } from "@/lib/meta-pixel-events";
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 
@@ -28,12 +29,27 @@ export function MetaPixel() {
   useEffect(() => {
     if (!PIXEL_ID || onAdmin) return;
 
+    const timer = window.setInterval(() => {
+      if (!window.fbq) return;
+      captureMetaBrowserIds();
+      window.clearInterval(timer);
+    }, 100);
+
+    return () => window.clearInterval(timer);
+  }, [onAdmin]);
+
+  useEffect(() => {
+    if (!PIXEL_ID || onAdmin) return;
+
     if (skipInitialRouteEffect.current) {
       skipInitialRouteEffect.current = false;
+      flushCapiQueue();
       return;
     }
 
     trackPageView();
+    captureMetaBrowserIds();
+    flushCapiQueue();
   }, [pathname, onAdmin]);
 
   if (!PIXEL_ID || onAdmin) {

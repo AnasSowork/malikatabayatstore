@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sanitizeMetaBrowserIdFromBody } from "@/lib/meta-browser-cookies-server";
 import {
   clientIpFromRequest,
   sendMetaCapiEvent,
@@ -93,8 +94,8 @@ export async function POST(request: Request) {
         fullName: asString(body.user?.fullName),
         city: asString(body.user?.city),
         externalId: asString(body.user?.externalId),
-        fbp: asString(body.fbp),
-        fbc: asString(body.fbc),
+        fbp: sanitizeMetaBrowserIdFromBody(body.fbp, "fbp"),
+        fbc: sanitizeMetaBrowserIdFromBody(body.fbc, "fbc"),
         clientIpAddress: clientIpFromRequest(request),
         clientUserAgent: request.headers.get("user-agent"),
       },

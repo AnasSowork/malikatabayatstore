@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { isAdminAuthenticated } from "@/lib/auth";
 import { parseOrderInput } from "@/lib/order-admin";
 import { serializeOrder } from "@/lib/order-serialize";
+import { readMetaBrowserId } from "@/lib/meta-browser-cookies-server";
 import { clientIpFromRequest, sendMetaCapiEvent } from "@/lib/meta-capi-server";
 
 function readMetaString(body: Record<string, unknown>, key: string): string | null {
@@ -82,8 +83,8 @@ export async function POST(request: Request) {
           fullName: order.customerName,
           city: order.city,
           externalId: order.id,
-          fbp: readMetaString(body, "fbp"),
-          fbc: readMetaString(body, "fbc"),
+          fbp: readMetaBrowserId(body.meta, "fbp"),
+          fbc: readMetaBrowserId(body.meta, "fbc"),
           clientIpAddress: clientIpFromRequest(request),
           clientUserAgent: request.headers.get("user-agent"),
         },

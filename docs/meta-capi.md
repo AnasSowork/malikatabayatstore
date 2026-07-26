@@ -15,7 +15,7 @@ This store sends ecommerce events to Meta using **browser Pixel** and **server-s
 
 Meta deduplicates events that share the same **event name** + **event_id** across Pixel and CAPI.
 
-- **ViewContent / AddToCart / InitiateCheckout:** Client generates `event_id`, sends Pixel via `fbq('track', …, { eventID })` and POSTs the same id to `/api/meta/events` for CAPI.
+- **ViewContent / AddToCart / InitiateCheckout:** Client generates `event_id`, waits for Pixel to load (so `_fbp` exists), sends Pixel via `fbq('track', …, { eventID })` and POSTs the same id to `/api/meta/events` for CAPI. Failed CAPI calls retry and are queued in `sessionStorage` for the next page view.
 - **Purchase:** `event_id` = order UUID (`order.id`). CAPI fires in `POST /api/orders` (authoritative, full customer data). Pixel fires once on `/thank-you` via `ThankYouPurchaseTracker`.
 
 Purchase is intentionally **not** sent twice from the server (no duplicate CAPI from thank-you).
@@ -34,7 +34,7 @@ Plaintext on CAPI payload (not hashed):
 
 - `client_ip_address`
 - `client_user_agent`
-- `fbp` / `fbc` cookies (from browser, forwarded on checkout)
+- `fbp` / `fbc` cookies (from browser, forwarded on checkout). Read **verbatim** from `_fbp` / `_fbc` — never `decodeURIComponent`, trim, or rebuild from `fbclid`. First-touch values are stored in `sessionStorage` for the session (`src/lib/meta-browser-cookies.ts`).
 
 ## Commerce parameters
 
@@ -84,6 +84,8 @@ Optional alias: `META_PIXEL_ID` (server-only override; defaults to `NEXT_PUBLIC_
 - **Poor Event Match Quality:** phone/name/city are sent to Pixel (`fbq('set', 'userData')`) as the customer fills the order form, and on InitiateCheckout + Purchase CAPI.
 - **Double Purchase counts:** Purchase Pixel only on thank-you; InitiateCheckout is separate from Purchase (not counted as a lead conversion).
 - **Lead / `__missing_event` in Events Manager:** not emitted by this codebase. `Lead` is usually Meta automatic form detection; disabled via `fbq('set', 'autoConfig', false, false)` in `MetaPixel.tsx`. Old events remain in the dataset until they age out.
+- **Low event coverage (<75%):** ensure CAPI fires after Pixel loads (for `_fbp` dedup keys). The client retries failed `/api/meta/events` requests and replays queued events on the next page load.
+- **Modified fbclid in fbc (Meta Actions warning):** pass `_fbc` exactly as the Pixel set it; do not decode or trim. Invalid or hand-built fbc values are dropped server-side rather than sent to Graph API.
 
 ## Verify setup
 
