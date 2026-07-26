@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
   ...(process.env.NEXT_STANDALONE_BUILD === "1"
     ? { output: "standalone" as const }
     : {}),
+  // Reduce worker count on shared hosting (avoids uv_thread_create / process limit errors).
+  experimental: {
+    cpus: 1,
+    workerThreads: false,
+  },
   turbopack: {
     root: __dirname,
   },
