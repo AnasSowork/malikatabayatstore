@@ -1,0 +1,14 @@
+-- AlterTable
+ALTER TABLE `orders` ADD COLUMN `status` ENUM('PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'RETURNED') NOT NULL DEFAULT 'PENDING',
+    ADD COLUMN `statusNote` TEXT NULL,
+    ADD COLUMN `statusUpdatedAt` DATETIME(3) NULL,
+    ADD COLUMN `streetAddress` VARCHAR(500) NULL,
+    ADD COLUMN `shippingComment` VARCHAR(500) NULL,
+    ADD COLUMN `shippingDescription` VARCHAR(500) NULL,
+    ADD COLUMN `shippingNoOpen` BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN `olivraisonTrackingId` VARCHAR(100) NULL,
+    ADD COLUMN `shippedAt` DATETIME(3) NULL,
+    ADD COLUMN `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3);
+
+-- CreateIndex
+CREATE INDEX `orders_status_idx` ON `orders`(`status`);
