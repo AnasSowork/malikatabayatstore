@@ -299,6 +299,12 @@ export function AdminOrderModal({
     return t(key);
   }
 
+  function handleSendClick() {
+    onSendToOlivraison();
+  }
+
+  const addressReady = form.streetAddress.trim().length >= 3;
+
   return (
     <div className="admin-modal-backdrop" role="dialog" aria-modal="true" onClick={onClose}>
       <form className="admin-modal max-w-2xl" onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
@@ -512,6 +518,43 @@ export function AdminOrderModal({
                   <p className="font-medium text-emerald-900">{t("orderShippingSent")}</p>
                   <p className="mt-1 font-mono text-xs">{olivraisonTrackingId}</p>
                 </div>
+              ) : olivraisonConfigured ? (
+                shipping ? (
+                  <div className="order-ship-callout order-ship-callout-sending">
+                    <div className="order-ship-spinner" aria-hidden />
+                    <p className="order-ship-callout-title">{t("orderSending")}</p>
+                    <p className="order-ship-callout-hint">{t("orderSendingHint")}</p>
+                  </div>
+                ) : canShip ? (
+                  <div className="order-ship-callout order-ship-callout-ready">
+                    <p className="order-ship-callout-title">
+                      <MaterialIcon name="local_shipping" className="!text-xl text-blue-700" />
+                      {t("orderShipReadyTitle")}
+                    </p>
+                    <p className="order-ship-callout-hint">{t("orderShipReadyHint")}</p>
+                    <button
+                      type="button"
+                      className="order-ship-btn"
+                      disabled={saving || shipping}
+                      onClick={() => void handleSendClick()}
+                    >
+                      <MaterialIcon name="rocket_launch" className="!text-lg" />
+                      {t("orderSendToOlivraison")}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="order-ship-callout order-ship-callout-pending">
+                    <p className="order-ship-callout-title">
+                      <MaterialIcon name="info" className="!text-lg text-amber-700" />
+                      {t("orderShipNotReadyTitle")}
+                    </p>
+                    {!addressReady ? (
+                      <ul className="order-ship-callout-list">
+                        <li>{t("orderShipMissingAddress")}</li>
+                      </ul>
+                    ) : null}
+                  </div>
+                )
               ) : null}
               <div className="admin-form-grid">
                 <label className="admin-field lg:col-span-2">
@@ -580,16 +623,6 @@ export function AdminOrderModal({
           <button type="button" className="admin-btn-secondary" onClick={onClose} disabled={saving || shipping}>
             {t("cancel")}
           </button>
-          {editingId && canShip ? (
-            <button
-              type="button"
-              className="admin-btn-secondary"
-              disabled={saving || shipping}
-              onClick={() => void onSendToOlivraison()}
-            >
-              {shipping ? t("orderSending") : t("orderSendToOlivraison")}
-            </button>
-          ) : null}
           <button type="submit" className="admin-btn-primary" disabled={saving || shipping || products.length === 0}>
             {saving ? t("saving") : editingId ? t("saveChanges") : t("addOrder")}
           </button>

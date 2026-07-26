@@ -24,6 +24,13 @@ import {
   orderStatusTone,
   type OrderFilterKey,
 } from "@/lib/order-status";
+import {
+  getOrderDateRange,
+  hasActiveOrderDateFilter,
+  matchesOrderDateFilter,
+  ORDER_DATE_FILTER_KEYS,
+  type OrderDateFilterKey,
+} from "@/lib/order-date-filter";
 import type { OrderStatus } from "@prisma/client";
 
 type Props = {
@@ -71,6 +78,9 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
   const locale = useLocale() as AppLocale;
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderFilterKey>("ALL");
+  const [dateFilter, setDateFilter] = useState<OrderDateFilterKey>("ALL");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -79,6 +89,7 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
   const [shipping, setShipping] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [shippingId, setShippingId] = useState<string | null>(null);
   const [cities, setCities] = useState<string[]>([]);
   const [olivraisonConfigured, setOlivraisonConfigured] = useState(false);
   const [riskMessage, setRiskMessage] = useState<string | null>(null);
@@ -109,9 +120,19 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
     void loadDeliveryMeta();
   }, [loadDeliveryMeta]);
 
+  const dateRange = useMemo(
+    () => getOrderDateRange(dateFilter, dateFrom, dateTo),
+    [dateFilter, dateFrom, dateTo],
+  );
+
+  const dateScopedOrders = useMemo(
+    () => orders.filter((order) => matchesOrderDateFilter(order.createdAt, dateRange)),
+    [orders, dateRange],
+  );
+
   const filterCounts = useMemo(() => {
     const counts: Record<OrderFilterKey, number> = {
-      ALL: orders.length,
+      ALL: dateScopedOrders.length,
       PENDING: 0,
       CONFIRMED: 0,
       READY_TO_SHIP: 0,
@@ -120,17 +141,17 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
       CANCELLED: 0,
       RETURNED: 0,
     };
-    for (const order of orders) {
+    for (const order of dateScopedOrders) {
       for (const key of FILTER_KEYS) {
         if (key !== "ALL" && matchesOrderFilter(order, key)) counts[key] += 1;
       }
     }
     return counts;
-  }, [orders]);
+  }, [dateScopedOrders]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const sorted = [...orders].sort(
+    const sorted = [...dateScopedOrders].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
     const matched = sorted.filter((order) => {
@@ -145,8 +166,25 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
         (order.olivraisonTrackingId ?? "").toLowerCase().includes(q)
       );
     });
-    return compact && !q && statusFilter === "ALL" ? matched.slice(0, 8) : matched;
-  }, [orders, search, locale, compact, statusFilter]);
+    return compact && !q && statusFilter === "ALL" && dateFilter === "ALL"
+      ? matched.slice(0, 8)
+      : matched;
+  }, [dateScopedOrders, search, locale, compact, statusFilter, dateFilter]);
+
+  const filteredRevenue = useMemo(
+    () => filtered.reduce((sum, order) => sum + Number(order.totalPrice), 0),
+    [filtered],
+  );
+
+  const readyToShipCount = useMemo(
+    () => dateScopedOrders.filter((order) => canSendToOlivraison(order)).length,
+    [dateScopedOrders],
+  );
+
+  const hasActiveFilters =
+    statusFilter !== "ALL" ||
+    Boolean(search.trim()) ||
+    hasActiveOrderDateFilter(dateFilter, dateFrom, dateTo);
 
   function statusLabel(status: OrderStatus) {
     const key = `orderStatus${status.charAt(0)}${status.slice(1).toLowerCase()}` as
@@ -173,10 +211,66 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
     return map[filter];
   }
 
+  function dateFilterLabel(filter: OrderDateFilterKey) {
+    const map: Record<OrderDateFilterKey, string> = {
+      ALL: t("orderDateFilterAll"),
+      TODAY: t("orderDateFilterToday"),
+      YESTERDAY: t("orderDateFilterYesterday"),
+      LAST_7: t("orderDateFilterLast7"),
+      LAST_30: t("orderDateFilterLast30"),
+      THIS_MONTH: t("orderDateFilterThisMonth"),
+      CUSTOM: t("orderDateFilterCustom"),
+    };
+    return map[filter];
+  }
+
+  function clearFilters() {
+    setSearch("");
+    setStatusFilter("ALL");
+    setDateFilter("ALL");
+    setDateFrom("");
+    setDateTo("");
+  }
+
   function shippingLabel(order: OrderWithProduct) {
     if (isOrderShipped(order)) return t("orderShippingSent");
     if (isShippingReady(order)) return t("orderShippingReady");
     return t("orderShippingNotReady");
+  }
+
+  function shippingBadgeClass(order: OrderWithProduct) {
+    if (isOrderShipped(order)) return "order-shipping-badge order-shipping-badge-sent";
+    if (isShippingReady(order)) return "order-shipping-badge order-shipping-badge-ready";
+    return "order-shipping-badge order-shipping-badge-missing";
+  }
+
+  function shippingBadgeIcon(order: OrderWithProduct) {
+    if (isOrderShipped(order)) return "check_circle";
+    if (isShippingReady(order)) return "local_shipping";
+    return "location_off";
+  }
+
+  function confirmShip(order: Pick<OrderWithProduct, "customerName" | "city" | "totalPrice">) {
+    return window.confirm(
+      t("orderShipConfirm", {
+        customer: order.customerName,
+        city: order.city,
+        amount: formatMad(order.totalPrice, locale),
+      }),
+    );
+  }
+
+  async function shipOrder(orderId: string) {
+    const res = await fetch(`/api/orders/${orderId}/ship`, { method: "POST" });
+    const data = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      trackingID?: string;
+    };
+    if (!res.ok) {
+      throw new Error(data.error || t("orderShipError"));
+    }
+    alert(t("orderShipSuccess", { tracking: data.trackingID ?? "" }));
+    onChanged?.();
   }
 
   function handleCopyPhone(orderId: string, phone: string) {
@@ -233,25 +327,29 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
   }
 
   async function onSendToOlivraison() {
-    if (!editingId) return;
+    if (!editingId || !editingOrder) return;
+    if (!confirmShip(editingOrder)) return;
     setShipping(true);
     try {
       await saveOrder(editingId, buildPayload(form));
-      const res = await fetch(`/api/orders/${editingId}/ship`, { method: "POST" });
-      const data = (await res.json().catch(() => ({}))) as {
-        error?: string;
-        trackingID?: string;
-      };
-      if (!res.ok) {
-        throw new Error(data.error || t("orderShipError"));
-      }
-      alert(t("orderShipSuccess", { tracking: data.trackingID ?? "" }));
+      await shipOrder(editingId);
       closeModal();
-      onChanged?.();
     } catch (error) {
       alert(error instanceof Error ? error.message : t("orderShipError"));
     } finally {
       setShipping(false);
+    }
+  }
+
+  async function onQuickShip(order: OrderWithProduct) {
+    if (!confirmShip(order)) return;
+    setShippingId(order.id);
+    try {
+      await shipOrder(order.id);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : t("orderShipError"));
+    } finally {
+      setShippingId(null);
     }
   }
 
@@ -349,45 +447,137 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
               <MaterialIcon name="add" className="!text-lg" />
               {t("addOrder")}
             </button>
-          ) : null}
-          <div className="admin-search-wrap">
-            <MaterialIcon name="search" className="admin-search-icon" />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("searchPlaceholder")}
-              className="admin-search-input"
-            />
-          </div>
+          ) : (
+            <div className="admin-search-wrap">
+              <MaterialIcon name="search" className="admin-search-icon" />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t("searchPlaceholder")}
+                className="admin-search-input"
+              />
+            </div>
+          )}
         </div>
       </div>
 
       {!compact ? (
-        <div className="delivery-filter-row mb-4">
-          {FILTER_KEYS.map((filter) => (
-            <button
-              key={filter}
-              type="button"
-              className={statusFilter === filter ? "delivery-filter-active" : ""}
-              onClick={() => setStatusFilter(filter)}
-            >
-              {filterLabel(filter)}
-              {filterCounts[filter] > 0 ? <span>{filterCounts[filter]}</span> : null}
-            </button>
-          ))}
+        <div className="orders-toolbar">
+          <div className="orders-kpi-grid">
+            <div className="orders-kpi-card">
+              <strong>{filtered.length}</strong>
+              <span>{t("orderFilteredCount")}</span>
+            </div>
+            <div className="orders-kpi-card">
+              <strong className="brand-gold-text">{formatMad(filteredRevenue, locale)}</strong>
+              <span>{t("orderFilteredRevenue")}</span>
+            </div>
+            <div className="orders-kpi-card orders-kpi-card-accent">
+              <strong>{readyToShipCount}</strong>
+              <span>{t("orderReadyToShipCount")}</span>
+            </div>
+          </div>
+
+          <div className="orders-filter-panel">
+            <div className="admin-search-wrap w-full max-w-none">
+              <MaterialIcon name="search" className="admin-search-icon" />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t("searchPlaceholder")}
+                className="admin-search-input w-full"
+              />
+            </div>
+
+            <div>
+              <p className="orders-filter-section-label">
+                <MaterialIcon name="calendar_month" className="!text-sm" />
+                {t("orderDateLabel")}
+              </p>
+              <div className="orders-date-row delivery-filter-row">
+                {ORDER_DATE_FILTER_KEYS.map((filter) => (
+                  <button
+                    key={filter}
+                    type="button"
+                    className={dateFilter === filter ? "delivery-filter-active" : ""}
+                    onClick={() => setDateFilter(filter)}
+                  >
+                    {dateFilterLabel(filter)}
+                  </button>
+                ))}
+              </div>
+              {dateFilter === "CUSTOM" ? (
+                <div className="orders-date-inputs">
+                  <label className="orders-date-field">
+                    <span>{t("orderDateFrom")}</span>
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                    />
+                  </label>
+                  <label className="orders-date-field">
+                    <span>{t("orderDateTo")}</span>
+                    <input
+                      type="date"
+                      value={dateTo}
+                      min={dateFrom || undefined}
+                      onChange={(e) => setDateTo(e.target.value)}
+                    />
+                  </label>
+                </div>
+              ) : null}
+            </div>
+
+            <div>
+              <p className="orders-filter-section-label">
+                <MaterialIcon name="filter_list" className="!text-sm" />
+                {t("orderStatusLabel")}
+              </p>
+              <div className="delivery-filter-row orders-status-filters">
+                {FILTER_KEYS.map((filter) => (
+                  <button
+                    key={filter}
+                    type="button"
+                    className={statusFilter === filter ? "delivery-filter-active" : ""}
+                    onClick={() => setStatusFilter(filter)}
+                  >
+                    {filterLabel(filter)}
+                    {filterCounts[filter] > 0 ? <span>{filterCounts[filter]}</span> : null}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="orders-filter-actions">
+              <p className="orders-filter-summary">
+                {t("orderFilteredSummary", {
+                  count: filtered.length,
+                  total: formatMad(filteredRevenue, locale),
+                })}
+              </p>
+              {hasActiveFilters ? (
+                <button type="button" className="orders-clear-btn" onClick={clearFilters}>
+                  <MaterialIcon name="restart_alt" className="!text-sm" />
+                  {t("orderClearFilters")}
+                </button>
+              ) : null}
+            </div>
+          </div>
         </div>
       ) : null}
 
       {filtered.length === 0 ? (
         <AdminEmptyState
           icon="receipt_long"
-          title={search.trim() || statusFilter !== "ALL" ? t("noSearchResults") : t("noOrders")}
-          description={search.trim() || statusFilter !== "ALL" ? undefined : t("noOrdersHint")}
+          title={hasActiveFilters ? t("noSearchResults") : t("noOrders")}
+          description={hasActiveFilters ? undefined : t("noOrdersHint")}
         />
       ) : (
         <>
-          <div className="admin-table-wrap hidden md:block">
+          <div className="admin-table-wrap orders-table-wrap hidden md:block">
             <table className="admin-table">
               <thead>
                 <tr>
@@ -407,8 +597,9 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
               <tbody>
                 {filtered.map((order) => {
                   const { name } = getLocalizedProductFields(order.product, locale);
+                  const readyToShip = canSendToOlivraison(order);
                   return (
-                    <tr key={order.id}>
+                    <tr key={order.id} className={readyToShip ? "order-row-ready-ship" : undefined}>
                       <td className="font-medium">
                         {compact ? (
                           <span className="font-mono text-xs text-on-surface-variant">
@@ -429,11 +620,14 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
                       ) : null}
                       {!compact ? (
                         <td className="text-xs text-on-surface-variant">
-                          <div>{shippingLabel(order)}</div>
+                          <span className={shippingBadgeClass(order)}>
+                            <MaterialIcon name={shippingBadgeIcon(order)} className="!text-sm" />
+                            {shippingLabel(order)}
+                          </span>
                           {order.olivraisonTrackingId ? (
                             <button
                               type="button"
-                              className="admin-copy-link mt-1 font-mono"
+                              className="admin-copy-link mt-1 block font-mono"
                               onClick={() => handleCopyPhone(order.id, order.olivraisonTrackingId!)}
                             >
                               {order.olivraisonTrackingId}
@@ -475,7 +669,18 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
                       </td>
                       {!compact ? (
                         <td>
-                          <div className="flex items-center gap-1">
+                          <div className="flex flex-wrap items-center gap-1">
+                            {readyToShip ? (
+                              <button
+                                type="button"
+                                className="order-ship-btn order-ship-btn-compact"
+                                disabled={shippingId === order.id}
+                                onClick={() => void onQuickShip(order)}
+                              >
+                                <MaterialIcon name="rocket_launch" className="!text-base" />
+                                {shippingId === order.id ? t("orderSending") : t("orderSendNow")}
+                              </button>
+                            ) : null}
                             {order.status === "PENDING" ? (
                               <button
                                 type="button"
@@ -485,16 +690,6 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
                                 onClick={() => void onQuickConfirm(order)}
                               >
                                 <MaterialIcon name="check_circle" className="!text-lg" />
-                              </button>
-                            ) : null}
-                            {canSendToOlivraison(order) ? (
-                              <button
-                                type="button"
-                                className="admin-icon-btn"
-                                aria-label={t("orderSendToOlivraison")}
-                                onClick={() => openEdit(order)}
-                              >
-                                <MaterialIcon name="local_shipping" className="!text-lg" />
                               </button>
                             ) : null}
                             <button
@@ -524,11 +719,12 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
             </table>
           </div>
 
-          <div className="flex flex-col gap-3 md:hidden">
+          <div className="flex flex-col gap-3 md:hidden orders-mobile-list">
             {filtered.map((order) => {
               const { name } = getLocalizedProductFields(order.product, locale);
+              const readyToShip = canSendToOlivraison(order);
               return (
-                <article key={order.id} className="admin-order-card">
+                <article key={order.id} className={`admin-order-card${readyToShip ? " order-row-ready-ship" : ""}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-medium text-on-surface">{order.customerName}</p>
@@ -540,7 +736,10 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
                           >
                             {statusLabel(order.status)}
                           </span>
-                          <span className="admin-meta-pill">{shippingLabel(order)}</span>
+                          <span className={shippingBadgeClass(order)}>
+                            <MaterialIcon name={shippingBadgeIcon(order)} className="!text-sm" />
+                            {shippingLabel(order)}
+                          </span>
                         </div>
                       ) : null}
                     </div>
@@ -575,28 +774,41 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
                       {new Date(order.createdAt).toLocaleString(locale)}
                     </p>
                     {!compact ? (
-                      <div className="flex gap-1">
-                        {order.status === "PENDING" ? (
+                      <div className="flex flex-col items-end gap-2">
+                        {readyToShip ? (
                           <button
                             type="button"
-                            className="admin-btn-ghost"
-                            disabled={confirmingId === order.id}
-                            onClick={() => void onQuickConfirm(order)}
+                            className="order-ship-btn order-ship-btn-compact"
+                            disabled={shippingId === order.id}
+                            onClick={() => void onQuickShip(order)}
                           >
-                            {t("orderConfirm")}
+                            <MaterialIcon name="rocket_launch" className="!text-base" />
+                            {shippingId === order.id ? t("orderSending") : t("orderSendNow")}
                           </button>
                         ) : null}
-                        <button type="button" className="admin-btn-ghost" onClick={() => openEdit(order)}>
-                          {t("edit")}
-                        </button>
-                        <button
-                          type="button"
-                          className="admin-btn-danger"
-                          disabled={deletingId === order.id}
-                          onClick={() => void onDelete(order)}
-                        >
-                          {t("delete")}
-                        </button>
+                        <div className="flex gap-1">
+                          {order.status === "PENDING" ? (
+                            <button
+                              type="button"
+                              className="admin-btn-ghost"
+                              disabled={confirmingId === order.id}
+                              onClick={() => void onQuickConfirm(order)}
+                            >
+                              {t("orderConfirm")}
+                            </button>
+                          ) : null}
+                          <button type="button" className="admin-btn-ghost" onClick={() => openEdit(order)}>
+                            {t("edit")}
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-btn-danger"
+                            disabled={deletingId === order.id}
+                            onClick={() => void onDelete(order)}
+                          >
+                            {t("delete")}
+                          </button>
+                        </div>
                       </div>
                     ) : null}
                   </div>
