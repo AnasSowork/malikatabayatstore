@@ -1,9 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { findBundleOffer, toOrderLineItems, type OrderLineItem } from "@/lib/bundle-offers";
-import { parseOrderStatus } from "@/lib/order-status";
 import { normalizeProductSize } from "@/lib/product-sizes";
 import { serializeProduct } from "@/lib/product-serialize";
-import type { OrderStatus } from "@prisma/client";
 
 export function normalizeMoroccanPhone(value: string): string | null {
   let normalized = value.replace(/[\s.-]/g, "");
@@ -21,32 +19,13 @@ export type ParsedOrderInput = {
   lineItems: OrderLineItem[];
   totalPrice: number;
   selectedColor: string | null;
-  status?: OrderStatus;
-  statusNote?: string | null | undefined;
-  streetAddress?: string | null | undefined;
-  shippingComment?: string | null | undefined;
-  shippingDescription?: string | null | undefined;
-  shippingNoOpen?: boolean;
 };
-
-function readOptionalString(value: unknown): string | null | undefined {
-  if (value === undefined) return undefined;
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
-function readOptionalBoolean(value: unknown): boolean | undefined {
-  if (value === undefined) return undefined;
-  if (typeof value === "boolean") return value;
-  return undefined;
-}
 
 export type ParseOrderError = { error: string; status: number };
 
 export async function parseOrderInput(
   body: Record<string, unknown>,
-  options?: { allowCustomTotalPrice?: boolean; allowAdminFields?: boolean },
+  options?: { allowCustomTotalPrice?: boolean },
 ): Promise<ParsedOrderInput | ParseOrderError> {
   const {
     customerName,
@@ -152,15 +131,5 @@ export async function parseOrderInput(
     lineItems,
     totalPrice,
     selectedColor: lineItems[0]?.color ?? null,
-    ...(options?.allowAdminFields
-      ? {
-          status: parseOrderStatus(body.status) ?? undefined,
-          statusNote: readOptionalString(body.statusNote),
-          streetAddress: readOptionalString(body.streetAddress),
-          shippingComment: readOptionalString(body.shippingComment),
-          shippingDescription: readOptionalString(body.shippingDescription),
-          shippingNoOpen: readOptionalBoolean(body.shippingNoOpen),
-        }
-      : {}),
   };
 }

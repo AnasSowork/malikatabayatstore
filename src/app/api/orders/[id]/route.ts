@@ -1,8 +1,37 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAdminAuthenticated } from "@/lib/auth";
+import { toOrderLineItems } from "@/lib/bundle-offers";
+import { serializeProduct } from "@/lib/product-serialize";
 import { parseOrderInput } from "@/lib/order-admin";
-import { serializeOrder } from "@/lib/order-serialize";
+
+function serializeOrder(order: {
+  id: string;
+  customerName: string;
+  phone: string;
+  city: string;
+  selectedColor: string | null;
+  quantity: number;
+  totalPrice: { toString(): string };
+  lineItems: unknown;
+  productId: string;
+  createdAt: Date;
+  product: Parameters<typeof serializeProduct>[0];
+}) {
+  return {
+    id: order.id,
+    customerName: order.customerName,
+    phone: order.phone,
+    city: order.city,
+    selectedColor: order.selectedColor,
+    quantity: order.quantity,
+    totalPrice: order.totalPrice.toString(),
+    lineItems: toOrderLineItems(order.lineItems),
+    productId: order.productId,
+    createdAt: order.createdAt.toISOString(),
+    product: serializeProduct(order.product),
+  };
+}
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -19,15 +48,10 @@ export async function PATCH(request: Request, context: Ctx) {
     }
 
     const body = (await request.json()) as Record<string, unknown>;
-    const parsed = await parseOrderInput(body, {
-      allowCustomTotalPrice: true,
-      allowAdminFields: true,
-    });
+    const parsed = await parseOrderInput(body, { allowCustomTotalPrice: true });
     if ("error" in parsed) {
       return NextResponse.json({ error: parsed.error }, { status: parsed.status });
     }
-
-    const statusChanged = parsed.status != null && parsed.status !== existing.status;
 
     const order = await prisma.order.update({
       where: { id },
@@ -40,15 +64,6 @@ export async function PATCH(request: Request, context: Ctx) {
         quantity: parsed.quantity,
         totalPrice: parsed.totalPrice,
         lineItems: parsed.lineItems,
-        ...(parsed.status != null ? { status: parsed.status } : {}),
-        ...(parsed.statusNote !== undefined ? { statusNote: parsed.statusNote } : {}),
-        ...(statusChanged ? { statusUpdatedAt: new Date() } : {}),
-        ...(parsed.streetAddress !== undefined ? { streetAddress: parsed.streetAddress } : {}),
-        ...(parsed.shippingComment !== undefined ? { shippingComment: parsed.shippingComment } : {}),
-        ...(parsed.shippingDescription !== undefined
-          ? { shippingDescription: parsed.shippingDescription }
-          : {}),
-        ...(parsed.shippingNoOpen !== undefined ? { shippingNoOpen: parsed.shippingNoOpen } : {}),
       },
       include: { product: true },
     });

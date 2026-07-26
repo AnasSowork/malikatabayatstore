@@ -1,6 +1,5 @@
 import type { OrderLineItem } from "@/lib/bundle-offers";
 import type { ProductForClient } from "@/lib/product-serialize";
-import type { OrderStatus } from "@prisma/client";
 import {
   createDefaultProductDetailContent,
   type ProductDetailContent,
@@ -18,16 +17,6 @@ export type OrderWithProduct = {
   lineItems: OrderLineItem[];
   productId: string;
   createdAt: string;
-  updatedAt: string;
-  status: OrderStatus;
-  statusNote: string | null;
-  statusUpdatedAt: string | null;
-  streetAddress: string | null;
-  shippingComment: string | null;
-  shippingDescription: string | null;
-  shippingNoOpen: boolean;
-  olivraisonTrackingId: string | null;
-  shippedAt: string | null;
   product: ProductForClient;
 };
 
