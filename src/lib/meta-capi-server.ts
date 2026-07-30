@@ -1,11 +1,13 @@
 import {
   firstNameFromFullName,
   hashMetaCity,
+  hashMetaCountry,
   hashMetaEmail,
   hashMetaExternalId,
   hashMetaName,
   hashMetaPhone,
 } from "@/lib/meta-capi-hash";
+import { META_PIXEL_COUNTRY } from "@/lib/meta-pixel-user";
 import { buildMetaCommerceData, type MetaCommerceInput } from "@/lib/meta-commerce";
 
 export type MetaCapiEventName = "ViewContent" | "AddToCart" | "InitiateCheckout" | "Purchase";
@@ -53,8 +55,18 @@ function buildUserData(user?: MetaCapiUserInput): GraphUserData {
   const fnHash = fnSource ? hashMetaName(fnSource) : null;
   if (fnHash) data.fn = [fnHash];
 
+  const lnSource =
+    user?.fullName && user.fullName.trim().includes(" ")
+      ? user.fullName.trim().split(/\s+/).filter(Boolean).at(-1) ?? ""
+      : "";
+  const lnHash = lnSource ? hashMetaName(lnSource) : null;
+  if (lnHash) data.ln = [lnHash];
+
   const cityHash = user?.city ? hashMetaCity(user.city) : null;
   if (cityHash) data.ct = [cityHash];
+
+  const countryHash = hashMetaCountry(META_PIXEL_COUNTRY);
+  if (countryHash) data.country = [countryHash];
 
   const externalHash = user?.externalId ? hashMetaExternalId(user.externalId) : null;
   if (externalHash) data.external_id = [externalHash];

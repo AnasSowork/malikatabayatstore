@@ -39,6 +39,12 @@ export function hashMetaCity(city: string): string | null {
   return sha256(normalized);
 }
 
+export function hashMetaCountry(country: string): string | null {
+  const normalized = country.trim().toLowerCase();
+  if (!/^[a-z]{2}$/.test(normalized)) return null;
+  return sha256(normalized);
+}
+
 export function hashMetaExternalId(id: string): string | null {
   const normalized = id.trim();
   if (!normalized) return null;

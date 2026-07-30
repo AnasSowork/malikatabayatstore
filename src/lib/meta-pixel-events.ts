@@ -76,13 +76,19 @@ function trackPixel(eventName: string, params: Record<string, unknown>, eventId:
   });
 }
 
+const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+
 /** Updates Pixel Advanced Matching when the customer fills checkout fields. */
 export function setMetaPixelUserData(user: MetaPixelUserData) {
   if (typeof window === "undefined") return;
   const data = buildMetaPixelUserData(user);
-  if (Object.keys(data).length === 0) return;
+  const hasCustomerFields = Boolean(data.ph || data.fn || data.ln || data.ct || data.external_id);
+  if (!hasCustomerFields && !data.country) return;
   whenFbqReady(() => {
     window.fbq?.("set", "userData", data);
+    if (META_PIXEL_ID && hasCustomerFields) {
+      window.fbq?.("init", META_PIXEL_ID, data);
+    }
   });
 }
 

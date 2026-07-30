@@ -22,14 +22,45 @@ Meta deduplicates events that share the same **event name** + **event_id** acros
 
 Purchase is intentionally **not** sent twice from the server (no duplicate CAPI from thank-you).
 
-## Advanced matching (CAPI)
+## Advanced matching (CAPI + Pixel)
+
+### Step 1 — Events Manager (you do this once)
+
+1. Open [Events Manager](https://business.facebook.com/events_manager) → **malikatabayat pixel** → **Settings**
+2. Under **Automatic Advanced Matching**, click **Turn on**
+3. Enable these fields (recommended for Morocco COD checkout):
+   - **Phone number**
+   - **First and last name**
+   - **City**
+   - **Country**
+   - **External id**
+4. Save
+
+### Step 2 — Manual Advanced Matching (in code)
+
+Pixel init includes country at load:
+
+```javascript
+fbq('init', '1348553670819805', { country: 'ma' });
+```
+
+When the customer fills the order form, the site updates matching data:
+
+```javascript
+fbq('set', 'userData', { ph, fn, ln, ct, country, external_id });
+fbq('init', '1348553670819805', { ph, fn, ln, ct, country, external_id });
+```
+
+CAPI sends the same fields **hashed** (SHA-256) on InitiateCheckout and Purchase.
 
 Hashed with SHA-256 per Meta requirements (`src/lib/meta-capi-hash.ts`):
 
 - Email (when collected)
 - Phone (Moroccan `0XXXXXXXXX` → `212XXXXXXXXX` before hash)
 - First name (from full name)
+- Last name (from full name, when provided)
 - City
+- Country (`ma` — Morocco)
 - External ID (order id on Purchase)
 
 Plaintext on CAPI payload (not hashed):
