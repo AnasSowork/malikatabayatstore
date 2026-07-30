@@ -30,23 +30,32 @@ export function NewsletterSection() {
         {submitted ? (
           <p className="mt-8 text-sm text-white">{t("newsletterThanks")}</p>
         ) : (
-          <form
+          <div
+            role="form"
+            aria-label={t("newsletterTitle")}
             className="mx-auto mt-10 flex max-w-md flex-col gap-4 sm:flex-row"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setSubmitted(true);
-            }}
           >
             <input
               type="email"
               required
               placeholder={t("newsletterPlaceholder")}
               className="min-h-[52px] flex-1 rounded-xl border border-white/20 bg-brand-charcoal px-6 py-4 text-sm text-brand-ivory placeholder:text-white/40 focus:border-white/50 focus:outline-none focus:ring-1 focus:ring-white/30"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  setSubmitted(true);
+                }
+              }}
             />
-            <BrandButton type="submit" variant="primary" className="btn-brand-sm shrink-0">
+            <BrandButton
+              type="button"
+              variant="primary"
+              className="btn-brand-sm shrink-0"
+              onClick={() => setSubmitted(true)}
+            >
               {t("newsletterCta")}
             </BrandButton>
-          </form>
+          </div>
         )}
       </div>
     </section>

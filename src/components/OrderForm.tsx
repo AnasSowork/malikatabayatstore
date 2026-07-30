@@ -63,9 +63,11 @@ export function OrderForm({
     return () => window.clearTimeout(timer);
   }, [phone, customerName, city]);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!canSubmit) return;
+  const disabled =
+    status === "loading" || !canSubmit || (requiresColorSelection && lineItems.some((i) => !i.color));
+
+  async function submitOrder() {
+    if (disabled) return;
     setStatus("loading");
     try {
       trackInitiateCheckout({
@@ -123,16 +125,23 @@ export function OrderForm({
     }
   }
 
-  const disabled =
-    status === "loading" || !canSubmit || (requiresColorSelection && lineItems.some((i) => !i.color));
-
   return (
     <div id="order-form" className="order-form-card space-y-6 scroll-mt-24 rounded-2xl border border-black/15 p-5 md:p-6">
       <div className="space-y-1">
         <h3 className="font-store text-lg font-semibold text-on-surface">{t("orderTitle")}</h3>
         <p className="brand-eyebrow">{t("orderSubtitle")}</p>
       </div>
-      <form onSubmit={onSubmit} className="space-y-4">
+      <div
+        role="form"
+        aria-label={t("orderTitle")}
+        className="space-y-4"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && (e.target as HTMLElement).tagName !== "TEXTAREA") {
+            e.preventDefault();
+            void submitOrder();
+          }
+        }}
+      >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <label className={labelClass}>{t("customerName")}</label>
@@ -203,10 +212,11 @@ export function OrderForm({
         </div>
 
         <BrandButton
-          type="submit"
+          type="button"
           variant="primary"
           disabled={disabled}
           className="btn-brand-block order-form-cta"
+          onClick={() => void submitOrder()}
         >
           {status === "loading" ? t("submitting") : t("submit")}
         </BrandButton>
@@ -214,7 +224,7 @@ export function OrderForm({
           <p className="text-center text-sm brand-gold-text">{t("success")}</p>
         )}
         {status === "error" && <p className="text-center text-sm text-error">{t("error")}</p>}
-      </form>
+      </div>
     </div>
   );
 }

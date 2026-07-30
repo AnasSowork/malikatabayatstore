@@ -65,4 +65,22 @@ export function getMetaBrowserIds(): { fbp: string | null; fbc: string | null } 
 /** Call as early as possible after Pixel may have set cookies. */
 export function captureMetaBrowserIds() {
   getMetaBrowserIds();
+
+  if (typeof window === "undefined" || typeof sessionStorage === "undefined") return;
+  if (sessionStorage.getItem(META_SAVED_FBC)) return;
+
+  const hasFbclid = new URLSearchParams(window.location.search).has("fbclid");
+  if (!hasFbclid) return;
+
+  let attempts = 0;
+  const poll = window.setInterval(() => {
+    attempts += 1;
+    const fbc = sanitizeMetaBrowserId(readRawCookie("_fbc"), "fbc");
+    if (fbc) {
+      saveFirstTouch(META_SAVED_FBC, fbc);
+      window.clearInterval(poll);
+      return;
+    }
+    if (attempts >= 50) window.clearInterval(poll);
+  }, 100);
 }

@@ -15,8 +15,11 @@ export function buildMetaCommerceData(input: MetaCommerceInput) {
       ? input.unitPrice
       : value / quantity;
 
+  const normalizedValue = Number.isFinite(value) ? Math.round(value * 100) / 100 : 0;
+  const normalizedItemPrice = Number.isFinite(itemPrice) ? Math.round(itemPrice * 100) / 100 : 0;
+
   return {
-    value: Number.isFinite(value) ? value : 0,
+    value: normalizedValue,
     currency: META_CURRENCY,
     content_ids: [input.productId],
     content_type: "product" as const,
@@ -24,7 +27,7 @@ export function buildMetaCommerceData(input: MetaCommerceInput) {
       {
         id: input.productId,
         quantity,
-        item_price: Number.isFinite(itemPrice) ? itemPrice : 0,
+        item_price: normalizedItemPrice,
       },
     ],
     num_items: quantity,

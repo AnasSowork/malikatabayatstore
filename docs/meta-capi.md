@@ -8,8 +8,10 @@ This store sends ecommerce events to Meta using **browser Pixel** and **server-s
 | --- | --- | --- | --- |
 | ViewContent | Yes | Yes | Product page load (once per visit) |
 | AddToCart | Yes | Yes | Default bundle on load + each new bundle tier selected |
-| InitiateCheckout | Yes | Yes | Customer submits the order form |
+| InitiateCheckout | Yes | Yes | Customer submits the order (not auto Lead) |
 | Purchase | Yes (thank-you page) | Yes (order API) | After successful order creation |
+
+**Lead events:** This store does **not** send Meta Lead events. Checkout uses **InitiateCheckout** + **Purchase** with `currency: "MAD"`. Automatic Lead from form detection is disabled (`fbq('set', 'autoConfig', false, false)` **before** `fbq('init')`) and storefront forms avoid native `<form submit>` so the Pixel does not auto-log Lead without currency.
 
 ## Deduplication
 
@@ -85,7 +87,8 @@ Optional alias: `META_PIXEL_ID` (server-only override; defaults to `NEXT_PUBLIC_
 - **Double Purchase counts:** Purchase Pixel only on thank-you; InitiateCheckout is separate from Purchase (not counted as a lead conversion).
 - **Lead / `__missing_event` in Events Manager:** not emitted by this codebase. `Lead` is usually Meta automatic form detection; disabled via `fbq('set', 'autoConfig', false, false)` in `MetaPixel.tsx`. Old events remain in the dataset until they age out.
 - **Low event coverage (<75%):** ensure CAPI fires after Pixel loads (for `_fbp` dedup keys). The client retries failed `/api/meta/events` requests and replays queued events on the next page load.
-- **Modified fbclid in fbc (Meta Actions warning):** pass `_fbc` exactly as the Pixel set it; do not decode or trim. Invalid or hand-built fbc values are dropped server-side rather than sent to Graph API.
+- **Modified fbclid in fbc (Meta Actions warning):** pass `_fbc` exactly as the Pixel set it; do not decode or trim. Invalid or hand-built fbc values are dropped server-side rather than sent to Graph API. Poll for `_fbc` after `fbclid` landings before locking first-touch.
+- **Invalid currency on Lead (Meta Actions warning):** disable automatic Lead (`autoConfig` before `init`); use InitiateCheckout/Purchase with ISO `MAD`. In Events Manager → Settings, turn off **Track events automatically** if Lead warnings persist.
 
 ## Verify setup
 
