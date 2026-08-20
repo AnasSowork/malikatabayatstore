@@ -1,6 +1,7 @@
 import type { OrderLineItem } from "@/lib/bundle-offers";
 import type { ProductForClient } from "@/lib/product-serialize";
 import type { OrderStatus } from "@prisma/client";
+import type { SerializedMetaEventLog } from "@/lib/meta-event-log";
 import {
   createDefaultProductDetailContent,
   type ProductDetailContent,
@@ -27,8 +28,11 @@ export type OrderWithProduct = {
   shippingDescription: string | null;
   shippingNoOpen: boolean;
   olivraisonTrackingId: string | null;
+  shippingProvider?: string | null;
+  shippingTrackingId?: string | null;
   shippedAt: string | null;
   product: ProductForClient;
+  metaEventLogs?: SerializedMetaEventLog[];
 };
 
 export type AdminView =

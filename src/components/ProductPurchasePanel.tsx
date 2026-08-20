@@ -74,6 +74,10 @@ export function ProductPurchasePanel({
 
   const totalPrice = selectedOffer?.price ?? unitPrice;
 
+  /**
+   * AddToCart only on deliberate bundle selection (user clicks a quantity offer).
+   * Never fire on PDP mount / default quantity.
+   */
   function fireAddToCart(qty: number, price: number) {
     if (addToCartSent.current.has(qty)) return;
     addToCartSent.current.add(qty);
@@ -85,12 +89,6 @@ export function ProductPurchasePanel({
       unitPrice: price / qty,
     });
   }
-
-  useEffect(() => {
-    fireAddToCart(defaultQty, selectedOffer?.price ?? unitPrice);
-    // Initial bundle tier only — user-driven changes handled in onQuantityChange.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productId]);
 
   useEffect(() => {
     if (!preferredColor) return;

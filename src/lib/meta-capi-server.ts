@@ -10,7 +10,27 @@ import {
 import { META_PIXEL_COUNTRY } from "@/lib/meta-pixel-user";
 import { buildMetaCommerceData, type MetaCommerceInput } from "@/lib/meta-commerce";
 
-export type MetaCapiEventName = "ViewContent" | "AddToCart" | "InitiateCheckout" | "Purchase";
+/** Standard Meta ecommerce events + COD quality custom events (CAPI-only). */
+export type MetaCapiEventName =
+  | "ViewContent"
+  | "AddToCart"
+  | "InitiateCheckout"
+  | "Purchase"
+  | "QualifiedOrder"
+  | "DeliveredOrder";
+
+/** Browser-relayable events only — Purchase is order-API authoritative. */
+export const META_BROWSER_RELAY_EVENTS = [
+  "ViewContent",
+  "AddToCart",
+  "InitiateCheckout",
+] as const satisfies ReadonlyArray<"ViewContent" | "AddToCart" | "InitiateCheckout">;
+
+/**
+ * Meta Graph CAPI accepts custom `event_name` strings for optimization/custom conversions.
+ * QualifiedOrder / DeliveredOrder are server-only custom events (no Pixel).
+ */
+export const META_CAPI_CUSTOM_EVENTS = ["QualifiedOrder", "DeliveredOrder"] as const;
 
 export type MetaCapiUserInput = {
   email?: string | null;
@@ -74,23 +94,22 @@ function buildUserData(user?: MetaCapiUserInput): GraphUserData {
   return data;
 }
 
-export function isMetaCapiConfigured(): boolean {
-  return Boolean(getMetaPixelId() && process.env.META_CAPI_ACCESS_TOKEN);
+export function getMetaPixelId(): string | undefined {
+  const fromServer = process.env.META_PIXEL_ID?.trim();
+  const fromPublic = process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim();
+  return fromServer || fromPublic || undefined;
 }
 
-function getMetaPixelId(): string | undefined {
-  return (
-    process.env.META_PIXEL_ID ||
-    process.env.NEXT_PUBLIC_META_PIXEL_ID ||
-    "1348553670819805"
-  );
+export function isMetaCapiConfigured(): boolean {
+  return Boolean(getMetaPixelId() && process.env.META_CAPI_ACCESS_TOKEN?.trim());
 }
 
 export async function sendMetaCapiEvent(input: MetaCapiEventInput): Promise<boolean> {
   const pixelId = getMetaPixelId();
-  const accessToken = process.env.META_CAPI_ACCESS_TOKEN;
+  const accessToken = process.env.META_CAPI_ACCESS_TOKEN?.trim();
 
   if (!pixelId || !accessToken) {
+    console.warn("[meta-capi] skipped — missing pixel id or access token", input.eventName);
     return false;
   }
 
@@ -136,16 +155,21 @@ export async function sendMetaCapiEvent(input: MetaCapiEventInput): Promise<bool
       body: JSON.stringify(body),
     });
 
-    const json = (await res.json()) as { error?: { message?: string }; events_received?: number };
+    const json = (await res.json()) as { error?: { message?: string; code?: number }; events_received?: number };
 
     if (!res.ok) {
-      console.error("[meta-capi]", input.eventName, json.error?.message ?? res.status);
+      console.error(
+        "[meta-capi]",
+        input.eventName,
+        json.error?.code ?? res.status,
+        json.error?.message ?? "request failed",
+      );
       return false;
     }
 
     return (json.events_received ?? 0) > 0;
   } catch (error) {
-    console.error("[meta-capi]", input.eventName, error);
+    console.error("[meta-capi]", input.eventName, error instanceof Error ? error.message : "network error");
     return false;
   }
 }

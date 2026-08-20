@@ -41,9 +41,9 @@ const sendTest = process.argv.includes("--send-test");
 const baseUrl = (process.env.BASE_URL || process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "");
 
 const pixelId =
-  process.env.META_PIXEL_ID ||
-  process.env.NEXT_PUBLIC_META_PIXEL_ID ||
-  "1348553670819805";
+  process.env.META_PIXEL_ID?.trim() ||
+  process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim() ||
+  "";
 const accessToken = process.env.META_CAPI_ACCESS_TOKEN?.trim();
 const testCode = process.env.META_CAPI_TEST_EVENT_CODE?.trim();
 
@@ -61,13 +61,13 @@ function fail(label) {
 
 console.log("\nMeta Pixel + CAPI verification\n");
 
-if (pixelId) ok(`Pixel ID: ${pixelId}`);
+if (pixelId) ok(`Pixel ID: CONFIGURED (${pixelId.slice(0, 4)}…${pixelId.slice(-4)})`);
 else fail("Missing NEXT_PUBLIC_META_PIXEL_ID / META_PIXEL_ID");
 
-if (accessToken) ok(`CAPI access token: set (${accessToken.length} chars)`);
+if (accessToken) ok("CAPI access token: CONFIGURED");
 else fail("Missing META_CAPI_ACCESS_TOKEN");
 
-if (testCode) warn(`META_CAPI_TEST_EVENT_CODE is set (${testCode}) — remove for live ads`);
+if (testCode) warn("META_CAPI_TEST_EVENT_CODE is set — remove for live ads");
 else ok("No test event code (live mode)");
 
 if (baseUrl) {

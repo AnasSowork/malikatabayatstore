@@ -13,6 +13,8 @@ import {
   setMetaPixelUserData,
   trackInitiateCheckout,
 } from "@/lib/meta-pixel-events";
+import { hasMarketingConsent } from "@/lib/consent";
+import { readStoredUtm } from "@/lib/meta-utm";
 
 type Props = {
   productId: string;
@@ -53,6 +55,7 @@ export function OrderForm({
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   useEffect(() => {
+    if (!hasMarketingConsent()) return;
     const timer = window.setTimeout(() => {
       setMetaPixelUserData({
         phone,
@@ -84,6 +87,7 @@ export function OrderForm({
       });
 
       const { fbp, fbc } = getMetaBrowserIds();
+      const utm = readStoredUtm();
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -100,6 +104,12 @@ export function OrderForm({
             fbc,
             eventSourceUrl: window.location.href,
             productName,
+            marketingConsent: hasMarketingConsent(),
+            utmSource: utm.utmSource,
+            utmMedium: utm.utmMedium,
+            utmCampaign: utm.utmCampaign,
+            utmContent: utm.utmContent,
+            utmTerm: utm.utmTerm,
           },
         }),
       });
@@ -111,9 +121,6 @@ export function OrderForm({
         value: totalPrice,
         quantity,
         orderId: order.id,
-        phone,
-        fullName: customerName,
-        city,
       });
       setStatus("success");
       setCustomerName("");

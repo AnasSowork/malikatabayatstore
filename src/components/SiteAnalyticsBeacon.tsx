@@ -2,10 +2,12 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "@/i18n/navigation";
+import { readConsentPreferences } from "@/lib/consent";
 
 /**
  * Internal storefront view counter for the admin dashboard.
  * Completely separate from Meta Pixel — does not call fbq or change ad events.
+ * Respects analytics consent when a preference has been set.
  */
 export function SiteAnalyticsBeacon() {
   const pathname = usePathname();
@@ -14,6 +16,9 @@ export function SiteAnalyticsBeacon() {
   useEffect(() => {
     if (!pathname || pathname.startsWith("/admin")) return;
     if (lastSent.current === pathname) return;
+
+    const consent = readConsentPreferences();
+    if (consent && !consent.analytics) return;
 
     const sessionKey = `site_view:${pathname}`;
     try {

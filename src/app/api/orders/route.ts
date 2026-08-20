@@ -4,13 +4,20 @@ import { isAdminAuthenticated } from "@/lib/auth";
 import { parseOrderInput } from "@/lib/order-admin";
 import { serializeOrder } from "@/lib/order-serialize";
 import { readMetaBrowserId } from "@/lib/meta-browser-cookies-server";
-import { clientIpFromRequest, sendMetaCapiEvent } from "@/lib/meta-capi-server";
+import { parseMarketingConsentFromBody } from "@/lib/consent";
+import { clientIpFromRequest } from "@/lib/meta-capi-server";
+import { purchaseEventId } from "@/lib/meta-event-id";
+import {
+  scheduleOrderStatusTransition,
+  sendOrRetryMetaOrderEvent,
+} from "@/lib/order-lifecycle-analytics";
+import { sanitizeUtmFromBody } from "@/lib/meta-utm";
 
 function readMetaString(body: Record<string, unknown>, key: string): string | null {
   const meta = body.meta;
   if (!meta || typeof meta !== "object") return null;
   const value = (meta as Record<string, unknown>)[key];
-  return typeof value === "string" && value.trim() ? value.trim() : null;
+  return typeof value === "string" && value.trim() ? value.trim().slice(0, 2000) : null;
 }
 
 export async function GET() {
@@ -21,7 +28,7 @@ export async function GET() {
     }
 
     const orders = await prisma.order.findMany({
-      include: { product: true },
+      include: { product: true, metaEventLogs: true },
       orderBy: { createdAt: "desc" },
     });
     return NextResponse.json(orders.map(serializeOrder));
@@ -43,6 +50,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: parsed.error }, { status: parsed.status });
     }
 
+    const meta = body.meta;
+    const utm = sanitizeUtmFromBody(meta);
+    const metaFbp = readMetaBrowserId(meta, "fbp");
+    const metaFbc = readMetaBrowserId(meta, "fbc");
+    const marketingConsent = parseMarketingConsentFromBody(meta);
+
     const order = await prisma.order.create({
       data: {
         customerName: parsed.customerName,
@@ -60,34 +73,36 @@ export async function POST(request: Request) {
         shippingComment: parsed.shippingComment ?? null,
         shippingDescription: parsed.shippingDescription ?? null,
         shippingNoOpen: parsed.shippingNoOpen ?? false,
+        metaFbp,
+        metaFbc,
+        utmSource: utm.utmSource,
+        utmMedium: utm.utmMedium,
+        utmCampaign: utm.utmCampaign,
+        utmContent: utm.utmContent,
+        utmTerm: utm.utmTerm,
+        marketingConsent: marketingConsent ?? undefined,
       },
-      include: { product: true },
+      include: { product: true, metaEventLogs: true },
     });
 
+    // Meta must never block checkout success.
     if (!isAdmin) {
-      const purchaseValue = Number(order.totalPrice);
-      void sendMetaCapiEvent({
+      void sendOrRetryMetaOrderEvent({
+        order,
         eventName: "Purchase",
-        eventId: order.id,
+        eventId: purchaseEventId(order.id),
         eventTime: Math.floor(order.createdAt.getTime() / 1000),
         eventSourceUrl: readMetaString(body, "eventSourceUrl"),
         productName: readMetaString(body, "productName"),
-        commerce: {
-          productId: order.productId,
-          value: purchaseValue,
-          quantity: order.quantity,
-          unitPrice: purchaseValue / order.quantity,
-        },
-        user: {
-          phone: order.phone,
-          fullName: order.customerName,
-          city: order.city,
-          externalId: order.id,
-          fbp: readMetaBrowserId(body.meta, "fbp"),
-          fbc: readMetaBrowserId(body.meta, "fbc"),
-          clientIpAddress: clientIpFromRequest(request),
-          clientUserAgent: request.headers.get("user-agent"),
-        },
+        clientIpAddress: clientIpFromRequest(request),
+        clientUserAgent: request.headers.get("user-agent"),
+      });
+    } else {
+      // Admin-created non-PENDING statuses still need lifecycle analytics once.
+      scheduleOrderStatusTransition({
+        order,
+        fromStatus: null,
+        toStatus: order.status,
       });
     }
 

@@ -415,7 +415,7 @@ export function AdminDashboard({ view }: { view: AdminView }) {
       </div>
     ) : view === "delivery" ? (
       <div>
-        <p className="brand-eyebrow">Olivraison</p>
+        <p className="brand-eyebrow">{t("deliveryLegacyEyebrow")}</p>
         <h1 className="admin-page-title">{t("navDelivery")}</h1>
         <p className="admin-page-subtitle">{t("deliveryIntro")}</p>
       </div>

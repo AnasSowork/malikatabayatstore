@@ -22,6 +22,8 @@ export type OrderFilterKey =
 export type OrderForStatus = {
   status: OrderStatus;
   streetAddress?: string | null;
+  shippingTrackingId?: string | null;
+  /** @deprecated Prefer shippingTrackingId — kept for legacy dual-read */
   olivraisonTrackingId?: string | null;
 };
 
@@ -50,15 +52,25 @@ export function orderStatusTone(status: OrderStatus): string {
   }
 }
 
-export function isOrderShipped(order: Pick<OrderForStatus, "olivraisonTrackingId">): boolean {
-  return Boolean(order.olivraisonTrackingId?.trim());
+function trackingIdOf(
+  order: Pick<OrderForStatus, "shippingTrackingId" | "olivraisonTrackingId">,
+): string | null {
+  return order.shippingTrackingId?.trim() || order.olivraisonTrackingId?.trim() || null;
+}
+
+/** True when a shipment tracking id is stored on the order. */
+export function isOrderShipped(
+  order: Pick<OrderForStatus, "shippingTrackingId" | "olivraisonTrackingId">,
+): boolean {
+  return Boolean(trackingIdOf(order));
 }
 
 export function isShippingReady(order: Pick<OrderForStatus, "streetAddress">): boolean {
   return Boolean(order.streetAddress?.trim() && order.streetAddress.trim().length >= 3);
 }
 
-export function canSendToOlivraison(order: OrderForStatus): boolean {
+/** Provider-agnostic: order is eligible for createShipment. */
+export function canCreateShipment(order: OrderForStatus): boolean {
   return (
     !isOrderShipped(order) &&
     isShippingReady(order) &&
@@ -66,6 +78,11 @@ export function canSendToOlivraison(order: OrderForStatus): boolean {
     order.status !== "RETURNED" &&
     order.status !== "DELIVERED"
   );
+}
+
+/** @deprecated Use canCreateShipment — name kept for existing admin UI. */
+export function canSendToOlivraison(order: OrderForStatus): boolean {
+  return canCreateShipment(order);
 }
 
 export function matchesOrderFilter(order: OrderForStatus, filter: OrderFilterKey): boolean {

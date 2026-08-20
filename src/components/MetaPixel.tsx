@@ -1,8 +1,9 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "@/i18n/navigation";
+import { hasMarketingConsent, readConsentPreferences } from "@/lib/consent";
 import { flushCapiQueue, captureMetaBrowserIds } from "@/lib/meta-pixel-events";
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
@@ -25,9 +26,17 @@ export function MetaPixel() {
   const pathname = usePathname();
   const skipInitialRouteEffect = useRef(true);
   const onAdmin = isAdminPath(pathname);
+  const [marketingAllowed, setMarketingAllowed] = useState(false);
 
   useEffect(() => {
-    if (!PIXEL_ID || onAdmin) return;
+    const sync = () => setMarketingAllowed(hasMarketingConsent());
+    sync();
+    window.addEventListener("malikat-consent-changed", sync);
+    return () => window.removeEventListener("malikat-consent-changed", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!PIXEL_ID || onAdmin || !marketingAllowed) return;
 
     const timer = window.setInterval(() => {
       if (!window.fbq) return;
@@ -36,10 +45,10 @@ export function MetaPixel() {
     }, 100);
 
     return () => window.clearInterval(timer);
-  }, [onAdmin]);
+  }, [onAdmin, marketingAllowed]);
 
   useEffect(() => {
-    if (!PIXEL_ID || onAdmin) return;
+    if (!PIXEL_ID || onAdmin || !marketingAllowed) return;
 
     if (skipInitialRouteEffect.current) {
       skipInitialRouteEffect.current = false;
@@ -50,9 +59,14 @@ export function MetaPixel() {
     trackPageView();
     captureMetaBrowserIds();
     flushCapiQueue();
-  }, [pathname, onAdmin]);
+  }, [pathname, onAdmin, marketingAllowed]);
 
-  if (!PIXEL_ID || onAdmin) {
+  if (!PIXEL_ID || onAdmin || !marketingAllowed) {
+    return null;
+  }
+
+  // Re-read in case consent flipped after first paint of this branch.
+  if (!readConsentPreferences()?.marketing) {
     return null;
   }
 

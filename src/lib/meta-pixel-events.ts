@@ -4,6 +4,7 @@ import {
   captureMetaBrowserIds,
   getMetaBrowserIds,
 } from "@/lib/meta-browser-cookies";
+import { hasMarketingConsent } from "@/lib/consent";
 import { buildMetaCommerceData } from "@/lib/meta-commerce";
 import { createMetaEventId, purchaseEventId } from "@/lib/meta-event-id";
 import { buildMetaPixelUserData, type MetaPixelUserData } from "@/lib/meta-pixel-user";
@@ -20,9 +21,6 @@ export type PendingPurchase = {
   quantity: number;
   orderId: string;
   productName?: string;
-  phone?: string;
-  fullName?: string;
-  city?: string;
 };
 
 export type MetaTrackInput = {
@@ -48,9 +46,11 @@ declare global {
 
 function whenFbqReady(run: () => void, maxWaitMs = 15000) {
   if (typeof window === "undefined") return;
+  if (!hasMarketingConsent()) return;
 
   const start = Date.now();
   const attempt = () => {
+    if (!hasMarketingConsent()) return;
     if (window.fbq) {
       run();
       return;
@@ -81,6 +81,7 @@ const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 /** Updates Pixel Advanced Matching when the customer fills checkout fields. */
 export function setMetaPixelUserData(user: MetaPixelUserData) {
   if (typeof window === "undefined") return;
+  if (!hasMarketingConsent()) return;
   const data = buildMetaPixelUserData(user);
   const hasCustomerFields = Boolean(data.ph || data.fn || data.ln || data.ct || data.external_id);
   if (!hasCustomerFields && !data.country) return;
@@ -96,8 +97,10 @@ function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+type BrowserRelayEvent = "ViewContent" | "AddToCart" | "InitiateCheckout";
+
 type CapiPayload = {
-  eventName: "ViewContent" | "AddToCart" | "InitiateCheckout" | "Purchase";
+  eventName: BrowserRelayEvent;
   eventId: string;
   eventSourceUrl: string;
   fbp: string | null;
@@ -108,14 +111,12 @@ type CapiPayload = {
   quantity: number;
   unitPrice?: number;
   user?: MetaTrackInput["user"];
+  marketingConsent: boolean;
 };
 
 type QueuedCapiPayload = CapiPayload & { queuedAt: number };
 
-function buildCapiPayload(
-  eventName: CapiPayload["eventName"],
-  input: MetaTrackInput,
-): CapiPayload {
+function buildCapiPayload(eventName: BrowserRelayEvent, input: MetaTrackInput): CapiPayload {
   const { fbp, fbc } = getMetaBrowserIds();
   return {
     eventName,
@@ -129,6 +130,7 @@ function buildCapiPayload(
     quantity: input.quantity,
     unitPrice: input.unitPrice,
     user: input.user,
+    marketingConsent: hasMarketingConsent(),
   };
 }
 
@@ -178,6 +180,7 @@ async function postCapiPayload(payload: CapiPayload): Promise<boolean> {
       quantity: payload.quantity,
       unitPrice: payload.unitPrice,
       user: payload.user,
+      marketingConsent: payload.marketingConsent,
     }),
   });
 
@@ -204,6 +207,7 @@ async function sendCapiPayload(payload: CapiPayload, retries = 2): Promise<boole
 /** Retry CAPI events that failed when the user navigated away or the pixel was still loading. */
 export function flushCapiQueue() {
   if (typeof window === "undefined") return;
+  if (!hasMarketingConsent()) return;
 
   whenFbqReady(() => {
     captureMetaBrowserIds();
@@ -214,6 +218,7 @@ export function flushCapiQueue() {
       const { fbp, fbc } = getMetaBrowserIds();
       const remaining: QueuedCapiPayload[] = [];
       for (const item of queue) {
+        if (item.eventName === ("Purchase" as string)) continue;
         const payload: CapiPayload = {
           eventName: item.eventName,
           eventId: item.eventId,
@@ -226,35 +231,18 @@ export function flushCapiQueue() {
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           user: item.user,
+          marketingConsent: hasMarketingConsent(),
         };
         const sent = await sendCapiPayload(payload, 1);
-        if (!sent) remaining.push(item);
+        if (!sent) remaining.push({ ...payload, queuedAt: item.queuedAt });
       }
       writeCapiQueue(remaining);
     })();
   });
 }
 
-function sendCapiEvent(
-  eventName: "ViewContent" | "AddToCart" | "InitiateCheckout" | "Purchase",
-  input: MetaTrackInput,
-) {
-  if (typeof window === "undefined") return;
-
-  whenFbqReady(() => {
-    captureMetaBrowserIds();
-    const payload = buildCapiPayload(eventName, input);
-    void (async () => {
-      const sent = await sendCapiPayload(payload);
-      if (!sent) enqueueCapiPayload(payload);
-    })();
-  });
-}
-
-function trackDual(
-  eventName: "ViewContent" | "AddToCart" | "InitiateCheckout" | "Purchase",
-  input: MetaTrackInput,
-) {
+function trackDual(eventName: BrowserRelayEvent, input: MetaTrackInput) {
+  if (!hasMarketingConsent()) return;
   const params = commerceParams(input);
   whenFbqReady(() => {
     captureMetaBrowserIds();
@@ -359,9 +347,16 @@ function purchaseFiredKey(orderId: string) {
   return `${META_PURCHASE_FIRED_KEY}:${orderId}`;
 }
 
-/** Fires Purchase once on the thank-you page (browser Pixel only; CAPI Purchase is sent server-side). */
+/**
+ * Browser Pixel Purchase only. Authoritative CAPI Purchase is sent from POST /api/orders.
+ * Uses the same deterministic event_id (order id) for Meta deduplication.
+ */
 export function flushPendingPurchase() {
   if (typeof window === "undefined") return;
+  if (!hasMarketingConsent()) {
+    clearPendingPurchase();
+    return;
+  }
 
   const pending = readPendingPurchase();
   if (!pending) return;
@@ -373,20 +368,6 @@ export function flushPendingPurchase() {
   }
 
   sessionStorage.setItem(firedKey, "1");
-
-  sendCapiEvent("Purchase", {
-    productId: pending.productId,
-    productName: pending.productName,
-    value: pending.value,
-    quantity: pending.quantity,
-    eventId: purchaseEventId(pending.orderId),
-    user: {
-      phone: pending.phone,
-      fullName: pending.fullName,
-      city: pending.city,
-      externalId: pending.orderId,
-    },
-  });
 
   whenFbqReady(() => {
     sendPurchasePixelOnly(pending);

@@ -1,5 +1,9 @@
 import { toOrderLineItems } from "@/lib/bundle-offers";
 import { serializeProduct } from "@/lib/product-serialize";
+import {
+  serializeMetaEventLog,
+  type SerializedMetaEventLog,
+} from "@/lib/meta-event-log";
 import type { OrderStatus } from "@prisma/client";
 
 export type SerializedOrder = {
@@ -22,8 +26,11 @@ export type SerializedOrder = {
   shippingDescription: string | null;
   shippingNoOpen: boolean;
   olivraisonTrackingId: string | null;
+  shippingProvider: string | null;
+  shippingTrackingId: string | null;
   shippedAt: string | null;
   product: ReturnType<typeof serializeProduct>;
+  metaEventLogs?: SerializedMetaEventLog[];
 };
 
 export function serializeOrder(order: {
@@ -46,8 +53,11 @@ export function serializeOrder(order: {
   shippingDescription: string | null;
   shippingNoOpen: boolean;
   olivraisonTrackingId: string | null;
+  shippingProvider?: string | null;
+  shippingTrackingId?: string | null;
   shippedAt: Date | null;
   product: Parameters<typeof serializeProduct>[0];
+  metaEventLogs?: Parameters<typeof serializeMetaEventLog>[0][];
 }): SerializedOrder {
   return {
     id: order.id,
@@ -69,7 +79,12 @@ export function serializeOrder(order: {
     shippingDescription: order.shippingDescription,
     shippingNoOpen: order.shippingNoOpen,
     olivraisonTrackingId: order.olivraisonTrackingId,
+    shippingProvider: order.shippingProvider ?? null,
+    shippingTrackingId: order.shippingTrackingId ?? null,
     shippedAt: order.shippedAt?.toISOString() ?? null,
     product: serializeProduct(order.product),
+    ...(order.metaEventLogs
+      ? { metaEventLogs: order.metaEventLogs.map(serializeMetaEventLog) }
+      : {}),
   };
 }

@@ -98,13 +98,56 @@ model Order {
   shippingDescription   String?     @db.VarChar(500)
   shippingNoOpen        Boolean     @default(false)
   olivraisonTrackingId  String?     @db.VarChar(100)
+  /// Active / historical provider id: "sendit" | "olivraison"
+  shippingProvider      String?     @db.VarChar(32)
+  /// Provider tracking / parcel code (Sendit `code`, Olivraison tracking ID, …)
+  shippingTrackingId    String?     @db.VarChar(100)
   shippedAt             DateTime?
+  metaFbp               String?     @db.VarChar(255)
+  metaFbc               String?     @db.VarChar(512)
+  utmSource             String?     @db.VarChar(120)
+  utmMedium             String?     @db.VarChar(120)
+  utmCampaign           String?     @db.VarChar(180)
+  utmContent            String?     @db.VarChar(180)
+  utmTerm               String?     @db.VarChar(180)
+  marketingConsent      Boolean?
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
+  metaEventLogs         MetaEventLog[]
 
   @@index([productId])
   @@index([status])
+  @@index([shippingTrackingId])
+  @@index([shippingProvider])
   @@map("orders")
+}
+
+enum MetaEventLogStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+/// Server-side Meta/business analytics delivery log. No raw customer PII.
+model MetaEventLog {
+  id            String             @id @default(cuid())
+  orderId       String
+  order         Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  eventName     String             @db.VarChar(64)
+  eventId       String             @db.VarChar(128)
+  status        MetaEventLogStatus @default(PENDING)
+  attemptCount  Int                @default(0)
+  lastAttemptAt DateTime?
+  sentAt        DateTime?
+  errorCode     String?            @db.VarChar(120)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@unique([orderId, eventName])
+  @@index([eventId])
+  @@index([status])
+  @@map("meta_event_logs")
 }
 
 /// Additive storefront traffic counters only. Never write Order/Product/Meta data from this.

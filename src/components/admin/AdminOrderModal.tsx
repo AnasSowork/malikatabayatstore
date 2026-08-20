@@ -8,9 +8,10 @@ import type { ProductForClient } from "@/lib/product-serialize";
 import type { OrderLineItem } from "@/lib/bundle-offers";
 import { findBundleOffer } from "@/lib/bundle-offers";
 import { buildDefaultShippingDescription } from "@/lib/order-shipping";
-import { canSendToOlivraison, ORDER_STATUSES, orderStatusTone } from "@/lib/order-status";
+import { canCreateShipment, ORDER_STATUSES, orderStatusTone } from "@/lib/order-status";
 import { getLocalizedProductFields, type AppLocale } from "@/lib/product-i18n";
 import type { OrderStatus } from "@prisma/client";
+import type { SerializedMetaEventLog } from "@/lib/meta-event-log";
 
 export type OrderFormState = {
   customerName: string;
@@ -86,16 +87,47 @@ type Props = {
   setForm: React.Dispatch<React.SetStateAction<OrderFormState>>;
   saving: boolean;
   shipping: boolean;
-  olivraisonConfigured: boolean;
-  olivraisonTrackingId: string | null;
+  shippingConfigured: boolean;
+  shippingTrackingId: string | null;
+  shippingProvider: string | null;
   cities: string[];
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
-  onSendToOlivraison: () => void;
+  onCreateShipment: () => void;
+  onSyncShippingStatus?: () => void;
+  syncingShipping?: boolean;
+  lastShippingSync?: {
+    normalizedStatus: string;
+    rawStatus: string;
+    applied: boolean;
+    at: string;
+  } | null;
   onCheckRisk?: () => void;
   riskMessage?: string | null;
   riskBusy?: boolean;
+  metaEventLogs?: SerializedMetaEventLog[];
 };
+
+function metaLogLabel(
+  logs: SerializedMetaEventLog[] | undefined,
+  eventName: string,
+  t: (key: string) => string,
+): string {
+  const log = logs?.find((row) => row.eventName === eventName);
+  if (!log) return t("orderMetaNa");
+  switch (log.status) {
+    case "SENT":
+      return t("orderMetaSent");
+    case "FAILED":
+      return t("orderMetaFailed");
+    case "SKIPPED":
+      return t("orderMetaSkipped");
+    case "PENDING":
+      return t("orderMetaPending");
+    default:
+      return t("orderMetaNa");
+  }
+}
 
 export function AdminOrderModal({
   open,
@@ -105,15 +137,20 @@ export function AdminOrderModal({
   setForm,
   saving,
   shipping,
-  olivraisonConfigured,
-  olivraisonTrackingId,
+  shippingConfigured,
+  shippingTrackingId,
+  shippingProvider,
   cities,
   onClose,
   onSubmit,
-  onSendToOlivraison,
+  onCreateShipment,
+  onSyncShippingStatus,
+  syncingShipping,
+  lastShippingSync,
   onCheckRisk,
   riskMessage,
   riskBusy,
+  metaEventLogs,
 }: Props) {
   const t = useTranslations("admin");
   const locale = useLocale() as AppLocale;
@@ -145,17 +182,18 @@ export function AdminOrderModal({
       shippingDescription: form.shippingDescription,
       shippingNoOpen: form.shippingNoOpen,
       status: form.status,
-      olivraisonTrackingId,
+      shippingTrackingId,
+      olivraisonTrackingId: shippingTrackingId,
       product,
     };
-  }, [editingId, form, olivraisonTrackingId, product]);
+  }, [editingId, form, shippingTrackingId, product]);
 
   const canShip = Boolean(
     editingId &&
-      olivraisonConfigured &&
-      !olivraisonTrackingId &&
+      shippingConfigured &&
+      !shippingTrackingId &&
       shippingPreview &&
-      canSendToOlivraison(shippingPreview),
+      canCreateShipment(shippingPreview),
   );
 
   useEffect(() => {
@@ -300,7 +338,7 @@ export function AdminOrderModal({
   }
 
   function handleSendClick() {
-    onSendToOlivraison();
+    onCreateShipment();
   }
 
   const addressReady = form.streetAddress.trim().length >= 3;
@@ -336,7 +374,7 @@ export function AdminOrderModal({
                     onChange={(e) =>
                       setForm((f) => ({ ...f, status: e.target.value as OrderStatus }))
                     }
-                    disabled={Boolean(olivraisonTrackingId)}
+                    disabled={Boolean(shippingTrackingId)}
                   >
                     {ORDER_STATUSES.map((status) => (
                       <option key={status} value={status}>
@@ -372,6 +410,30 @@ export function AdminOrderModal({
                   {t("orderConfirm")}
                 </button>
               ) : null}
+
+              <div className="rounded-lg border border-outline-variant/40 bg-surface-container-low/40 px-3 py-2 text-sm">
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
+                  {t("orderMetaTracking")}
+                </p>
+                <ul className="space-y-1 text-on-surface">
+                  <li className="flex justify-between gap-3">
+                    <span>{t("orderMetaPurchase")}</span>
+                    <span className="font-medium">{metaLogLabel(metaEventLogs, "Purchase", t)}</span>
+                  </li>
+                  <li className="flex justify-between gap-3">
+                    <span>{t("orderMetaQualified")}</span>
+                    <span className="font-medium">
+                      {metaLogLabel(metaEventLogs, "QualifiedOrder", t)}
+                    </span>
+                  </li>
+                  <li className="flex justify-between gap-3">
+                    <span>{t("orderMetaDelivered")}</span>
+                    <span className="font-medium">
+                      {metaLogLabel(metaEventLogs, "DeliveredOrder", t)}
+                    </span>
+                  </li>
+                </ul>
+              </div>
             </div>
           ) : null}
 
@@ -510,15 +572,38 @@ export function AdminOrderModal({
                 <MaterialIcon name="local_shipping" className="!text-lg brand-gold-text" />
                 {t("orderShippingSection")}
               </h3>
-              {!olivraisonConfigured ? (
-                <p className="text-sm text-on-surface-variant">{t("deliveryNotConfigured")}</p>
+              {!shippingConfigured ? (
+                <p className="text-sm text-on-surface-variant">{t("shippingNotConfigured")}</p>
               ) : null}
-              {olivraisonTrackingId ? (
+              {shippingTrackingId ? (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm">
                   <p className="font-medium text-emerald-900">{t("orderShippingSent")}</p>
-                  <p className="mt-1 font-mono text-xs">{olivraisonTrackingId}</p>
+                  {shippingProvider ? (
+                    <p className="mt-1 text-xs text-emerald-800">
+                      {t("orderShippingProvider")}: {shippingProvider}
+                    </p>
+                  ) : null}
+                  <p className="mt-1 font-mono text-xs">{shippingTrackingId}</p>
+                  {lastShippingSync ? (
+                    <p className="mt-2 text-xs text-emerald-900">
+                      {t("orderShippingLatestStatus")}: {lastShippingSync.normalizedStatus}
+                      {" · "}
+                      {new Date(lastShippingSync.at).toLocaleString(locale)}
+                    </p>
+                  ) : null}
+                  {onSyncShippingStatus && shippingProvider === "sendit" ? (
+                    <button
+                      type="button"
+                      className="admin-btn-secondary mt-3"
+                      disabled={syncingShipping || saving || shipping}
+                      onClick={() => onSyncShippingStatus()}
+                    >
+                      <MaterialIcon name="sync" className="!text-lg" />
+                      {syncingShipping ? t("orderShippingSyncing") : t("orderShippingSync")}
+                    </button>
+                  ) : null}
                 </div>
-              ) : olivraisonConfigured ? (
+              ) : shippingConfigured ? (
                 shipping ? (
                   <div className="order-ship-callout order-ship-callout-sending">
                     <div className="order-ship-spinner" aria-hidden />
@@ -539,7 +624,7 @@ export function AdminOrderModal({
                       onClick={() => void handleSendClick()}
                     >
                       <MaterialIcon name="rocket_launch" className="!text-lg" />
-                      {t("orderSendToOlivraison")}
+                      {t("orderCreateShipment")}
                     </button>
                   </div>
                 ) : (
@@ -565,7 +650,7 @@ export function AdminOrderModal({
                     className="admin-input"
                     value={form.streetAddress}
                     onChange={(e) => setForm((f) => ({ ...f, streetAddress: e.target.value }))}
-                    disabled={Boolean(olivraisonTrackingId)}
+                    disabled={Boolean(shippingTrackingId)}
                   />
                 </label>
                 <label className="admin-field lg:col-span-2">
@@ -576,7 +661,7 @@ export function AdminOrderModal({
                     className="admin-input"
                     value={form.shippingDescription}
                     onChange={(e) => setForm((f) => ({ ...f, shippingDescription: e.target.value }))}
-                    disabled={Boolean(olivraisonTrackingId)}
+                    disabled={Boolean(shippingTrackingId)}
                   />
                 </label>
                 <label className="admin-field lg:col-span-2">
@@ -585,7 +670,7 @@ export function AdminOrderModal({
                     className="admin-input"
                     value={form.shippingComment}
                     onChange={(e) => setForm((f) => ({ ...f, shippingComment: e.target.value }))}
-                    disabled={Boolean(olivraisonTrackingId)}
+                    disabled={Boolean(shippingTrackingId)}
                   />
                 </label>
                 <label className="flex items-center gap-2 lg:col-span-2">
@@ -593,11 +678,11 @@ export function AdminOrderModal({
                     type="checkbox"
                     checked={form.shippingNoOpen}
                     onChange={(e) => setForm((f) => ({ ...f, shippingNoOpen: e.target.checked }))}
-                    disabled={Boolean(olivraisonTrackingId)}
+                    disabled={Boolean(shippingTrackingId)}
                   />
                   <span className="text-sm">{t("deliveryNoOpen")}</span>
                 </label>
-                {onCheckRisk && !olivraisonTrackingId ? (
+                {onCheckRisk && !shippingTrackingId ? (
                   <div className="lg:col-span-2">
                     <button
                       type="button"

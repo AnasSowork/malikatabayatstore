@@ -17,13 +17,29 @@ import { formatMad } from "@/lib/format-price";
 import type { AppLocale } from "@/lib/product-i18n";
 import { getLocalizedProductFields } from "@/lib/product-i18n";
 import {
-  canSendToOlivraison,
+  canCreateShipment,
   isOrderShipped,
   isShippingReady,
   matchesOrderFilter,
   orderStatusTone,
   type OrderFilterKey,
 } from "@/lib/order-status";
+
+function orderTrackingId(order: {
+  shippingTrackingId?: string | null;
+  olivraisonTrackingId?: string | null;
+}): string | null {
+  return order.shippingTrackingId?.trim() || order.olivraisonTrackingId?.trim() || null;
+}
+
+function orderShippingProvider(order: {
+  shippingProvider?: string | null;
+  olivraisonTrackingId?: string | null;
+}): string | null {
+  if (order.shippingProvider?.trim()) return order.shippingProvider.trim();
+  if (order.olivraisonTrackingId?.trim()) return "olivraison";
+  return null;
+}
 import {
   getOrderDateRange,
   hasActiveOrderDateFilter,
@@ -91,7 +107,15 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [shippingId, setShippingId] = useState<string | null>(null);
   const [cities, setCities] = useState<string[]>([]);
-  const [olivraisonConfigured, setOlivraisonConfigured] = useState(false);
+  const [shippingConfigured, setShippingConfigured] = useState(false);
+  const [activeShippingProvider, setActiveShippingProvider] = useState<string | null>(null);
+  const [syncingShipping, setSyncingShipping] = useState(false);
+  const [lastShippingSync, setLastShippingSync] = useState<{
+    normalizedStatus: string;
+    rawStatus: string;
+    applied: boolean;
+    at: string;
+  } | null>(null);
   const [riskMessage, setRiskMessage] = useState<string | null>(null);
   const [riskBusy, setRiskBusy] = useState(false);
 
@@ -100,16 +124,27 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
     [orders, editingId],
   );
 
-  const loadDeliveryMeta = useCallback(async () => {
+  const loadShippingMeta = useCallback(async () => {
     if (compact) return;
+    try {
+      const res = await fetch("/api/admin/shipping");
+      if (res.ok) {
+        const data = (await res.json()) as {
+          configured?: boolean;
+          provider?: string | null;
+        };
+        setShippingConfigured(Boolean(data.configured));
+        setActiveShippingProvider(data.provider ?? null);
+      }
+    } catch {
+      // ignore
+    }
     try {
       const res = await fetch("/api/admin/delivery?resource=dashboard&limit=1");
       if (!res.ok) return;
       const data = (await res.json()) as {
-        configured?: boolean;
         cities?: Array<{ name: string }>;
       };
-      setOlivraisonConfigured(Boolean(data.configured));
       setCities((data.cities ?? []).map((city) => city.name));
     } catch {
       // ignore — shipping UI still works without city list
@@ -117,8 +152,8 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
   }, [compact]);
 
   useEffect(() => {
-    void loadDeliveryMeta();
-  }, [loadDeliveryMeta]);
+    void loadShippingMeta();
+  }, [loadShippingMeta]);
 
   const dateRange = useMemo(
     () => getOrderDateRange(dateFilter, dateFrom, dateTo),
@@ -163,7 +198,7 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
         name.toLowerCase().includes(q) ||
         order.phone.includes(q) ||
         order.city.toLowerCase().includes(q) ||
-        (order.olivraisonTrackingId ?? "").toLowerCase().includes(q)
+        (orderTrackingId(order) ?? "").toLowerCase().includes(q)
       );
     });
     return compact && !q && statusFilter === "ALL" && dateFilter === "ALL"
@@ -177,7 +212,7 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
   );
 
   const readyToShipCount = useMemo(
-    () => dateScopedOrders.filter((order) => canSendToOlivraison(order)).length,
+    () => dateScopedOrders.filter((order) => canCreateShipment(order)).length,
     [dateScopedOrders],
   );
 
@@ -297,6 +332,7 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
     setModalOpen(false);
     setEditingId(null);
     setRiskMessage(null);
+    setLastShippingSync(null);
   }
 
   async function saveOrder(id: string | null, payload: ReturnType<typeof buildPayload>) {
@@ -326,7 +362,7 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
     }
   }
 
-  async function onSendToOlivraison() {
+  async function onCreateShipment() {
     if (!editingId || !editingOrder) return;
     if (!confirmShip(editingOrder)) return;
     setShipping(true);
@@ -338,6 +374,43 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
       alert(error instanceof Error ? error.message : t("orderShipError"));
     } finally {
       setShipping(false);
+    }
+  }
+
+  async function onSyncShippingStatus() {
+    if (!editingId) return;
+    setSyncingShipping(true);
+    try {
+      const res = await fetch(`/api/admin/shipping/${editingId}/sync`, { method: "POST" });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        applied?: boolean;
+        toStatus?: string | null;
+        shipping?: { normalizedStatus?: string; rawStatus?: string } | null;
+        order?: OrderWithProduct;
+      };
+      if (!res.ok) {
+        throw new Error(data.error || t("orderShippingSyncError"));
+      }
+      if (data.shipping?.normalizedStatus) {
+        setLastShippingSync({
+          normalizedStatus: data.shipping.normalizedStatus,
+          rawStatus: data.shipping.rawStatus ?? data.shipping.normalizedStatus,
+          applied: Boolean(data.applied),
+          at: new Date().toISOString(),
+        });
+      }
+      if (data.order?.status) {
+        setForm((f) => ({ ...f, status: data.order!.status }));
+      }
+      onChanged?.();
+      alert(
+        data.applied ? t("orderShippingSyncApplied") : t("orderShippingSyncNoChange"),
+      );
+    } catch (error) {
+      alert(error instanceof Error ? error.message : t("orderShippingSyncError"));
+    } finally {
+      setSyncingShipping(false);
     }
   }
 
@@ -597,7 +670,9 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
               <tbody>
                 {filtered.map((order) => {
                   const { name } = getLocalizedProductFields(order.product, locale);
-                  const readyToShip = canSendToOlivraison(order);
+                  const readyToShip = canCreateShipment(order);
+                  const tracking = orderTrackingId(order);
+                  const provider = orderShippingProvider(order);
                   return (
                     <tr key={order.id} className={readyToShip ? "order-row-ready-ship" : undefined}>
                       <td className="font-medium">
@@ -624,13 +699,14 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
                             <MaterialIcon name={shippingBadgeIcon(order)} className="!text-sm" />
                             {shippingLabel(order)}
                           </span>
-                          {order.olivraisonTrackingId ? (
+                          {tracking ? (
                             <button
                               type="button"
                               className="admin-copy-link mt-1 block font-mono"
-                              onClick={() => handleCopyPhone(order.id, order.olivraisonTrackingId!)}
+                              onClick={() => handleCopyPhone(order.id, tracking)}
                             >
-                              {order.olivraisonTrackingId}
+                              {provider ? `${provider} · ` : ""}
+                              {tracking}
                             </button>
                           ) : null}
                         </td>
@@ -722,7 +798,9 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
           <div className="flex flex-col gap-3 md:hidden orders-mobile-list">
             {filtered.map((order) => {
               const { name } = getLocalizedProductFields(order.product, locale);
-              const readyToShip = canSendToOlivraison(order);
+              const readyToShip = canCreateShipment(order);
+              const tracking = orderTrackingId(order);
+              const provider = orderShippingProvider(order);
               return (
                 <article key={order.id} className={`admin-order-card${readyToShip ? " order-row-ready-ship" : ""}`}>
                   <div className="flex items-start justify-between gap-3">
@@ -762,8 +840,11 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
                       <MaterialIcon name="inventory_2" className="!text-sm" />
                       ×{order.quantity}
                     </span>
-                    {order.olivraisonTrackingId ? (
-                      <span className="admin-meta-pill font-mono">{order.olivraisonTrackingId}</span>
+                    {tracking ? (
+                      <span className="admin-meta-pill font-mono">
+                        {provider ? `${provider} · ` : ""}
+                        {tracking}
+                      </span>
                     ) : null}
                   </div>
                   <div className="mt-3">
@@ -828,15 +909,22 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
           setForm={setForm}
           saving={saving}
           shipping={shipping}
-          olivraisonConfigured={olivraisonConfigured}
-          olivraisonTrackingId={editingOrder?.olivraisonTrackingId ?? null}
+          shippingConfigured={shippingConfigured}
+          shippingTrackingId={orderTrackingId(editingOrder ?? {})}
+          shippingProvider={
+            orderShippingProvider(editingOrder ?? {}) ?? activeShippingProvider
+          }
           cities={cities}
           onClose={closeModal}
           onSubmit={(e) => void onSubmit(e)}
-          onSendToOlivraison={() => void onSendToOlivraison()}
+          onCreateShipment={() => void onCreateShipment()}
+          onSyncShippingStatus={() => void onSyncShippingStatus()}
+          syncingShipping={syncingShipping}
+          lastShippingSync={lastShippingSync}
           onCheckRisk={() => void onCheckRisk()}
           riskMessage={riskMessage}
           riskBusy={riskBusy}
+          metaEventLogs={editingOrder?.metaEventLogs}
         />
       ) : null}
     </section>

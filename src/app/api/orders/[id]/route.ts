@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { isAdminAuthenticated } from "@/lib/auth";
 import { parseOrderInput } from "@/lib/order-admin";
 import { serializeOrder } from "@/lib/order-serialize";
+import { scheduleOrderStatusTransition } from "@/lib/order-lifecycle-analytics";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -27,6 +28,8 @@ export async function PATCH(request: Request, context: Ctx) {
       return NextResponse.json({ error: parsed.error }, { status: parsed.status });
     }
 
+    const previousStatus = existing.status;
+    const nextStatus = parsed.status ?? existing.status;
     const statusChanged = parsed.status != null && parsed.status !== existing.status;
 
     const order = await prisma.order.update({
@@ -50,7 +53,14 @@ export async function PATCH(request: Request, context: Ctx) {
           : {}),
         ...(parsed.shippingNoOpen !== undefined ? { shippingNoOpen: parsed.shippingNoOpen } : {}),
       },
-      include: { product: true },
+      include: { product: true, metaEventLogs: true },
+    });
+
+    // Meta / lifecycle analytics must never fail the admin status update.
+    scheduleOrderStatusTransition({
+      order,
+      fromStatus: previousStatus,
+      toStatus: nextStatus,
     });
 
     return NextResponse.json(serializeOrder(order));
