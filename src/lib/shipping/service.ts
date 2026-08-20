@@ -9,6 +9,8 @@ import {
 import { scheduleOrderStatusTransition } from "@/lib/order-lifecycle-analytics";
 import {
   getActiveShippingProvider,
+  getShippingProviderById,
+  parseShippingProviderId,
   ShippingAlreadyExistsError,
   ShippingNotConfiguredError,
 } from "@/lib/shipping/provider";
@@ -84,13 +86,26 @@ async function clearPendingClaim(orderId: string): Promise<void> {
   });
 }
 
+export type CreateShipmentOptions = {
+  /** When set, use this provider instead of SHIPPING_PROVIDER default. */
+  providerId?: ShippingProviderId | string | null;
+};
+
 /**
  * Provider-independent shipment creation.
  * Uses a DB claim (`pending:{orderId}`) to prevent concurrent double-create.
  * After ambiguous Sendit failures, attempts reference reconciliation before retry.
  */
-export async function createShipmentForOrder(orderId: string): Promise<ShipmentCreateOutcome> {
-  const provider = getActiveShippingProvider();
+export async function createShipmentForOrder(
+  orderId: string,
+  options?: CreateShipmentOptions,
+): Promise<ShipmentCreateOutcome> {
+  const requested = parseShippingProviderId(
+    typeof options?.providerId === "string" ? options.providerId : null,
+  );
+  const provider = requested
+    ? getShippingProviderById(requested)
+    : getActiveShippingProvider();
   if (!provider.isConfigured()) {
     throw new ShippingNotConfiguredError(
       `Shipping provider "${provider.id}" is not configured.`,

@@ -109,6 +109,10 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
   const [cities, setCities] = useState<string[]>([]);
   const [shippingConfigured, setShippingConfigured] = useState(false);
   const [activeShippingProvider, setActiveShippingProvider] = useState<string | null>(null);
+  const [availableShippingProviders, setAvailableShippingProviders] = useState<
+    Array<{ id: string; configured: boolean }>
+  >([]);
+  const [selectedShipProvider, setSelectedShipProvider] = useState("sendit");
   const [syncingShipping, setSyncingShipping] = useState(false);
   const [lastShippingSync, setLastShippingSync] = useState<{
     normalizedStatus: string;
@@ -132,9 +136,28 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
         const data = (await res.json()) as {
           configured?: boolean;
           provider?: string | null;
+          defaultProvider?: string | null;
+          providers?: Array<{ id: string; configured: boolean; isDefault?: boolean }>;
         };
+        const providers =
+          data.providers?.map((p) => ({ id: p.id, configured: p.configured })) ??
+          [];
+        setAvailableShippingProviders(
+          providers.length > 0
+            ? providers
+            : [
+                { id: "sendit", configured: false },
+                { id: "olivraison", configured: false },
+              ],
+        );
         setShippingConfigured(Boolean(data.configured));
-        setActiveShippingProvider(data.provider ?? null);
+        const preferred =
+          data.provider ??
+          data.defaultProvider ??
+          providers.find((p) => p.configured)?.id ??
+          "sendit";
+        setActiveShippingProvider(preferred);
+        setSelectedShipProvider(preferred);
       }
     } catch {
       // ignore
@@ -268,7 +291,12 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
   }
 
   function shippingLabel(order: OrderWithProduct) {
-    if (isOrderShipped(order)) return t("orderShippingSent");
+    if (isOrderShipped(order)) {
+      const provider = orderShippingProvider(order);
+      return provider
+        ? `${t("orderShippingSent")} · ${providerLabel(provider)}`
+        : t("orderShippingSent");
+    }
     if (isShippingReady(order)) return t("orderShippingReady");
     return t("orderShippingNotReady");
   }
@@ -285,26 +313,46 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
     return "location_off";
   }
 
-  function confirmShip(order: Pick<OrderWithProduct, "customerName" | "city" | "totalPrice">) {
+  function providerLabel(providerId: string | null | undefined) {
+    if (providerId === "sendit") return t("shippingProviderSendit");
+    if (providerId === "olivraison") return t("shippingProviderOlivraison");
+    return providerId ?? "—";
+  }
+
+  function confirmShip(
+    order: Pick<OrderWithProduct, "customerName" | "city" | "totalPrice">,
+    providerId: string,
+  ) {
     return window.confirm(
       t("orderShipConfirm", {
         customer: order.customerName,
         city: order.city,
         amount: formatMad(order.totalPrice, locale),
+        provider: providerLabel(providerId),
       }),
     );
   }
 
-  async function shipOrder(orderId: string) {
-    const res = await fetch(`/api/orders/${orderId}/ship`, { method: "POST" });
+  async function shipOrder(orderId: string, providerId: string) {
+    const res = await fetch(`/api/orders/${orderId}/ship`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: providerId }),
+    });
     const data = (await res.json().catch(() => ({}))) as {
       error?: string;
       trackingID?: string;
+      provider?: string;
     };
     if (!res.ok) {
       throw new Error(data.error || t("orderShipError"));
     }
-    alert(t("orderShipSuccess", { tracking: data.trackingID ?? "" }));
+    alert(
+      t("orderShipSuccess", {
+        tracking: data.trackingID ?? "",
+        provider: providerLabel(data.provider ?? providerId),
+      }),
+    );
     onChanged?.();
   }
 
@@ -364,11 +412,11 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
 
   async function onCreateShipment() {
     if (!editingId || !editingOrder) return;
-    if (!confirmShip(editingOrder)) return;
+    if (!confirmShip(editingOrder, selectedShipProvider)) return;
     setShipping(true);
     try {
       await saveOrder(editingId, buildPayload(form));
-      await shipOrder(editingId);
+      await shipOrder(editingId, selectedShipProvider);
       closeModal();
     } catch (error) {
       alert(error instanceof Error ? error.message : t("orderShipError"));
@@ -415,10 +463,10 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
   }
 
   async function onQuickShip(order: OrderWithProduct) {
-    if (!confirmShip(order)) return;
+    if (!confirmShip(order, selectedShipProvider)) return;
     setShippingId(order.id);
     try {
-      await shipOrder(order.id);
+      await shipOrder(order.id, selectedShipProvider);
     } catch (error) {
       alert(error instanceof Error ? error.message : t("orderShipError"));
     } finally {
@@ -551,6 +599,44 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
               <span>{t("orderReadyToShipCount")}</span>
             </div>
           </div>
+
+          {shippingConfigured ? (
+            <div className="rounded-xl border border-outline-variant/30 bg-surface-container-low px-4 py-3">
+              <p className="orders-filter-section-label mb-2">
+                <MaterialIcon name="local_shipping" className="!text-sm" />
+                {t("orderShippingChooseProvider")}
+              </p>
+              <div className="delivery-filter-row flex-wrap gap-2">
+                {availableShippingProviders.map((provider) => {
+                  const label = providerLabel(provider.id);
+                  return (
+                    <button
+                      key={provider.id}
+                      type="button"
+                      className={
+                        selectedShipProvider === provider.id ? "delivery-filter-active" : ""
+                      }
+                      disabled={!provider.configured}
+                      title={
+                        provider.configured
+                          ? label
+                          : t("shippingProviderNotConfigured")
+                      }
+                      onClick={() => setSelectedShipProvider(provider.id)}
+                    >
+                      {label}
+                      {!provider.configured ? " ✕" : ""}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-xs text-on-surface-variant">
+                {t("orderShippingProviderHint", {
+                  provider: providerLabel(selectedShipProvider),
+                })}
+              </p>
+            </div>
+          ) : null}
 
           <div className="orders-filter-panel">
             <div className="admin-search-wrap w-full max-w-none">
@@ -914,6 +1000,9 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
           shippingProvider={
             orderShippingProvider(editingOrder ?? {}) ?? activeShippingProvider
           }
+          availableShippingProviders={availableShippingProviders}
+          selectedShipProvider={selectedShipProvider}
+          onSelectedShipProviderChange={setSelectedShipProvider}
           cities={cities}
           onClose={closeModal}
           onSubmit={(e) => void onSubmit(e)}

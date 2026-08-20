@@ -3,6 +3,7 @@ import { isAdminAuthenticated } from "@/lib/auth";
 import { serializeOrder } from "@/lib/order-serialize";
 import {
   createShipmentForOrder,
+  parseShippingProviderId,
   ShippingAlreadyExistsError,
   ShippingConfigError,
   ShippingNotConfiguredError,
@@ -15,17 +16,38 @@ export const runtime = "nodejs";
 type Ctx = { params: Promise<{ id: string }> };
 
 /**
- * Create a shipment via the active ShippingProvider (default: sendit).
+ * Create a shipment via ShippingProvider.
+ * Optional body `{ "provider": "sendit" | "olivraison" }` overrides SHIPPING_PROVIDER.
  * No silent fallback to another provider on API failure.
  */
-export async function POST(_request: Request, context: Ctx) {
+export async function POST(request: Request, context: Ctx) {
   try {
     if (!(await isAdminAuthenticated())) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await context.params;
-    const { result, order } = await createShipmentForOrder(id);
+    let providerId: string | null = null;
+    const contentType = request.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      const body = (await request.json().catch(() => null)) as
+        | { provider?: unknown }
+        | null;
+      if (typeof body?.provider === "string" && body.provider.trim()) {
+        providerId = body.provider.trim().toLowerCase();
+        if (!parseShippingProviderId(providerId)) {
+          return NextResponse.json(
+            {
+              error: 'Invalid provider. Use "sendit" or "olivraison".',
+              code: "INVALID_SHIPPING_PROVIDER",
+            },
+            { status: 400 },
+          );
+        }
+      }
+    }
+
+    const { result, order } = await createShipmentForOrder(id, { providerId });
 
     return NextResponse.json({
       ok: true,

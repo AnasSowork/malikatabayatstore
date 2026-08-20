@@ -90,6 +90,9 @@ type Props = {
   shippingConfigured: boolean;
   shippingTrackingId: string | null;
   shippingProvider: string | null;
+  availableShippingProviders: Array<{ id: string; configured: boolean }>;
+  selectedShipProvider: string;
+  onSelectedShipProviderChange: (providerId: string) => void;
   cities: string[];
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -140,6 +143,9 @@ export function AdminOrderModal({
   shippingConfigured,
   shippingTrackingId,
   shippingProvider,
+  availableShippingProviders,
+  selectedShipProvider,
+  onSelectedShipProviderChange,
   cities,
   onClose,
   onSubmit,
@@ -580,7 +586,12 @@ export function AdminOrderModal({
                   <p className="font-medium text-emerald-900">{t("orderShippingSent")}</p>
                   {shippingProvider ? (
                     <p className="mt-1 text-xs text-emerald-800">
-                      {t("orderShippingProvider")}: {shippingProvider}
+                      {t("orderShippingProvider")}:{" "}
+                      {shippingProvider === "sendit"
+                        ? t("shippingProviderSendit")
+                        : shippingProvider === "olivraison"
+                          ? t("shippingProviderOlivraison")
+                          : shippingProvider}
                     </p>
                   ) : null}
                   <p className="mt-1 font-mono text-xs">{shippingTrackingId}</p>
@@ -617,10 +628,65 @@ export function AdminOrderModal({
                       {t("orderShipReadyTitle")}
                     </p>
                     <p className="order-ship-callout-hint">{t("orderShipReadyHint")}</p>
+                    <fieldset className="mt-3 space-y-2">
+                      <legend className="text-sm font-medium text-on-surface">
+                        {t("orderShippingChooseProvider")}
+                      </legend>
+                      {availableShippingProviders.map((provider) => {
+                        const label =
+                          provider.id === "sendit"
+                            ? t("shippingProviderSendit")
+                            : provider.id === "olivraison"
+                              ? t("shippingProviderOlivraison")
+                              : provider.id;
+                        return (
+                          <label
+                            key={provider.id}
+                            className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 text-sm ${
+                              selectedShipProvider === provider.id
+                                ? "border-blue-400 bg-blue-50"
+                                : "border-outline-variant/40 bg-surface"
+                            } ${!provider.configured ? "opacity-50" : ""}`}
+                          >
+                            <input
+                              type="radio"
+                              name="ship-provider"
+                              className="mt-1"
+                              value={provider.id}
+                              checked={selectedShipProvider === provider.id}
+                              disabled={!provider.configured || saving || shipping}
+                              onChange={() => onSelectedShipProviderChange(provider.id)}
+                            />
+                            <span>
+                              <span className="font-medium">{label}</span>
+                              {!provider.configured ? (
+                                <span className="mt-0.5 block text-xs text-on-surface-variant">
+                                  {t("shippingProviderNotConfigured")}
+                                </span>
+                              ) : provider.id === "sendit" ? (
+                                <span className="mt-0.5 block text-xs text-on-surface-variant">
+                                  {t("shippingProviderSenditHint")}
+                                </span>
+                              ) : (
+                                <span className="mt-0.5 block text-xs text-on-surface-variant">
+                                  {t("shippingProviderOlivraisonHint")}
+                                </span>
+                              )}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </fieldset>
                     <button
                       type="button"
-                      className="order-ship-btn"
-                      disabled={saving || shipping}
+                      className="order-ship-btn mt-3"
+                      disabled={
+                        saving ||
+                        shipping ||
+                        !availableShippingProviders.some(
+                          (p) => p.id === selectedShipProvider && p.configured,
+                        )
+                      }
                       onClick={() => void handleSendClick()}
                     >
                       <MaterialIcon name="rocket_launch" className="!text-lg" />
