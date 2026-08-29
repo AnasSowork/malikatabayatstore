@@ -1406,7 +1406,7 @@ html[dir="rtl"] .product-detail-shell {
   opacity: 0.45;
 }
 
-/* Olivraison delivery workspace */
+/* Admin order filter rows (shared layout) */
 .delivery-alert {
   display: flex;
   align-items: center;

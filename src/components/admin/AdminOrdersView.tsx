@@ -25,21 +25,10 @@ import {
   type OrderFilterKey,
 } from "@/lib/order-status";
 
-function orderTrackingId(order: {
-  shippingTrackingId?: string | null;
-  olivraisonTrackingId?: string | null;
-}): string | null {
-  return order.shippingTrackingId?.trim() || order.olivraisonTrackingId?.trim() || null;
+function orderTrackingId(order: { shippingTrackingId?: string | null }): string | null {
+  return order.shippingTrackingId?.trim() || null;
 }
 
-function orderShippingProvider(order: {
-  shippingProvider?: string | null;
-  olivraisonTrackingId?: string | null;
-}): string | null {
-  if (order.shippingProvider?.trim()) return order.shippingProvider.trim();
-  if (order.olivraisonTrackingId?.trim()) return "olivraison";
-  return null;
-}
 import {
   getOrderDateRange,
   hasActiveOrderDateFilter,
@@ -106,13 +95,7 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [shippingId, setShippingId] = useState<string | null>(null);
-  const [cities, setCities] = useState<string[]>([]);
   const [shippingConfigured, setShippingConfigured] = useState(false);
-  const [activeShippingProvider, setActiveShippingProvider] = useState<string | null>(null);
-  const [availableShippingProviders, setAvailableShippingProviders] = useState<
-    Array<{ id: string; configured: boolean }>
-  >([]);
-  const [selectedShipProvider, setSelectedShipProvider] = useState("sendit");
   const [syncingShipping, setSyncingShipping] = useState(false);
   const [lastShippingSync, setLastShippingSync] = useState<{
     normalizedStatus: string;
@@ -120,8 +103,6 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
     applied: boolean;
     at: string;
   } | null>(null);
-  const [riskMessage, setRiskMessage] = useState<string | null>(null);
-  const [riskBusy, setRiskBusy] = useState(false);
 
   const editingOrder = useMemo(
     () => orders.find((order) => order.id === editingId) ?? null,
@@ -133,44 +114,11 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
     try {
       const res = await fetch("/api/admin/shipping");
       if (res.ok) {
-        const data = (await res.json()) as {
-          configured?: boolean;
-          provider?: string | null;
-          defaultProvider?: string | null;
-          providers?: Array<{ id: string; configured: boolean; isDefault?: boolean }>;
-        };
-        const providers =
-          data.providers?.map((p) => ({ id: p.id, configured: p.configured })) ??
-          [];
-        setAvailableShippingProviders(
-          providers.length > 0
-            ? providers
-            : [
-                { id: "sendit", configured: false },
-                { id: "olivraison", configured: false },
-              ],
-        );
+        const data = (await res.json()) as { configured?: boolean };
         setShippingConfigured(Boolean(data.configured));
-        const preferred =
-          data.provider ??
-          data.defaultProvider ??
-          providers.find((p) => p.configured)?.id ??
-          "sendit";
-        setActiveShippingProvider(preferred);
-        setSelectedShipProvider(preferred);
       }
     } catch {
       // ignore
-    }
-    try {
-      const res = await fetch("/api/admin/delivery?resource=dashboard&limit=1");
-      if (!res.ok) return;
-      const data = (await res.json()) as {
-        cities?: Array<{ name: string }>;
-      };
-      setCities((data.cities ?? []).map((city) => city.name));
-    } catch {
-      // ignore — shipping UI still works without city list
     }
   }, [compact]);
 
@@ -292,10 +240,7 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
 
   function shippingLabel(order: OrderWithProduct) {
     if (isOrderShipped(order)) {
-      const provider = orderShippingProvider(order);
-      return provider
-        ? `${t("orderShippingSent")} · ${providerLabel(provider)}`
-        : t("orderShippingSent");
+      return `${t("orderShippingSent")} · ${t("shippingProviderSendit")}`;
     }
     if (isShippingReady(order)) return t("orderShippingReady");
     return t("orderShippingNotReady");
@@ -313,46 +258,26 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
     return "location_off";
   }
 
-  function providerLabel(providerId: string | null | undefined) {
-    if (providerId === "sendit") return t("shippingProviderSendit");
-    if (providerId === "olivraison") return t("shippingProviderOlivraison");
-    return providerId ?? "—";
-  }
-
-  function confirmShip(
-    order: Pick<OrderWithProduct, "customerName" | "city" | "totalPrice">,
-    providerId: string,
-  ) {
+  function confirmShip(order: Pick<OrderWithProduct, "customerName" | "city" | "totalPrice">) {
     return window.confirm(
       t("orderShipConfirm", {
         customer: order.customerName,
         city: order.city,
         amount: formatMad(order.totalPrice, locale),
-        provider: providerLabel(providerId),
       }),
     );
   }
 
-  async function shipOrder(orderId: string, providerId: string) {
-    const res = await fetch(`/api/orders/${orderId}/ship`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: providerId }),
-    });
+  async function shipOrder(orderId: string) {
+    const res = await fetch(`/api/orders/${orderId}/ship`, { method: "POST" });
     const data = (await res.json().catch(() => ({}))) as {
       error?: string;
       trackingID?: string;
-      provider?: string;
     };
     if (!res.ok) {
       throw new Error(data.error || t("orderShipError"));
     }
-    alert(
-      t("orderShipSuccess", {
-        tracking: data.trackingID ?? "",
-        provider: providerLabel(data.provider ?? providerId),
-      }),
-    );
+    alert(t("orderShipSuccess", { tracking: data.trackingID ?? "" }));
     onChanged?.();
   }
 
@@ -365,21 +290,18 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
   function openCreate() {
     setEditingId(null);
     setForm(emptyOrderForm(products));
-    setRiskMessage(null);
     setModalOpen(true);
   }
 
   function openEdit(order: OrderWithProduct) {
     setEditingId(order.id);
     setForm(orderToForm(order, locale));
-    setRiskMessage(null);
     setModalOpen(true);
   }
 
   function closeModal() {
     setModalOpen(false);
     setEditingId(null);
-    setRiskMessage(null);
     setLastShippingSync(null);
   }
 
@@ -412,11 +334,11 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
 
   async function onCreateShipment() {
     if (!editingId || !editingOrder) return;
-    if (!confirmShip(editingOrder, selectedShipProvider)) return;
+    if (!confirmShip(editingOrder)) return;
     setShipping(true);
     try {
       await saveOrder(editingId, buildPayload(form));
-      await shipOrder(editingId, selectedShipProvider);
+      await shipOrder(editingId);
       closeModal();
     } catch (error) {
       alert(error instanceof Error ? error.message : t("orderShipError"));
@@ -463,10 +385,10 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
   }
 
   async function onQuickShip(order: OrderWithProduct) {
-    if (!confirmShip(order, selectedShipProvider)) return;
+    if (!confirmShip(order)) return;
     setShippingId(order.id);
     try {
-      await shipOrder(order.id, selectedShipProvider);
+      await shipOrder(order.id);
     } catch (error) {
       alert(error instanceof Error ? error.message : t("orderShipError"));
     } finally {
@@ -503,33 +425,6 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
       onChanged?.();
     } finally {
       setConfirmingId(null);
-    }
-  }
-
-  async function onCheckRisk() {
-    if (!form.phone.trim()) return;
-    setRiskBusy(true);
-    setRiskMessage(null);
-    try {
-      const res = await fetch(
-        `/api/admin/delivery?resource=blacklist&phone=${encodeURIComponent(form.phone.trim())}`,
-      );
-      const data = (await res.json()) as {
-        blacklisted?: boolean;
-        count?: number;
-        deliveredCount?: number;
-        error?: string;
-      };
-      if (!res.ok) throw new Error(data.error || t("deliveryActionError"));
-      setRiskMessage(
-        data.blacklisted
-          ? t("deliveryRisky", { count: data.count ?? 0 })
-          : t("deliverySafe", { delivered: data.deliveredCount ?? 0 }),
-      );
-    } catch (error) {
-      setRiskMessage(error instanceof Error ? error.message : t("deliveryActionError"));
-    } finally {
-      setRiskBusy(false);
     }
   }
 
@@ -599,44 +494,6 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
               <span>{t("orderReadyToShipCount")}</span>
             </div>
           </div>
-
-          {shippingConfigured ? (
-            <div className="rounded-xl border border-outline-variant/30 bg-surface-container-low px-4 py-3">
-              <p className="orders-filter-section-label mb-2">
-                <MaterialIcon name="local_shipping" className="!text-sm" />
-                {t("orderShippingChooseProvider")}
-              </p>
-              <div className="delivery-filter-row flex-wrap gap-2">
-                {availableShippingProviders.map((provider) => {
-                  const label = providerLabel(provider.id);
-                  return (
-                    <button
-                      key={provider.id}
-                      type="button"
-                      className={
-                        selectedShipProvider === provider.id ? "delivery-filter-active" : ""
-                      }
-                      disabled={!provider.configured}
-                      title={
-                        provider.configured
-                          ? label
-                          : t("shippingProviderNotConfigured")
-                      }
-                      onClick={() => setSelectedShipProvider(provider.id)}
-                    >
-                      {label}
-                      {!provider.configured ? " ✕" : ""}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="mt-2 text-xs text-on-surface-variant">
-                {t("orderShippingProviderHint", {
-                  provider: providerLabel(selectedShipProvider),
-                })}
-              </p>
-            </div>
-          ) : null}
 
           <div className="orders-filter-panel">
             <div className="admin-search-wrap w-full max-w-none">
@@ -758,7 +615,6 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
                   const { name } = getLocalizedProductFields(order.product, locale);
                   const readyToShip = canCreateShipment(order);
                   const tracking = orderTrackingId(order);
-                  const provider = orderShippingProvider(order);
                   return (
                     <tr key={order.id} className={readyToShip ? "order-row-ready-ship" : undefined}>
                       <td className="font-medium">
@@ -791,7 +647,6 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
                               className="admin-copy-link mt-1 block font-mono"
                               onClick={() => handleCopyPhone(order.id, tracking)}
                             >
-                              {provider ? `${provider} · ` : ""}
                               {tracking}
                             </button>
                           ) : null}
@@ -886,7 +741,6 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
               const { name } = getLocalizedProductFields(order.product, locale);
               const readyToShip = canCreateShipment(order);
               const tracking = orderTrackingId(order);
-              const provider = orderShippingProvider(order);
               return (
                 <article key={order.id} className={`admin-order-card${readyToShip ? " order-row-ready-ship" : ""}`}>
                   <div className="flex items-start justify-between gap-3">
@@ -928,7 +782,6 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
                     </span>
                     {tracking ? (
                       <span className="admin-meta-pill font-mono">
-                        {provider ? `${provider} · ` : ""}
                         {tracking}
                       </span>
                     ) : null}
@@ -997,22 +850,12 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
           shipping={shipping}
           shippingConfigured={shippingConfigured}
           shippingTrackingId={orderTrackingId(editingOrder ?? {})}
-          shippingProvider={
-            orderShippingProvider(editingOrder ?? {}) ?? activeShippingProvider
-          }
-          availableShippingProviders={availableShippingProviders}
-          selectedShipProvider={selectedShipProvider}
-          onSelectedShipProviderChange={setSelectedShipProvider}
-          cities={cities}
           onClose={closeModal}
           onSubmit={(e) => void onSubmit(e)}
           onCreateShipment={() => void onCreateShipment()}
           onSyncShippingStatus={() => void onSyncShippingStatus()}
           syncingShipping={syncingShipping}
           lastShippingSync={lastShippingSync}
-          onCheckRisk={() => void onCheckRisk()}
-          riskMessage={riskMessage}
-          riskBusy={riskBusy}
           metaEventLogs={editingOrder?.metaEventLogs}
         />
       ) : null}

@@ -71,7 +71,7 @@ Meta failure never rolls back order status.
 
 ## Shipping providers
 
-Primary: **Sendit** (`SHIPPING_PROVIDER=sendit`). Legacy: Olivraison. Local `Order.status` remains the only Meta input. See [`shipping-architecture.md`](./shipping-architecture.md) and [`sendit-integration.md`](./sendit-integration.md).
+Primary: **Sendit** (`SHIPPING_PROVIDER=sendit`). Local `Order.status` remains the only Meta input. See [`shipping-architecture.md`](./shipping-architecture.md) and [`sendit-integration.md`](./sendit-integration.md).
 
 `DELIVERED` may originate from:
 

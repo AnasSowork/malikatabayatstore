@@ -97,10 +97,9 @@ model Order {
   shippingComment       String?     @db.VarChar(500)
   shippingDescription   String?     @db.VarChar(500)
   shippingNoOpen        Boolean     @default(false)
-  olivraisonTrackingId  String?     @db.VarChar(100)
-  /// Active / historical provider id: "sendit" | "olivraison"
+  /// Sendit provider id (always "sendit")
   shippingProvider      String?     @db.VarChar(32)
-  /// Provider tracking / parcel code (Sendit `code`, Olivraison tracking ID, …)
+  /// Sendit parcel code
   shippingTrackingId    String?     @db.VarChar(100)
   shippedAt             DateTime?
   metaFbp               String?     @db.VarChar(255)

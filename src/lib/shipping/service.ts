@@ -9,12 +9,10 @@ import {
 import { scheduleOrderStatusTransition } from "@/lib/order-lifecycle-analytics";
 import {
   getActiveShippingProvider,
-  getShippingProviderById,
-  parseShippingProviderId,
   ShippingAlreadyExistsError,
   ShippingNotConfiguredError,
 } from "@/lib/shipping/provider";
-import type { CreateShipmentResult, ShippingProviderId } from "@/lib/shipping/types";
+import type { CreateShipmentResult } from "@/lib/shipping/types";
 import { getLocalizedProductFields } from "@/lib/product-i18n";
 import { getStoredShippingTrackingId } from "@/lib/shipping/tracking";
 import {
@@ -28,24 +26,13 @@ export type ShipmentCreateOutcome = {
   order: Awaited<ReturnType<typeof finalizeShipmentOnOrder>>;
 };
 
-function trackingPersistData(
-  providerId: ShippingProviderId,
-  trackingId: string,
-): {
+function trackingPersistData(trackingId: string): {
   shippingProvider: string;
   shippingTrackingId: string;
-  olivraisonTrackingId?: string;
 } {
-  if (providerId === "sendit") {
-    return {
-      shippingProvider: "sendit",
-      shippingTrackingId: trackingId,
-    };
-  }
   return {
-    shippingProvider: "olivraison",
+    shippingProvider: "sendit",
     shippingTrackingId: trackingId,
-    olivraisonTrackingId: trackingId,
   };
 }
 
@@ -58,7 +45,7 @@ async function finalizeShipmentOnOrder(input: {
   const updated = await prisma.order.update({
     where: { id: input.orderId },
     data: {
-      ...trackingPersistData(input.result.providerId, input.result.trackingId),
+      ...trackingPersistData(input.result.trackingId),
       shippedAt: now,
       status: "SHIPPED",
       statusUpdatedAt: now,
@@ -86,30 +73,15 @@ async function clearPendingClaim(orderId: string): Promise<void> {
   });
 }
 
-export type CreateShipmentOptions = {
-  /** When set, use this provider instead of SHIPPING_PROVIDER default. */
-  providerId?: ShippingProviderId | string | null;
-};
-
 /**
- * Provider-independent shipment creation.
+ * Sendit shipment creation.
  * Uses a DB claim (`pending:{orderId}`) to prevent concurrent double-create.
- * After ambiguous Sendit failures, attempts reference reconciliation before retry.
+ * After ambiguous failures, attempts reference reconciliation before retry.
  */
-export async function createShipmentForOrder(
-  orderId: string,
-  options?: CreateShipmentOptions,
-): Promise<ShipmentCreateOutcome> {
-  const requested = parseShippingProviderId(
-    typeof options?.providerId === "string" ? options.providerId : null,
-  );
-  const provider = requested
-    ? getShippingProviderById(requested)
-    : getActiveShippingProvider();
+export async function createShipmentForOrder(orderId: string): Promise<ShipmentCreateOutcome> {
+  const provider = getActiveShippingProvider();
   if (!provider.isConfigured()) {
-    throw new ShippingNotConfiguredError(
-      `Shipping provider "${provider.id}" is not configured.`,
-    );
+    throw new ShippingNotConfiguredError("Sendit is not configured.");
   }
 
   const order = await prisma.order.findUnique({
@@ -156,10 +128,9 @@ export async function createShipmentForOrder(
     where: {
       id: order.id,
       shippingTrackingId: null,
-      olivraisonTrackingId: null,
     },
     data: {
-      shippingProvider: provider.id,
+      shippingProvider: "sendit",
       shippingTrackingId: claim,
     },
   });
@@ -177,26 +148,24 @@ export async function createShipmentForOrder(
 
   try {
     // Ambiguous prior failure: try reconcile by merchant reference before creating.
-    if (provider.id === "sendit") {
-      try {
-        const existingCode = await findSenditCodeByReference(order.id);
-        if (existingCode) {
-          const result: CreateShipmentResult = {
-            providerId: "sendit",
-            trackingId: existingCode,
-            normalizedStatus: "CREATED",
-            rawStatus: "RECONCILED",
-          };
-          const updated = await finalizeShipmentOnOrder({
-            orderId: order.id,
-            previousStatus: order.status,
-            result,
-          });
-          return { result, order: updated };
-        }
-      } catch {
-        // lookup failure is non-fatal; proceed to create
+    try {
+      const existingCode = await findSenditCodeByReference(order.id);
+      if (existingCode) {
+        const result: CreateShipmentResult = {
+          providerId: "sendit",
+          trackingId: existingCode,
+          normalizedStatus: "CREATED",
+          rawStatus: "RECONCILED",
+        };
+        const updated = await finalizeShipmentOnOrder({
+          orderId: order.id,
+          previousStatus: order.status,
+          result,
+        });
+        return { result, order: updated };
       }
+    } catch {
+      // lookup failure is non-fatal; proceed to create
     }
 
     const result = await provider.createShipment({
@@ -221,27 +190,24 @@ export async function createShipmentForOrder(
 
     return { result, order: updated };
   } catch (error) {
-    // If create timed out, parcel may already exist — try reconcile once.
-    if (provider.id === "sendit") {
-      try {
-        const existingCode = await findSenditCodeByReference(order.id);
-        if (existingCode) {
-          const result: CreateShipmentResult = {
-            providerId: "sendit",
-            trackingId: existingCode,
-            normalizedStatus: "CREATED",
-            rawStatus: "RECONCILED_AFTER_ERROR",
-          };
-          const updated = await finalizeShipmentOnOrder({
-            orderId: order.id,
-            previousStatus: order.status,
-            result,
-          });
-          return { result, order: updated };
-        }
-      } catch {
-        /* ignore */
+    try {
+      const existingCode = await findSenditCodeByReference(order.id);
+      if (existingCode) {
+        const result: CreateShipmentResult = {
+          providerId: "sendit",
+          trackingId: existingCode,
+          normalizedStatus: "CREATED",
+          rawStatus: "RECONCILED_AFTER_ERROR",
+        };
+        const updated = await finalizeShipmentOnOrder({
+          orderId: order.id,
+          previousStatus: order.status,
+          result,
+        });
+        return { result, order: updated };
       }
+    } catch {
+      /* ignore */
     }
 
     await clearPendingClaim(order.id);

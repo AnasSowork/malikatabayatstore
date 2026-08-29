@@ -23,23 +23,20 @@ const NAV: {
     | "/admin/orders"
     | "/admin/products"
     | "/admin/categories"
-    | "/admin/home"
-    | "/admin/delivery";
+    | "/admin/home";
   icon: string;
   labelKey:
     | "navDashboard"
     | "navOrders"
     | "navProducts"
     | "navCategories"
-    | "navHome"
-    | "navDelivery";
+    | "navHome";
   badge?: boolean;
 }[] = [
   { view: "overview", href: "/admin", icon: "dashboard", labelKey: "navDashboard" },
   { view: "orders", href: "/admin/orders", icon: "receipt_long", labelKey: "navOrders", badge: true },
   { view: "products", href: "/admin/products", icon: "inventory_2", labelKey: "navProducts" },
   { view: "categories", href: "/admin/categories", icon: "category", labelKey: "navCategories" },
-  { view: "delivery", href: "/admin/delivery", icon: "local_shipping", labelKey: "navDelivery" },
   { view: "home", href: "/admin/home", icon: "home", labelKey: "navHome" },
 ];
 

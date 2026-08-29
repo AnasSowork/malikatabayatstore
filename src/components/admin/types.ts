@@ -27,7 +27,6 @@ export type OrderWithProduct = {
   shippingComment: string | null;
   shippingDescription: string | null;
   shippingNoOpen: boolean;
-  olivraisonTrackingId: string | null;
   shippingProvider?: string | null;
   shippingTrackingId?: string | null;
   shippedAt: string | null;
@@ -40,8 +39,7 @@ export type AdminView =
   | "orders"
   | "products"
   | "categories"
-  | "home"
-  | "delivery";
+  | "home";
 
 export type ColorVariantDraft = {
   id: string;

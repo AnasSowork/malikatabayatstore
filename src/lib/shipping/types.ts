@@ -1,9 +1,9 @@
 /**
- * Provider-agnostic shipping types.
- * External provider strings must be normalized before leaving an adapter.
+ * Sendit shipping types.
+ * External provider strings must be normalized before leaving the adapter.
  */
 
-export type ShippingProviderId = "sendit" | "olivraison";
+export type ShippingProviderId = "sendit";
 
 /** Normalized carrier-facing shipment state (not Prisma OrderStatus). */
 export type ShippingStatus =

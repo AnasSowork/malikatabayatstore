@@ -1,6 +1,6 @@
 # Shipping architecture
 
-Provider-agnostic fulfillment. **Primary provider: Sendit.** Olivraison remains a legacy adapter.
+Provider-agnostic fulfillment. **Sendit** is the only supported shipping provider.
 
 ## Flow
 
@@ -8,7 +8,7 @@ Provider-agnostic fulfillment. **Primary provider: Sendit.** Olivraison remains 
 Admin → POST /api/orders/[id]/ship
   → shippingService.createShipmentForOrder
   → active ShippingProvider (SHIPPING_PROVIDER)
-  → Sendit | Olivraison adapter
+  → Sendit adapter
   → persist shippingProvider + shippingTrackingId
   → Order.status = SHIPPED
   → scheduleOrderStatusTransition (no Meta SHIPPED event)
@@ -44,12 +44,11 @@ META AD → Website → Purchase (PENDING)
 
 | Variable | Default | Notes |
 | --- | --- | --- |
-| `SHIPPING_PROVIDER` | `sendit` | `sendit` \| `olivraison` |
+| `SHIPPING_PROVIDER` | `sendit` | Must be `sendit` |
 | `SENDIT_PUBLIC_KEY` / `SENDIT_SECRET_KEY` | — | Sendit login |
 | `SENDIT_API_BASE_URL` | `https://app.sendit.ma/api/v1` | |
 | `SENDIT_PICKUP_DISTRICT_ID` | `46` | Casablanca per OpenAPI |
 | `SENDIT_WEBHOOK_SECRET` | — | Optional webhook gate |
-| `OLIVRAISON_*` | — | Legacy only |
 
 ## Meta boundary
 

@@ -85,7 +85,7 @@ Documented Sendit `status` → `ShippingStatus`:
 
 ## Duplicate protection
 
-Before create: refuse if `shippingTrackingId` or legacy `olivraisonTrackingId` set → `SHIPMENT_ALREADY_EXISTS`.  
+Before create: refuse if `shippingTrackingId` set → `SHIPMENT_ALREADY_EXISTS`.  
 `reference=Order.id` sent to Sendit for reconciliation (API does not document idempotency keys).
 
 ## Webhooks (Step 5)
@@ -165,10 +165,6 @@ No `PAID` value in OpenAPI `Colis.status`. Do **not** map settlement to DELIVERE
 ### Replay / idempotency
 
 No documented event ID → rely on transition no-ops + MetaEventLog uniqueness for DeliveredOrder.
-
-## Legacy Olivraison
-
-Still registered. Historical rows dual-read `olivraisonTrackingId`. Admin delivery console labeled **Legacy Olivraison**. Sendit webhooks only mutate `shippingProvider=sendit` orders.
 
 ## Files
 

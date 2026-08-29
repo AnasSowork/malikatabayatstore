@@ -91,8 +91,7 @@ Additive — no DROP:
 
 1. `20260820180000_order_meta_attribution_event_log` — attribution columns + `meta_event_logs`
 2. `20260820220000_order_generic_shipping_fields` — `shippingProvider`, `shippingTrackingId` (+ indexes)
-
-Legacy `olivraisonTrackingId` retained.
+3. `20260829200000_drop_legacy_shipping_tracking` — migrates legacy tracking column, drops it
 
 ---
 

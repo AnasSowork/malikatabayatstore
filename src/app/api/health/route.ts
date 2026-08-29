@@ -3,7 +3,6 @@ import { getMetaPixelId, isMetaCapiConfigured } from "@/lib/meta-capi-server";
 import { getDbEnvDebug, prisma } from "@/lib/prisma";
 import { getConfiguredShippingProviderId } from "@/lib/shipping/provider";
 import { isSenditConfigured } from "@/lib/shipping/providers/sendit-client";
-import { isOlivraisonConfigured } from "@/lib/olivraison";
 
 /** Safe readiness check — no secrets, no shipment creation, no external API calls. */
 export async function GET() {
@@ -18,17 +17,12 @@ export async function GET() {
     shippingProvider = null;
   }
 
+  const senditConfigured = isSenditConfigured();
   const shipping = {
     provider: shippingProvider,
-    senditConfigured: isSenditConfigured(),
-    olivraisonConfigured: isOlivraisonConfigured(),
+    senditConfigured,
     webhookSecretConfigured: Boolean(process.env.SENDIT_WEBHOOK_SECRET?.trim()),
-    activeConfigured:
-      shippingProvider === "sendit"
-        ? isSenditConfigured()
-        : shippingProvider === "olivraison"
-          ? isOlivraisonConfigured()
-          : false,
+    activeConfigured: shippingProvider === "sendit" && senditConfigured,
   };
 
   try {

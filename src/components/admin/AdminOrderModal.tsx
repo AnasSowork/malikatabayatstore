@@ -89,11 +89,6 @@ type Props = {
   shipping: boolean;
   shippingConfigured: boolean;
   shippingTrackingId: string | null;
-  shippingProvider: string | null;
-  availableShippingProviders: Array<{ id: string; configured: boolean }>;
-  selectedShipProvider: string;
-  onSelectedShipProviderChange: (providerId: string) => void;
-  cities: string[];
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
   onCreateShipment: () => void;
@@ -105,9 +100,6 @@ type Props = {
     applied: boolean;
     at: string;
   } | null;
-  onCheckRisk?: () => void;
-  riskMessage?: string | null;
-  riskBusy?: boolean;
   metaEventLogs?: SerializedMetaEventLog[];
 };
 
@@ -142,20 +134,12 @@ export function AdminOrderModal({
   shipping,
   shippingConfigured,
   shippingTrackingId,
-  shippingProvider,
-  availableShippingProviders,
-  selectedShipProvider,
-  onSelectedShipProviderChange,
-  cities,
   onClose,
   onSubmit,
   onCreateShipment,
   onSyncShippingStatus,
   syncingShipping,
   lastShippingSync,
-  onCheckRisk,
-  riskMessage,
-  riskBusy,
   metaEventLogs,
 }: Props) {
   const t = useTranslations("admin");
@@ -189,7 +173,6 @@ export function AdminOrderModal({
       shippingNoOpen: form.shippingNoOpen,
       status: form.status,
       shippingTrackingId,
-      olivraisonTrackingId: shippingTrackingId,
       product,
     };
   }, [editingId, form, shippingTrackingId, product]);
@@ -471,7 +454,6 @@ export function AdminOrderModal({
               <input
                 required
                 className="admin-input"
-                list={cities.length > 0 ? "order-olivraison-cities" : undefined}
                 value={form.city}
                 onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
               />
@@ -519,14 +501,6 @@ export function AdminOrderModal({
               />
             </label>
           </div>
-
-          {cities.length > 0 ? (
-            <datalist id="order-olivraison-cities">
-              {cities.map((city) => (
-                <option key={city} value={city} />
-              ))}
-            </datalist>
-          ) : null}
 
           <div className="space-y-3">
             <h3 className="admin-form-section-title">
@@ -584,16 +558,9 @@ export function AdminOrderModal({
               {shippingTrackingId ? (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm">
                   <p className="font-medium text-emerald-900">{t("orderShippingSent")}</p>
-                  {shippingProvider ? (
-                    <p className="mt-1 text-xs text-emerald-800">
-                      {t("orderShippingProvider")}:{" "}
-                      {shippingProvider === "sendit"
-                        ? t("shippingProviderSendit")
-                        : shippingProvider === "olivraison"
-                          ? t("shippingProviderOlivraison")
-                          : shippingProvider}
-                    </p>
-                  ) : null}
+                  <p className="mt-1 text-xs text-emerald-800">
+                    {t("orderShippingProvider")}: {t("shippingProviderSendit")}
+                  </p>
                   <p className="mt-1 font-mono text-xs">{shippingTrackingId}</p>
                   {lastShippingSync ? (
                     <p className="mt-2 text-xs text-emerald-900">
@@ -602,7 +569,7 @@ export function AdminOrderModal({
                       {new Date(lastShippingSync.at).toLocaleString(locale)}
                     </p>
                   ) : null}
-                  {onSyncShippingStatus && shippingProvider === "sendit" ? (
+                  {onSyncShippingStatus ? (
                     <button
                       type="button"
                       className="admin-btn-secondary mt-3"
@@ -628,65 +595,10 @@ export function AdminOrderModal({
                       {t("orderShipReadyTitle")}
                     </p>
                     <p className="order-ship-callout-hint">{t("orderShipReadyHint")}</p>
-                    <fieldset className="mt-3 space-y-2">
-                      <legend className="text-sm font-medium text-on-surface">
-                        {t("orderShippingChooseProvider")}
-                      </legend>
-                      {availableShippingProviders.map((provider) => {
-                        const label =
-                          provider.id === "sendit"
-                            ? t("shippingProviderSendit")
-                            : provider.id === "olivraison"
-                              ? t("shippingProviderOlivraison")
-                              : provider.id;
-                        return (
-                          <label
-                            key={provider.id}
-                            className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 text-sm ${
-                              selectedShipProvider === provider.id
-                                ? "border-blue-400 bg-blue-50"
-                                : "border-outline-variant/40 bg-surface"
-                            } ${!provider.configured ? "opacity-50" : ""}`}
-                          >
-                            <input
-                              type="radio"
-                              name="ship-provider"
-                              className="mt-1"
-                              value={provider.id}
-                              checked={selectedShipProvider === provider.id}
-                              disabled={!provider.configured || saving || shipping}
-                              onChange={() => onSelectedShipProviderChange(provider.id)}
-                            />
-                            <span>
-                              <span className="font-medium">{label}</span>
-                              {!provider.configured ? (
-                                <span className="mt-0.5 block text-xs text-on-surface-variant">
-                                  {t("shippingProviderNotConfigured")}
-                                </span>
-                              ) : provider.id === "sendit" ? (
-                                <span className="mt-0.5 block text-xs text-on-surface-variant">
-                                  {t("shippingProviderSenditHint")}
-                                </span>
-                              ) : (
-                                <span className="mt-0.5 block text-xs text-on-surface-variant">
-                                  {t("shippingProviderOlivraisonHint")}
-                                </span>
-                              )}
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </fieldset>
                     <button
                       type="button"
-                      className="order-ship-btn mt-3"
-                      disabled={
-                        saving ||
-                        shipping ||
-                        !availableShippingProviders.some(
-                          (p) => p.id === selectedShipProvider && p.configured,
-                        )
-                      }
+                      className="order-ship-btn"
+                      disabled={saving || shipping}
                       onClick={() => void handleSendClick()}
                     >
                       <MaterialIcon name="rocket_launch" className="!text-lg" />
@@ -748,21 +660,6 @@ export function AdminOrderModal({
                   />
                   <span className="text-sm">{t("deliveryNoOpen")}</span>
                 </label>
-                {onCheckRisk && !shippingTrackingId ? (
-                  <div className="lg:col-span-2">
-                    <button
-                      type="button"
-                      className="admin-btn-secondary"
-                      disabled={riskBusy || !form.phone.trim()}
-                      onClick={onCheckRisk}
-                    >
-                      {t("deliveryRiskCheck")}
-                    </button>
-                    {riskMessage ? (
-                      <p className="mt-2 text-sm text-on-surface-variant">{riskMessage}</p>
-                    ) : null}
-                  </div>
-                ) : null}
               </div>
             </div>
           ) : null}

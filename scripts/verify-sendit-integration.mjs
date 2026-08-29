@@ -53,12 +53,12 @@ function suggestedOrderStatusFromShipping(status) {
 
 function getConfiguredShippingProviderId(envValue) {
   const raw = (envValue ?? "sendit").trim().toLowerCase();
-  if (raw === "sendit" || raw === "olivraison") return raw;
-  throw new Error(`Unsupported SHIPPING_PROVIDER="${raw}"`);
+  if (raw === "sendit") return raw;
+  throw new Error(`Unsupported SHIPPING_PROVIDER="${raw}". Only sendit is supported.`);
 }
 
 function getStoredShippingTrackingId(order) {
-  return order.shippingTrackingId?.trim() || order.olivraisonTrackingId?.trim() || null;
+  return order.shippingTrackingId?.trim() || null;
 }
 
 assert.equal(normalizeSenditStatus("DELIVERED"), "DELIVERED");
@@ -66,15 +66,9 @@ assert.equal(normalizeSenditStatus("UNREACHABLE"), "FAILED_DELIVERY");
 assert.equal(suggestedOrderStatusFromShipping("FAILED_DELIVERY"), null);
 assert.equal(suggestedOrderStatusFromShipping("DELIVERED"), "DELIVERED");
 assert.equal(getConfiguredShippingProviderId(undefined), "sendit");
-assert.equal(getConfiguredShippingProviderId("olivraison"), "olivraison");
+assert.throws(() => getConfiguredShippingProviderId("legacy_carrier"));
 assert.throws(() => getConfiguredShippingProviderId("acme"));
-assert.equal(
-  getStoredShippingTrackingId({ shippingTrackingId: null, olivraisonTrackingId: "LEGACY1" }),
-  "LEGACY1",
-);
-assert.equal(
-  getStoredShippingTrackingId({ shippingTrackingId: "D123", olivraisonTrackingId: "LEGACY1" }),
-  "D123",
-);
+assert.equal(getStoredShippingTrackingId({ shippingTrackingId: "D123" }), "D123");
+assert.equal(getStoredShippingTrackingId({ shippingTrackingId: null }), null);
 
-console.log("verify-sendit-integration: mapping + dual-read checks passed");
+console.log("verify-sendit-integration: mapping + config checks passed");

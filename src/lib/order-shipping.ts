@@ -1,6 +1,5 @@
 import type { OrderLineItem } from "@/lib/bundle-offers";
 import { getLocalizedProductFields, type AppLocale } from "@/lib/product-i18n";
-import type { OlivraisonCreatePackage } from "@/lib/olivraison-types";
 import type { ProductForClient } from "@/lib/product-serialize";
 
 export type OrderShippingSource = {
@@ -62,29 +61,4 @@ export function validateOrderForShipping(order: OrderShippingSource): string | n
     return "Invalid order amount.";
   }
   return null;
-}
-
-export function buildOlivraisonCreatePackage(order: OrderShippingSource): OlivraisonCreatePackage {
-  const description =
-    order.shippingDescription?.trim() || buildDefaultShippingDescription(order);
-  const payload: OlivraisonCreatePackage = {
-    price: Number(order.totalPrice),
-    description,
-    orderId: order.id,
-    destination: {
-      name: order.customerName.trim(),
-      phone: order.phone.trim(),
-      city: order.city.trim(),
-      streetAddress: order.streetAddress!.trim(),
-    },
-  };
-  if (order.shippingComment?.trim()) {
-    payload.comment = order.shippingComment.trim();
-  }
-  if (order.shippingNoOpen) {
-    payload.noOpen = true;
-  }
-  const { name } = getLocalizedProductFields(order.product, "fr");
-  payload.name = name.slice(0, 120);
-  return payload;
 }

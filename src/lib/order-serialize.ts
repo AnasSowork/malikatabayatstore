@@ -25,7 +25,6 @@ export type SerializedOrder = {
   shippingComment: string | null;
   shippingDescription: string | null;
   shippingNoOpen: boolean;
-  olivraisonTrackingId: string | null;
   shippingProvider: string | null;
   shippingTrackingId: string | null;
   shippedAt: string | null;
@@ -52,7 +51,6 @@ export function serializeOrder(order: {
   shippingComment: string | null;
   shippingDescription: string | null;
   shippingNoOpen: boolean;
-  olivraisonTrackingId: string | null;
   shippingProvider?: string | null;
   shippingTrackingId?: string | null;
   shippedAt: Date | null;
@@ -78,7 +76,6 @@ export function serializeOrder(order: {
     shippingComment: order.shippingComment,
     shippingDescription: order.shippingDescription,
     shippingNoOpen: order.shippingNoOpen,
-    olivraisonTrackingId: order.olivraisonTrackingId,
     shippingProvider: order.shippingProvider ?? null,
     shippingTrackingId: order.shippingTrackingId ?? null,
     shippedAt: order.shippedAt?.toISOString() ?? null,

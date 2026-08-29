@@ -1,5 +1,4 @@
 import type { ShippingProvider, ShippingProviderId } from "@/lib/shipping/types";
-import { olivraisonShippingProvider } from "@/lib/shipping/providers/olivraison";
 import { senditShippingProvider } from "@/lib/shipping/providers/sendit";
 
 export class ShippingConfigError extends Error {
@@ -31,39 +30,35 @@ export class ShippingAlreadyExistsError extends Error {
   }
 }
 
-const PROVIDERS: Record<ShippingProviderId, ShippingProvider> = {
-  sendit: senditShippingProvider,
-  olivraison: olivraisonShippingProvider,
-};
+const SENDIT_PROVIDER: ShippingProvider = senditShippingProvider;
 
-/**
- * Active provider from SHIPPING_PROVIDER (default: sendit).
- * Throws ShippingConfigError for unknown values — safe for admin ship routes only.
- */
+/** Active provider — Sendit only. */
 export function getConfiguredShippingProviderId(): ShippingProviderId {
   const raw = (process.env.SHIPPING_PROVIDER ?? "sendit").trim().toLowerCase();
-  if (raw === "sendit") return "sendit";
-  if (raw === "olivraison") return "olivraison";
-  throw new ShippingConfigError(
-    `Unsupported SHIPPING_PROVIDER="${raw}". Supported: sendit, olivraison`,
-  );
+  if (raw !== "sendit") {
+    throw new ShippingConfigError(
+      `Unsupported SHIPPING_PROVIDER="${raw}". Only sendit is supported.`,
+    );
+  }
+  return "sendit";
 }
 
 export function getActiveShippingProvider(): ShippingProvider {
-  const id = getConfiguredShippingProviderId();
-  return PROVIDERS[id];
+  getConfiguredShippingProviderId();
+  return SENDIT_PROVIDER;
 }
 
 export function getShippingProviderById(id: ShippingProviderId): ShippingProvider {
-  return PROVIDERS[id];
+  if (id !== "sendit") {
+    throw new ShippingConfigError(`Unsupported shipping provider "${id}".`);
+  }
+  return SENDIT_PROVIDER;
 }
 
 export function listSupportedShippingProviders(): ShippingProviderId[] {
-  return Object.keys(PROVIDERS) as ShippingProviderId[];
+  return ["sendit"];
 }
 
 export function parseShippingProviderId(value: string | null | undefined): ShippingProviderId | null {
-  const raw = value?.trim().toLowerCase();
-  if (raw === "sendit" || raw === "olivraison") return raw;
-  return null;
+  return value?.trim().toLowerCase() === "sendit" ? "sendit" : null;
 }
