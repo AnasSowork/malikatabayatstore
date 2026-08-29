@@ -101,6 +101,10 @@ type Props = {
     at: string;
   } | null;
   metaEventLogs?: SerializedMetaEventLog[];
+  cities?: string[];
+  onCheckRisk?: () => void;
+  riskMessage?: string | null;
+  riskBusy?: boolean;
 };
 
 function metaLogLabel(
@@ -141,10 +145,17 @@ export function AdminOrderModal({
   syncingShipping,
   lastShippingSync,
   metaEventLogs,
+  cities = [],
+  onCheckRisk,
+  riskMessage,
+  riskBusy,
 }: Props) {
   const t = useTranslations("admin");
   const locale = useLocale() as AppLocale;
   const [error, setError] = useState<string | null>(null);
+  const [cityValidation, setCityValidation] = useState<string | null>(null);
+  const [cityValidationOk, setCityValidationOk] = useState<boolean | null>(null);
+  const [cityValidationBusy, setCityValidationBusy] = useState(false);
 
   const product = useMemo(
     () => products.find((p) => p.id === form.productId) ?? null,
@@ -184,6 +195,44 @@ export function AdminOrderModal({
       shippingPreview &&
       canCreateShipment(shippingPreview),
   );
+
+  useEffect(() => {
+    if (!open || !shippingConfigured || shippingTrackingId) {
+      setCityValidation(null);
+      setCityValidationOk(null);
+      return;
+    }
+    const city = form.city.trim();
+    if (city.length < 2) {
+      setCityValidation(null);
+      setCityValidationOk(null);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setCityValidationBusy(true);
+      void fetch(`/api/admin/shipping/validate-city?city=${encodeURIComponent(city)}`)
+        .then(async (res) => {
+          const data = (await res.json()) as { ok?: boolean; error?: string; district?: { name: string } };
+          if (data.ok) {
+            setCityValidationOk(true);
+            setCityValidation(
+              data.district?.name ? t("orderCitySenditOk", { city: data.district.name }) : null,
+            );
+            return;
+          }
+          setCityValidationOk(false);
+          setCityValidation(data.error ?? t("orderCitySenditUnknown"));
+        })
+        .catch(() => {
+          setCityValidationOk(null);
+          setCityValidation(t("orderCitySenditUnknown"));
+        })
+        .finally(() => setCityValidationBusy(false));
+    }, 400);
+
+    return () => window.clearTimeout(timer);
+  }, [form.city, open, shippingConfigured, shippingTrackingId, t]);
 
   useEffect(() => {
     if (!open || !product) return;
@@ -454,9 +503,19 @@ export function AdminOrderModal({
               <input
                 required
                 className="admin-input"
+                list={cities.length > 0 ? "order-sendit-cities" : undefined}
                 value={form.city}
                 onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
               />
+              {cityValidationBusy ? (
+                <span className="text-xs text-on-surface-variant">{t("orderCitySenditChecking")}</span>
+              ) : cityValidation ? (
+                <span
+                  className={`text-xs ${cityValidationOk ? "text-emerald-700" : "text-amber-700"}`}
+                >
+                  {cityValidation}
+                </span>
+              ) : null}
             </label>
             <label className="admin-field">
               <span>{t("product")}</span>
@@ -501,6 +560,14 @@ export function AdminOrderModal({
               />
             </label>
           </div>
+
+          {cities.length > 0 ? (
+            <datalist id="order-sendit-cities">
+              {cities.map((city) => (
+                <option key={city} value={city} />
+              ))}
+            </datalist>
+          ) : null}
 
           <div className="space-y-3">
             <h3 className="admin-form-section-title">
@@ -660,6 +727,21 @@ export function AdminOrderModal({
                   />
                   <span className="text-sm">{t("deliveryNoOpen")}</span>
                 </label>
+                {onCheckRisk && !shippingTrackingId ? (
+                  <div className="lg:col-span-2">
+                    <button
+                      type="button"
+                      className="admin-btn-secondary"
+                      disabled={riskBusy || !form.phone.trim()}
+                      onClick={onCheckRisk}
+                    >
+                      {t("orderShippingRiskCheck")}
+                    </button>
+                    {riskMessage ? (
+                      <p className="mt-2 text-sm text-on-surface-variant">{riskMessage}</p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}

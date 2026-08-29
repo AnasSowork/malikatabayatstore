@@ -95,6 +95,7 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [shippingId, setShippingId] = useState<string | null>(null);
+  const [cities, setCities] = useState<string[]>([]);
   const [shippingConfigured, setShippingConfigured] = useState(false);
   const [syncingShipping, setSyncingShipping] = useState(false);
   const [lastShippingSync, setLastShippingSync] = useState<{
@@ -103,6 +104,8 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
     applied: boolean;
     at: string;
   } | null>(null);
+  const [riskMessage, setRiskMessage] = useState<string | null>(null);
+  const [riskBusy, setRiskBusy] = useState(false);
 
   const editingOrder = useMemo(
     () => orders.find((order) => order.id === editingId) ?? null,
@@ -119,6 +122,14 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
       }
     } catch {
       // ignore
+    }
+    try {
+      const res = await fetch("/api/admin/shipping/cities");
+      if (!res.ok) return;
+      const data = (await res.json()) as { cities?: string[] };
+      setCities(data.cities ?? []);
+    } catch {
+      // ignore — shipping UI still works without city list
     }
   }, [compact]);
 
@@ -303,6 +314,7 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
     setModalOpen(false);
     setEditingId(null);
     setLastShippingSync(null);
+    setRiskMessage(null);
   }
 
   async function saveOrder(id: string | null, payload: ReturnType<typeof buildPayload>) {
@@ -385,6 +397,10 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
   }
 
   async function onQuickShip(order: OrderWithProduct) {
+    if (!shippingConfigured) {
+      alert(t("shippingNotConfigured"));
+      return;
+    }
     if (!confirmShip(order)) return;
     setShippingId(order.id);
     try {
@@ -425,6 +441,33 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
       onChanged?.();
     } finally {
       setConfirmingId(null);
+    }
+  }
+
+  async function onCheckRisk() {
+    if (!form.phone.trim()) return;
+    setRiskBusy(true);
+    setRiskMessage(null);
+    try {
+      const res = await fetch(
+        `/api/admin/shipping/risk?phone=${encodeURIComponent(form.phone.trim())}`,
+      );
+      const data = (await res.json()) as {
+        risky?: boolean;
+        returnedCount?: number;
+        deliveredCount?: number;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(data.error || t("orderShippingRiskError"));
+      setRiskMessage(
+        data.risky
+          ? t("orderShippingRisky", { count: data.returnedCount ?? 0 })
+          : t("orderShippingSafe", { delivered: data.deliveredCount ?? 0 }),
+      );
+    } catch (error) {
+      setRiskMessage(error instanceof Error ? error.message : t("orderShippingRiskError"));
+    } finally {
+      setRiskBusy(false);
     }
   }
 
@@ -613,7 +656,7 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
               <tbody>
                 {filtered.map((order) => {
                   const { name } = getLocalizedProductFields(order.product, locale);
-                  const readyToShip = canCreateShipment(order);
+                  const readyToShip = shippingConfigured && canCreateShipment(order);
                   const tracking = orderTrackingId(order);
                   return (
                     <tr key={order.id} className={readyToShip ? "order-row-ready-ship" : undefined}>
@@ -739,7 +782,7 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
           <div className="flex flex-col gap-3 md:hidden orders-mobile-list">
             {filtered.map((order) => {
               const { name } = getLocalizedProductFields(order.product, locale);
-              const readyToShip = canCreateShipment(order);
+              const readyToShip = shippingConfigured && canCreateShipment(order);
               const tracking = orderTrackingId(order);
               return (
                 <article key={order.id} className={`admin-order-card${readyToShip ? " order-row-ready-ship" : ""}`}>
@@ -857,6 +900,10 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
           syncingShipping={syncingShipping}
           lastShippingSync={lastShippingSync}
           metaEventLogs={editingOrder?.metaEventLogs}
+          cities={cities}
+          onCheckRisk={() => void onCheckRisk()}
+          riskMessage={riskMessage}
+          riskBusy={riskBusy}
         />
       ) : null}
     </section>

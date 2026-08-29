@@ -173,12 +173,6 @@ export async function resolveSenditDistrictId(cityName: string): Promise<SenditD
   );
 }
 
-export function getSenditPickupDistrictId(): number {
-  const raw = process.env.SENDIT_PICKUP_DISTRICT_ID?.trim();
-  if (raw && /^\d+$/.test(raw)) return Number(raw);
-  return 46;
-}
-
 /** Best-effort lookup by merchant reference (Order.id) after ambiguous create failures. */
 export async function findSenditCodeByReference(orderId: string): Promise<string | null> {
   const query = new URLSearchParams({
@@ -195,4 +189,51 @@ export async function findSenditCodeByReference(orderId: string): Promise<string
   );
   if (hits.length === 1) return hits[0]!.code!.trim();
   return null;
+}
+
+export function getSenditPickupDistrictId(): number {
+  const raw = process.env.SENDIT_PICKUP_DISTRICT_ID?.trim();
+  if (raw && /^\d+$/.test(raw)) return Number(raw);
+  return 46;
+}
+
+type DistrictNamesCache = {
+  fetchedAt: number;
+  names: string[];
+};
+
+type DistrictNamesGlobal = typeof globalThis & {
+  senditDistrictNamesCache?: DistrictNamesCache;
+};
+
+/** Distinct Sendit city names for admin autocomplete (cached 30 min). */
+export async function listSenditCityNames(): Promise<string[]> {
+  const g = globalThis as DistrictNamesGlobal;
+  const now = Date.now();
+  const cached = g.senditDistrictNamesCache;
+  if (cached && now - cached.fetchedAt <= DISTRICT_TTL_MS) {
+    return cached.names;
+  }
+
+  const names = new Set<string>();
+  const pickup = process.env.SENDIT_PICKUP_DISTRICT_ID?.trim();
+  for (let page = 1; page <= 50; page += 1) {
+    const query = new URLSearchParams({ querystring: "", page: String(page) });
+    if (pickup && /^\d+$/.test(pickup)) {
+      query.set("pickup-district", pickup);
+    }
+    const response = await senditRequest<DistrictsListResponse>(`/districts?${query.toString()}`);
+    const rows = (response.data ?? [])
+      .map((row) => toDistrict(row))
+      .filter((d): d is SenditDistrict => Boolean(d && d.active !== 0));
+    if (rows.length === 0) break;
+    for (const district of rows) {
+      names.add(district.ville.trim() || district.name.trim());
+    }
+    if (rows.length < 25) break;
+  }
+
+  const sorted = [...names].sort((a, b) => a.localeCompare(b, "fr"));
+  g.senditDistrictNamesCache = { fetchedAt: now, names: sorted };
+  return sorted;
 }
