@@ -38,7 +38,7 @@ export function readFirstTouchLandingUrl(): string | null {
   if (typeof window === "undefined" || typeof sessionStorage === "undefined") return null;
   try {
     const value = sessionStorage.getItem(META_FIRST_TOUCH_LANDING_URL_KEY);
-    return value && value.trim() ? value : null;
+    return value && value.length > 0 ? value : null;
   } catch {
     return null;
   }
