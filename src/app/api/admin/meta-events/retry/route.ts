@@ -44,7 +44,14 @@ export async function POST(request: Request) {
     const eventNames: RetryableEvent[] = isRetryableEvent(requestedName)
       ? [requestedName]
       : RETRYABLE_EVENTS.filter((name) =>
-          order.metaEventLogs.some((log) => log.eventName === name && log.status === "FAILED"),
+          order.metaEventLogs.some(
+            (log) =>
+              log.eventName === name &&
+              (log.status === "FAILED" ||
+                (name === "Purchase" &&
+                  log.status === "SKIPPED" &&
+                  log.errorCode === "marketing_consent_denied")),
+          ),
         );
 
     if (eventNames.length === 0) {
@@ -57,10 +64,17 @@ export async function POST(request: Request) {
 
     const results: Array<{ eventName: MetaBusinessEventName; result: MetaOrderSendResult }> = [];
     for (const eventName of eventNames) {
+      const log = order.metaEventLogs.find((row) => row.eventName === eventName);
+      const retrySkipped =
+        eventName === "Purchase" &&
+        log?.status === "SKIPPED" &&
+        log.errorCode === "marketing_consent_denied";
+
       const result = await sendOrRetryMetaOrderEvent({
         order,
         eventName,
-        failedOnly: true,
+        failedOnly: !retrySkipped,
+        retrySkipped,
       });
       results.push({ eventName, result });
     }

@@ -49,10 +49,11 @@ Categories: `necessary` | `analytics` | `marketing`.
 
 Meta belongs under **marketing**.
 
-- Before marketing consent: Pixel is not initialized; browser Meta events are not sent; order API skips / marks Purchase as `SKIPPED` when consent is explicitly `false`.
-- After accept: Pixel loads; funnel + Purchase Pixel/CAPI allowed.
+- Before marketing consent: Pixel is not initialized; browser funnel events are not sent.
+- **Server CAPI Purchase always sends** on successful checkout (first-party order data). Browser Pixel Purchase on thank-you still requires marketing consent.
+- **QualifiedOrder / DeliveredOrder** CAPI respects `marketingConsent === false` (skipped with log).
 - Consent stored in `localStorage` key `malikat_consent_v1`.
-- Order requests include `meta.marketingConsent` so **CAPI is not a consent bypass**.
+- Order requests include `meta.marketingConsent` (`true` / `false` / omitted when banner not answered).
 
 ## Generic endpoint security (`POST /api/meta/events`)
 

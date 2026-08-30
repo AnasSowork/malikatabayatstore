@@ -68,11 +68,13 @@ export async function sendOrRetryMetaOrderEvent(input: {
   clientUserAgent?: string | null;
   /** When true, only FAILED rows are re-attempted (admin retry). */
   failedOnly?: boolean;
+  /** Admin retry: re-send Purchase previously SKIPPED for marketing consent. */
+  retrySkipped?: boolean;
 }): Promise<MetaOrderSendResult> {
   const eventId = input.eventId?.trim() || eventIdFor(input.eventName, input.order.id);
 
   try {
-    const existing = await prisma.metaEventLog.findUnique({
+    let existing = await prisma.metaEventLog.findUnique({
       where: {
         orderId_eventName: {
           orderId: input.order.id,
@@ -81,15 +83,31 @@ export async function sendOrRetryMetaOrderEvent(input: {
       },
     });
 
-    if (existing?.status === "SENT" || existing?.status === "SKIPPED") {
+    if (existing?.status === "SENT") {
       return "already_done";
+    }
+
+    if (existing?.status === "SKIPPED") {
+      const canRetrySkippedPurchase =
+        input.retrySkipped &&
+        input.eventName === "Purchase" &&
+        existing.errorCode === "marketing_consent_denied";
+      if (!canRetrySkippedPurchase) {
+        return "already_done";
+      }
+      await prisma.metaEventLog.delete({ where: { id: existing.id } });
+      existing = null;
     }
 
     if (input.failedOnly) {
       if (!existing || existing.status !== "FAILED") return "already_done";
     }
 
-    if (input.order.marketingConsent === false) {
+    // Purchase is first-party server conversion data — always send via CAPI.
+    // Browser Pixel Purchase remains consent-gated in meta-pixel-events.ts.
+    const skipForConsent =
+      input.eventName !== "Purchase" && input.order.marketingConsent === false;
+    if (skipForConsent) {
       await finishMetaEventAttempt({
         logId: existing?.id ?? null,
         orderId: input.order.id,

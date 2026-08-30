@@ -13,7 +13,7 @@ import {
   setMetaPixelUserData,
   trackInitiateCheckout,
 } from "@/lib/meta-pixel-events";
-import { hasMarketingConsent } from "@/lib/consent";
+import { hasMarketingConsent, readConsentPreferences } from "@/lib/consent";
 import { readStoredUtm } from "@/lib/meta-utm";
 
 type Props = {
@@ -104,7 +104,7 @@ export function OrderForm({
             fbc,
             eventSourceUrl: window.location.href,
             productName,
-            marketingConsent: hasMarketingConsent(),
+            marketingConsent: readConsentPreferences()?.marketing ?? null,
             utmSource: utm.utmSource,
             utmMedium: utm.utmMedium,
             utmCampaign: utm.utmCampaign,
