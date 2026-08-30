@@ -323,6 +323,26 @@ export async function backfillPurchaseBatch(input: {
 }
 
 const RETIMESTAMP_MIN_LAG_MS = 60 * 60 * 1000;
+export const RETIMESTAMP_SENT_MARKER = "retimestamp_sent";
+
+function purchaseNeedsRetimestamp(
+  order: { createdAt: Date },
+  log: MetaEventLog | undefined,
+  ageCutoff: Date,
+): boolean {
+  if (!log || log.status !== "SENT") return false;
+  if (log.errorCode === RETIMESTAMP_SENT_MARKER) return false;
+
+  const sendLag = log.sentAt ? log.sentAt.getTime() - order.createdAt.getTime() : 0;
+  if (sendLag <= RETIMESTAMP_MIN_LAG_MS) return false;
+
+  // Backfill/retimestamp already ran this week — do not loop on the same orders.
+  if (log.sentAt && Date.now() - log.sentAt.getTime() < 7 * 24 * 3600 * 1000) {
+    return false;
+  }
+
+  return order.createdAt < ageCutoff;
+}
 
 /** Re-send backfilled Purchase events with event_time=now (fixes Meta "timestamp too old" diagnostics). */
 export async function retimestampPurchaseBatch(input: {
@@ -356,14 +376,9 @@ export async function retimestampPurchaseBatch(input: {
     orderBy: { createdAt: "asc" },
   });
 
-  const candidates = orders.filter((order) => {
-    const log = findPurchaseLog(order.metaEventLogs);
-    if (!log || log.status !== "SENT") return false;
-    if (log.sentAt) {
-      return log.sentAt.getTime() - order.createdAt.getTime() > RETIMESTAMP_MIN_LAG_MS;
-    }
-    return order.createdAt < ageCutoff;
-  });
+  const candidates = orders.filter((order) =>
+    purchaseNeedsRetimestamp(order, findPurchaseLog(order.metaEventLogs), ageCutoff),
+  );
 
   const batch = candidates.slice(0, limit);
   const results: Array<{
@@ -403,6 +418,10 @@ export async function retimestampPurchaseBatch(input: {
       failed += 1;
     } else if (result === "sent") {
       sent += 1;
+      await prisma.metaEventLog.updateMany({
+        where: { orderId: order.id, eventName: "Purchase", status: "SENT" },
+        data: { errorCode: RETIMESTAMP_SENT_MARKER },
+      });
     }
 
     results.push({ orderId: order.id, result, errorCode });

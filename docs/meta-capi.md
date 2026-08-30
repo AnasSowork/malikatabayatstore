@@ -187,7 +187,7 @@ Per order: open the order modal → **Resend Purchase to Meta** when Purchase is
 { "retimestamp": true, "limit": 50 }
 ```
 
-`retimestamp: true` re-sends backfilled Purchase events with `event_time=now` to clear Meta “timestamp too old” diagnostics (same `event_id` for deduplication).
+`retimestamp: true` re-sends backfilled Purchase events with `event_time=now` **once per order** (same `event_id` for deduplication). Safe to stop after one batch — live orders are unaffected.
 
 ### CLI (server with DATABASE_URL)
 
