@@ -1,5 +1,6 @@
 import type { MetaEventLog, Order } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
+import { prisma as defaultPrisma } from "@/lib/prisma";
 import { purchaseEventId } from "@/lib/meta-event-id";
 import {
   sendOrRetryMetaOrderEvent,
@@ -7,6 +8,27 @@ import {
   type OrderForLifecycleMeta,
 } from "@/lib/order-lifecycle-analytics";
 import { metaProductEventSourceUrl } from "@/lib/meta-store-url";
+
+let productionPrisma: PrismaClient | null = null;
+
+/** Use PRODUCTION_DATABASE_URL when set (Hostinger), else local DATABASE_URL. */
+export function resolveBackfillPrisma(): PrismaClient {
+  const url = process.env.PRODUCTION_DATABASE_URL?.trim();
+  if (url) {
+    if (!productionPrisma) {
+      productionPrisma = new PrismaClient({ datasources: { db: { url } } });
+    }
+    return productionPrisma;
+  }
+  return defaultPrisma;
+}
+
+export async function disconnectBackfillPrisma(): Promise<void> {
+  if (productionPrisma) {
+    await productionPrisma.$disconnect();
+    productionPrisma = null;
+  }
+}
 
 export type PurchaseBackfillReason =
   | "missing_log"
@@ -128,6 +150,7 @@ function summarizeCandidate(order: OrderWithPurchaseLog): PurchaseBackfillCandid
 }
 
 export async function loadMetaPurchaseDiagnostics(limit = 100): Promise<MetaPurchaseDiagnostics> {
+  const prisma = resolveBackfillPrisma();
   const orders = await prisma.order.findMany({
     include: {
       metaEventLogs: { where: { eventName: "Purchase" } },
@@ -216,6 +239,7 @@ export async function backfillPurchaseBatch(input: {
 }> {
   const limit = Math.min(Math.max(input.limit ?? 50, 1), 200);
   const delayMs = Math.max(input.delayMs ?? 150, 0);
+  const prisma = resolveBackfillPrisma();
 
   let orders: OrderWithPurchaseLog[];
 

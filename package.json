@@ -20,7 +20,9 @@
     "meta:verify": "node scripts/verify-meta-capi.mjs",
     "meta:verify:test": "node scripts/verify-meta-capi.mjs --send-test",
     "meta:backfill": "tsx scripts/backfill-meta-purchases.ts",
-    "meta:backfill:dry": "tsx scripts/backfill-meta-purchases.ts --dry-run"
+    "meta:backfill:dry": "tsx scripts/backfill-meta-purchases.ts --dry-run",
+    "meta:backfill:remote": "tsx scripts/meta-backfill-remote.ts --send",
+    "meta:backfill:remote:dry": "tsx scripts/meta-backfill-remote.ts --dry-run"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
