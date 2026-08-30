@@ -162,7 +162,39 @@ Order create never fails because of Meta. CAPI runs after DB save; failures logg
 { "orderId": "<uuid>", "eventName": "Purchase" }
 ```
 
-Re-sends FAILED events or Purchase previously SKIPPED for `marketing_consent_denied`.
+Re-sends FAILED, missing, consent-skipped, or stuck PENDING Purchase events. Uses the order’s original `createdAt` as `event_time`.
+
+## Backfill failed purchases
+
+### Admin UI (recommended)
+
+1. Open **Admin → Orders**
+2. Use the **Meta — Purchase funnel** panel at the top
+3. Click **Preview backfill** to see how many orders will be sent
+4. Click **Resend missed purchases** to push up to 50 orders to Meta
+
+Per order: open the order modal → **Resend Purchase to Meta** when Purchase is not **Sent**.
+
+### API
+
+`GET /api/admin/meta-events/diagnostics` — counts sent / failed / missing + attribution coverage
+
+`POST /api/admin/meta-events/backfill`
+
+```json
+{ "dryRun": true, "limit": 50 }
+{ "limit": 50, "orderIds": ["<uuid>"] }
+```
+
+### CLI (server with DATABASE_URL)
+
+```bash
+npm run meta:backfill:dry   # preview
+npm run meta:backfill       # send up to 50
+npx tsx scripts/backfill-meta-purchases.ts --order-id=<uuid>
+```
+
+After backfill, check **Events Manager → Overview** (15–30 min delay). Old orders may be outside Meta’s attribution window if placed weeks ago.
 
 ## Environment variables
 

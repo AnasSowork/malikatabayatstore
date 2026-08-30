@@ -11,6 +11,7 @@ import {
   orderToForm,
   type OrderFormState,
 } from "@/components/admin/AdminOrderModal";
+import { AdminMetaFunnelPanel } from "@/components/admin/AdminMetaFunnelPanel";
 import type { OrderWithProduct } from "@/components/admin/types";
 import type { ProductForClient } from "@/lib/product-serialize";
 import { formatMad } from "@/lib/format-price";
@@ -106,6 +107,7 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
   } | null>(null);
   const [riskMessage, setRiskMessage] = useState<string | null>(null);
   const [riskBusy, setRiskBusy] = useState(false);
+  const [retryMetaBusy, setRetryMetaBusy] = useState(false);
 
   const editingOrder = useMemo(
     () => orders.find((order) => order.id === editingId) ?? null,
@@ -471,6 +473,36 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
     }
   }
 
+  async function onRetryMetaPurchase() {
+    if (!editingId) return;
+    setRetryMetaBusy(true);
+    try {
+      const res = await fetch("/api/admin/meta-events/retry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: editingId, eventName: "Purchase" }),
+      });
+      const json = (await res.json()) as { error?: string; results?: Array<{ result: string }> };
+      if (!res.ok) {
+        alert(json.error ?? t("metaFunnelRetryError"));
+        return;
+      }
+      const result = json.results?.[0]?.result;
+      if (result === "sent") {
+        alert(t("metaFunnelRetrySent"));
+      } else if (result === "failed") {
+        alert(t("metaFunnelRetryFailed"));
+      } else {
+        alert(t("metaFunnelRetryNoop"));
+      }
+      onChanged?.();
+    } catch {
+      alert(t("metaFunnelRetryError"));
+    } finally {
+      setRetryMetaBusy(false);
+    }
+  }
+
   async function onDelete(order: OrderWithProduct) {
     if (!window.confirm(t("orderDeleteConfirm", { name: order.customerName }))) return;
     setDeletingId(order.id);
@@ -520,6 +552,12 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
           )}
         </div>
       </div>
+
+      {!compact ? (
+        <div className="mb-4">
+          <AdminMetaFunnelPanel onChanged={onChanged} />
+        </div>
+      ) : null}
 
       {!compact ? (
         <div className="orders-toolbar">
@@ -900,6 +938,8 @@ export function AdminOrdersView({ orders, products, compact, onChanged }: Props)
           syncingShipping={syncingShipping}
           lastShippingSync={lastShippingSync}
           metaEventLogs={editingOrder?.metaEventLogs}
+          onRetryMetaPurchase={editingId ? () => void onRetryMetaPurchase() : undefined}
+          retryMetaBusy={retryMetaBusy}
           cities={cities}
           onCheckRisk={() => void onCheckRisk()}
           riskMessage={riskMessage}

@@ -2,9 +2,15 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAdminAuthenticated } from "@/lib/auth";
 import {
+  backfillOrderPurchase,
+  findPurchaseLog,
+  getPurchaseBackfillReason,
+} from "@/lib/meta-backfill";
+import {
   sendOrRetryMetaOrderEvent,
   type MetaOrderSendResult,
 } from "@/lib/order-lifecycle-analytics";
+import { metaProductEventSourceUrl } from "@/lib/meta-store-url";
 import type { MetaBusinessEventName } from "@/lib/meta-event-log";
 
 export const runtime = "nodejs";
@@ -17,8 +23,7 @@ function isRetryableEvent(value: unknown): value is RetryableEvent {
 }
 
 /**
- * Admin-only: retry FAILED Meta CAPI events for an order.
- * Never resends SENT / SKIPPED. Respects marketingConsent.
+ * Admin-only: retry FAILED / missing Purchase or FAILED lifecycle Meta CAPI events.
  */
 export async function POST(request: Request) {
   try {
@@ -34,49 +39,83 @@ export async function POST(request: Request) {
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { product: true, metaEventLogs: true },
+      include: {
+        product: true,
+        metaEventLogs: true,
+      },
     });
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
     const requestedName = body.eventName;
+
+    if (isRetryableEvent(requestedName) && requestedName === "Purchase") {
+      const { result, reason } = await backfillOrderPurchase(order);
+      const refreshed = await prisma.metaEventLog.findMany({
+        where: { orderId },
+        orderBy: { eventName: "asc" },
+      });
+
+      return NextResponse.json({
+        ok: true,
+        results: [{ eventName: "Purchase" as const, result, reason }],
+        metaEventLogs: refreshed.map((log) => ({
+          eventName: log.eventName,
+          eventId: log.eventId,
+          status: log.status,
+          attemptCount: log.attemptCount,
+          lastAttemptAt: log.lastAttemptAt?.toISOString() ?? null,
+          sentAt: log.sentAt?.toISOString() ?? null,
+          errorCode: log.errorCode,
+        })),
+      });
+    }
+
     const eventNames: RetryableEvent[] = isRetryableEvent(requestedName)
       ? [requestedName]
-      : RETRYABLE_EVENTS.filter((name) =>
-          order.metaEventLogs.some(
-            (log) =>
-              log.eventName === name &&
-              (log.status === "FAILED" ||
-                (name === "Purchase" &&
-                  log.status === "SKIPPED" &&
-                  log.errorCode === "marketing_consent_denied")),
-          ),
-        );
+      : RETRYABLE_EVENTS.filter((name) => {
+          if (name === "Purchase") {
+            return getPurchaseBackfillReason(findPurchaseLog(order.metaEventLogs)) !== null;
+          }
+          return order.metaEventLogs.some(
+            (log) => log.eventName === name && log.status === "FAILED",
+          );
+        });
 
     if (eventNames.length === 0) {
       return NextResponse.json({
         ok: true,
         results: [] as Array<{ eventName: string; result: MetaOrderSendResult }>,
-        message: "No FAILED Meta events to retry",
+        message: "No Meta events to retry",
       });
     }
 
-    const results: Array<{ eventName: MetaBusinessEventName; result: MetaOrderSendResult }> = [];
-    for (const eventName of eventNames) {
-      const log = order.metaEventLogs.find((row) => row.eventName === eventName);
-      const retrySkipped =
-        eventName === "Purchase" &&
-        log?.status === "SKIPPED" &&
-        log.errorCode === "marketing_consent_denied";
+    const results: Array<{
+      eventName: MetaBusinessEventName;
+      result: MetaOrderSendResult;
+      reason?: string | null;
+    }> = [];
 
+    for (const eventName of eventNames) {
+      if (eventName === "Purchase") {
+        const { result, reason } = await backfillOrderPurchase(order);
+        results.push({ eventName, result, reason });
+        continue;
+      }
+
+      const log = order.metaEventLogs.find((row) => row.eventName === eventName);
       const result = await sendOrRetryMetaOrderEvent({
         order,
         eventName,
-        failedOnly: !retrySkipped,
-        retrySkipped,
+        eventTime: Math.floor(order.createdAt.getTime() / 1000),
+        eventSourceUrl: metaProductEventSourceUrl(order.productId),
+        productName: order.product?.name ?? null,
+        fbp: order.metaFbp,
+        fbc: order.metaFbc,
+        failedOnly: true,
       });
-      results.push({ eventName, result });
+      results.push({ eventName, result, reason: log?.errorCode ?? null });
     }
 
     const refreshed = await prisma.metaEventLog.findMany({

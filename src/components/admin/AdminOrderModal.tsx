@@ -101,6 +101,8 @@ type Props = {
     at: string;
   } | null;
   metaEventLogs?: SerializedMetaEventLog[];
+  onRetryMetaPurchase?: () => void;
+  retryMetaBusy?: boolean;
   cities?: string[];
   onCheckRisk?: () => void;
   riskMessage?: string | null;
@@ -145,6 +147,8 @@ export function AdminOrderModal({
   syncingShipping,
   lastShippingSync,
   metaEventLogs,
+  onRetryMetaPurchase,
+  retryMetaBusy,
   cities = [],
   onCheckRisk,
   riskMessage,
@@ -471,6 +475,18 @@ export function AdminOrderModal({
                     </span>
                   </li>
                 </ul>
+                {onRetryMetaPurchase &&
+                metaLogLabel(metaEventLogs, "Purchase", t) !== t("orderMetaSent") ? (
+                  <button
+                    type="button"
+                    className="admin-btn-secondary mt-2 w-full text-sm"
+                    disabled={retryMetaBusy}
+                    onClick={onRetryMetaPurchase}
+                  >
+                    <MaterialIcon name="replay" className="!text-base" />
+                    {retryMetaBusy ? t("metaFunnelRetrying") : t("metaFunnelRetryPurchase")}
+                  </button>
+                ) : null}
               </div>
             </div>
           ) : null}
