@@ -23,6 +23,14 @@ function readMetaString(body: Record<string, unknown>, key: string): string | nu
   return typeof value === "string" && value.trim() ? value.trim().slice(0, 2000) : null;
 }
 
+/** fbclid and landing URLs must reach CAPI verbatim (Meta rejects modified fbc). */
+function readMetaVerbatimString(body: Record<string, unknown>, key: string): string | null {
+  const meta = body.meta;
+  if (!meta || typeof meta !== "object") return null;
+  const value = (meta as Record<string, unknown>)[key];
+  return typeof value === "string" && value.length > 0 ? value.slice(0, 4000) : null;
+}
+
 export async function GET() {
   try {
     const isAdmin = await isAdminAuthenticated();
@@ -61,8 +69,8 @@ export async function POST(request: Request) {
 
     const capiContext = !isAdmin
       ? resolveMetaCapiUserFromRequest(request, {
-          fbclid: readMetaString(body, "fbclid"),
-          landingEventSourceUrl: readMetaString(body, "landingEventSourceUrl"),
+          fbclid: readMetaVerbatimString(body, "fbclid"),
+          landingEventSourceUrl: readMetaVerbatimString(body, "landingEventSourceUrl"),
           checkoutEventSourceUrl: readMetaString(body, "eventSourceUrl"),
           clientFbp: metaFbp,
           clientFbc: metaFbc,

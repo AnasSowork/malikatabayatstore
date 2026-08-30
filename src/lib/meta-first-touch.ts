@@ -28,7 +28,7 @@ export function readFirstTouchFbclid(): string | null {
   if (typeof window === "undefined" || typeof sessionStorage === "undefined") return null;
   try {
     const value = sessionStorage.getItem(META_FIRST_TOUCH_FBCLID_KEY);
-    return value && value.trim() ? value : null;
+    return value && value.length > 0 ? value : null;
   } catch {
     return null;
   }

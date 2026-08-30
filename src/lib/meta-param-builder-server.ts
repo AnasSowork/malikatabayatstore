@@ -40,10 +40,15 @@ function parseCookieHeader(header: string | null): Cookies {
     const idx = part.indexOf("=");
     if (idx <= 0) continue;
     const name = part.slice(0, idx).trim();
-    const value = part.slice(idx + 1).trim();
+    // Meta _fbc/_fbp must stay verbatim — do not trim cookie values.
+    const value = part.slice(idx + 1);
     if (name) cookies[name] = value;
   }
   return cookies;
+}
+
+function verbatim(value: string | null | undefined): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
 }
 
 function createParamBuilder(): ParamBuilder {
@@ -120,8 +125,10 @@ export function resolveMetaCapiUserFromRequest(
   const host = request.headers.get("host") ?? "malikatalabayat.com";
   const cookies = parseCookieHeader(request.headers.get("cookie"));
 
-  if (input.clientFbp?.trim() && !cookies._fbp) cookies._fbp = input.clientFbp.trim();
-  if (input.clientFbc?.trim() && !cookies._fbc) cookies._fbc = input.clientFbc.trim();
+  const clientFbp = verbatim(input.clientFbp);
+  const clientFbc = verbatim(input.clientFbc);
+  if (clientFbp && !cookies._fbp) cookies._fbp = clientFbp;
+  if (clientFbc && !cookies._fbc) cookies._fbc = clientFbc;
 
   const queryParams: QueryParams = {};
   const landingFbclid = (() => {
@@ -132,7 +139,8 @@ export function resolveMetaCapiUserFromRequest(
       return null;
     }
   })();
-  const fbclid = input.fbclid?.trim() || landingFbclid;
+  // fbclid must stay exactly as captured from the URL — no trim, case change, or truncation.
+  const fbclid = verbatim(input.fbclid) ?? landingFbclid;
   if (fbclid) queryParams.fbclid = fbclid;
 
   let scheme = "https";
@@ -170,8 +178,8 @@ export function resolveMetaCapiUserFromRequest(
   const hashed = hashCustomerPii(builder, input);
 
   return {
-    fbp: builder.getFbp() ?? input.clientFbp?.trim() ?? null,
-    fbc: builder.getFbc() ?? input.clientFbc?.trim() ?? null,
+    fbp: builder.getFbp() ?? clientFbp,
+    fbc: builder.getFbc() ?? clientFbc,
     clientIpAddress: builder.getClientIpAddress() ?? clientIpFromRequest(request),
     clientUserAgent: request.headers.get("user-agent"),
     eventSourceUrl: input.checkoutEventSourceUrl ?? builder.getEventSourceUrl(),

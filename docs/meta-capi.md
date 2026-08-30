@@ -47,12 +47,23 @@ First-touch UTMs are captured in `sessionStorage` by `AttributionCapture` withou
 
 Server-side checkout uses Meta’s official [`capi-param-builder-nodejs`](https://developers.facebook.com/documentation/ads-commerce/conversions-api/parameter-builder-library) to:
 
-- Build **`fbc` from first-touch `fbclid`** (stored in session before consent/Pixel)
+- Prefer **`_fbc` cookie verbatim** when present; otherwise build `fbc` from **unmodified first-touch `fbclid`**
 - Prefer **IPv6 client IP** when available
 - Send **`event_source_url`** and **`referrer_url`**
 - Normalize + SHA256-hash **phone, name, city, country, external_id** per Meta rules
 
+**Do not** trim, lowercase, or truncate `fbclid` or `_fbc` — Meta rejects modified click IDs.
+
 First-touch capture (`src/lib/meta-first-touch.ts`) runs on every page load — no marketing consent required for storing `fbclid`.
+
+### Validate with Payload Helper
+
+After deploy, confirm `fbc` format before relying on Events Manager:
+
+1. Open [Meta Payload Helper](https://developers.facebook.com/docs/marketing-api/conversions-api/payload-helper) (Events Manager → **Test events** → **Payload Helper**).
+2. Set **Event name** to `Purchase`, **Action source** to `website`.
+3. Under **User data**, paste the **`fbc`** value from an admin order’s Meta log (or a test order’s stored `metaFbc`).
+4. Confirm Meta accepts the payload (valid `fb.1.{timestamp}.{fbclid}` structure, case preserved).
 
 Browser Pixel + funnel CAPI still require marketing consent. **Server CAPI Purchase always sends** (first-party order).
 

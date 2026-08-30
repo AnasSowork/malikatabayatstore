@@ -4,6 +4,7 @@ import {
   captureMetaBrowserIds,
   getMetaBrowserIds,
 } from "@/lib/meta-browser-cookies";
+import { readFirstTouchFbclid, readFirstTouchLandingUrl } from "@/lib/meta-first-touch";
 import { hasMarketingConsent } from "@/lib/consent";
 import { buildMetaCommerceData } from "@/lib/meta-commerce";
 import { createMetaEventId, purchaseEventId } from "@/lib/meta-event-id";
@@ -105,6 +106,8 @@ type CapiPayload = {
   eventSourceUrl: string;
   fbp: string | null;
   fbc: string | null;
+  fbclid: string | null;
+  landingEventSourceUrl: string | null;
   productId: string;
   productName?: string;
   value: number;
@@ -124,6 +127,8 @@ function buildCapiPayload(eventName: BrowserRelayEvent, input: MetaTrackInput): 
     eventSourceUrl: window.location.href,
     fbp,
     fbc,
+    fbclid: readFirstTouchFbclid(),
+    landingEventSourceUrl: readFirstTouchLandingUrl(),
     productId: input.productId,
     productName: input.productName,
     value: input.value,
@@ -174,6 +179,8 @@ async function postCapiPayload(payload: CapiPayload): Promise<boolean> {
       eventSourceUrl: payload.eventSourceUrl,
       fbp: payload.fbp,
       fbc: payload.fbc,
+      fbclid: payload.fbclid,
+      landingEventSourceUrl: payload.landingEventSourceUrl,
       productId: payload.productId,
       productName: payload.productName,
       value: payload.value,
@@ -225,6 +232,8 @@ export function flushCapiQueue() {
           eventSourceUrl: item.eventSourceUrl,
           fbp: fbp ?? item.fbp,
           fbc: fbc ?? item.fbc,
+          fbclid: readFirstTouchFbclid() ?? item.fbclid,
+          landingEventSourceUrl: readFirstTouchLandingUrl() ?? item.landingEventSourceUrl,
           productId: item.productId,
           productName: item.productName,
           value: item.value,

@@ -27,6 +27,8 @@ type Body = {
   eventSourceUrl?: unknown;
   fbp?: unknown;
   fbc?: unknown;
+  fbclid?: unknown;
+  landingEventSourceUrl?: unknown;
   productId?: unknown;
   productName?: unknown;
   value?: unknown;
@@ -47,6 +49,12 @@ function asString(value: unknown, maxLen = 500): string | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
   return trimmed.slice(0, maxLen);
+}
+
+/** Meta fbclid / landing URL — no trim or case change before Parameter Builder. */
+function asVerbatimString(value: unknown, maxLen = 4000): string | null {
+  if (typeof value !== "string" || value.length === 0) return null;
+  return value.slice(0, maxLen);
 }
 
 function asNumber(value: unknown): number | null {
@@ -166,6 +174,8 @@ export async function POST(request: Request) {
     }
 
     const resolved = resolveMetaCapiUserFromRequest(request, {
+      fbclid: asVerbatimString(body.fbclid),
+      landingEventSourceUrl: asVerbatimString(body.landingEventSourceUrl),
       checkoutEventSourceUrl: asString(body.eventSourceUrl, 2000),
       clientFbp: sanitizeMetaBrowserIdFromBody(body.fbp, "fbp"),
       clientFbc: sanitizeMetaBrowserIdFromBody(body.fbc, "fbc"),
