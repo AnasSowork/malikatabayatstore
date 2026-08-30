@@ -114,22 +114,29 @@ export async function POST(request: Request) {
       include: { product: true, metaEventLogs: true },
     });
 
-    // Meta must never block checkout success.
+    // Meta must never block checkout success — await send so Passenger finishes before response ends.
     if (!isAdmin) {
-      void sendOrRetryMetaOrderEvent({
-        order,
-        eventName: "Purchase",
-        eventId: purchaseEventId(order.id),
-        eventTime: Math.floor(order.createdAt.getTime() / 1000),
-        eventSourceUrl: capiContext?.eventSourceUrl ?? readMetaString(body, "eventSourceUrl"),
-        referrerUrl: capiContext?.referrerUrl ?? null,
-        productName: readMetaString(body, "productName"),
-        clientIpAddress: capiContext?.clientIpAddress ?? null,
-        clientUserAgent: capiContext?.clientUserAgent ?? request.headers.get("user-agent"),
-        paramBuilderHashed: hashOrderPiiForCapi(order),
-        fbp: metaFbp,
-        fbc: metaFbc,
-      });
+      try {
+        await sendOrRetryMetaOrderEvent({
+          order,
+          eventName: "Purchase",
+          eventId: purchaseEventId(order.id),
+          eventTime: Math.floor(order.createdAt.getTime() / 1000),
+          eventSourceUrl: capiContext?.eventSourceUrl ?? readMetaString(body, "eventSourceUrl"),
+          referrerUrl: capiContext?.referrerUrl ?? null,
+          productName: readMetaString(body, "productName"),
+          clientIpAddress: capiContext?.clientIpAddress ?? null,
+          clientUserAgent: capiContext?.clientUserAgent ?? request.headers.get("user-agent"),
+          paramBuilderHashed: hashOrderPiiForCapi(order),
+          fbp: metaFbp,
+          fbc: metaFbc,
+        });
+      } catch (metaError) {
+        console.error(
+          "[api/orders] Meta Purchase send failed",
+          metaError instanceof Error ? metaError.message : metaError,
+        );
+      }
     } else {
       // Admin-created non-PENDING statuses still need lifecycle analytics once.
       scheduleOrderStatusTransition({

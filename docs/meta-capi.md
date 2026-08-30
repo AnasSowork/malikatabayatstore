@@ -162,7 +162,7 @@ Order create never fails because of Meta. CAPI runs after DB save; failures logg
 { "orderId": "<uuid>", "eventName": "Purchase" }
 ```
 
-Re-sends FAILED, missing, consent-skipped, or stuck PENDING Purchase events. Uses the order’s original `createdAt` as `event_time`.
+Re-sends FAILED, missing, consent-skipped, or stuck PENDING Purchase events. Backfill retries clamp `event_time` to Meta’s ~7-day window; live orders use the real order timestamp.
 
 ## Backfill failed purchases
 
