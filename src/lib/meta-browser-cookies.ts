@@ -18,27 +18,15 @@ function saveFirstTouch(key: string, value: string) {
   }
 }
 
-/** fbc must stay exactly as Meta set it — case-sensitive, optional SDK appendix segment. */
+/** fbc must stay exactly as Meta set it — case-sensitive; fbclid may contain dots. */
 export function isValidMetaFbc(value: string): boolean {
-  const segments = value.split(".");
-  if (segments.length < 4 || segments.length > 5) return false;
-  return (
-    segments[0] === "fb" &&
-    /^\d+$/.test(segments[1]!) &&
-    /^\d+$/.test(segments[2]!) &&
-    segments[3]!.length > 0
-  );
+  const match = /^fb\.(\d+)\.(\d+)\.(.+)$/.exec(value);
+  return Boolean(match && match[3]!.length > 0);
 }
 
 export function isValidMetaFbp(value: string): boolean {
-  const segments = value.split(".");
-  if (segments.length < 4 || segments.length > 5) return false;
-  return (
-    segments[0] === "fb" &&
-    /^\d+$/.test(segments[1]!) &&
-    /^\d+$/.test(segments[2]!) &&
-    /^\d+$/.test(segments[3]!)
-  );
+  const match = /^fb\.(\d+)\.(\d+)\.(\d+)(?:\.[A-Za-z0-9]{2,8})?$/.exec(value);
+  return Boolean(match);
 }
 
 export function sanitizeMetaBrowserId(

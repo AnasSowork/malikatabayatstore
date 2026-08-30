@@ -9,12 +9,13 @@ import {
 } from "@/lib/order-lifecycle-analytics";
 import { metaProductEventSourceUrl } from "@/lib/meta-store-url";
 
-/** Meta Graph API rejects events older than ~7 days — clamp for backfill. */
+/** Meta Graph API rejects events older than ~7 days — use now for late backfill. */
 export function metaBackfillEventTime(createdAt: Date): number {
   const orderSec = Math.floor(createdAt.getTime() / 1000);
+  const nowSec = Math.floor(Date.now() / 1000);
   const maxAgeSec = 7 * 24 * 3600 - 600;
-  const floorSec = Math.floor(Date.now() / 1000) - maxAgeSec;
-  return Math.max(orderSec, floorSec);
+  if (nowSec - orderSec <= maxAgeSec) return orderSec;
+  return nowSec;
 }
 
 let productionPrisma: PrismaClient | null = null;
@@ -319,4 +320,94 @@ export async function backfillPurchaseBatch(input: {
     alreadyDone,
     results,
   };
+}
+
+const RETIMESTAMP_MIN_LAG_MS = 60 * 60 * 1000;
+
+/** Re-send backfilled Purchase events with event_time=now (fixes Meta "timestamp too old" diagnostics). */
+export async function retimestampPurchaseBatch(input: {
+  limit?: number;
+  delayMs?: number;
+}): Promise<{
+  processed: number;
+  sent: number;
+  failed: number;
+  results: Array<{ orderId: string; result: MetaOrderSendResult; errorCode: string | null }>;
+}> {
+  const limit = Math.min(Math.max(input.limit ?? 50, 1), 200);
+  const delayMs = Math.max(input.delayMs ?? 150, 0);
+  const prisma = resolveBackfillPrisma();
+  const recentSendCutoff = new Date(Date.now() - 72 * 3600 * 1000);
+
+  const orders = await prisma.order.findMany({
+    where: {
+      metaEventLogs: {
+        some: {
+          eventName: "Purchase",
+          status: "SENT",
+          sentAt: { gte: recentSendCutoff },
+        },
+      },
+    },
+    include: {
+      metaEventLogs: { where: { eventName: "Purchase" } },
+      product: { select: { name: true } },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const candidates = orders.filter((order) => {
+    const log = findPurchaseLog(order.metaEventLogs);
+    if (!log?.sentAt || log.status !== "SENT") return false;
+    return log.sentAt.getTime() - order.createdAt.getTime() > RETIMESTAMP_MIN_LAG_MS;
+  });
+
+  const batch = candidates.slice(0, limit);
+  const results: Array<{
+    orderId: string;
+    result: MetaOrderSendResult;
+    errorCode: string | null;
+  }> = [];
+  let sent = 0;
+  let failed = 0;
+
+  for (let i = 0; i < batch.length; i += 1) {
+    const order = batch[i]!;
+    await prisma.metaEventLog.deleteMany({
+      where: { orderId: order.id, eventName: "Purchase" },
+    });
+
+    const result = await sendOrRetryMetaOrderEvent({
+      order: toLifecycleOrder(order),
+      eventName: "Purchase",
+      eventId: purchaseEventId(order.id),
+      eventTime: Math.floor(Date.now() / 1000),
+      eventSourceUrl: metaProductEventSourceUrl(order.productId),
+      productName: order.product?.name ?? null,
+      fbp: order.metaFbp,
+      fbc: order.metaFbc,
+    });
+
+    let errorCode: string | null = null;
+    if (result === "failed") {
+      const log = await prisma.metaEventLog.findUnique({
+        where: {
+          orderId_eventName: { orderId: order.id, eventName: "Purchase" },
+        },
+        select: { errorCode: true },
+      });
+      errorCode = log?.errorCode ?? null;
+      failed += 1;
+    } else if (result === "sent") {
+      sent += 1;
+    }
+
+    results.push({ orderId: order.id, result, errorCode });
+
+    if (delayMs > 0 && i < batch.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+
+  return { processed: results.length, sent, failed, results };
 }

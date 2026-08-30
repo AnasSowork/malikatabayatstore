@@ -4,13 +4,14 @@ import { isMetaCapiConfigured } from "@/lib/meta-capi-server";
 import {
   backfillPurchaseBatch,
   loadMetaPurchaseDiagnostics,
+  retimestampPurchaseBatch,
 } from "@/lib/meta-backfill";
 
 export const runtime = "nodejs";
 
 /**
  * Admin-only: re-send Purchase CAPI for FAILED / missing / consent-skipped orders.
- * Uses original order createdAt as event_time for Meta attribution.
+ * `retimestamp: true` re-sends recent backfills with event_time=now (fixes stale timestamps).
  */
 export async function POST(request: Request) {
   try {
@@ -35,6 +36,8 @@ export async function POST(request: Request) {
       ? body.orderIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0)
       : undefined;
 
+    const retimestamp = body.retimestamp === true;
+
     if (dryRun) {
       const diagnostics = await loadMetaPurchaseDiagnostics(Math.min(limit, 200));
       const targetIds = orderIds?.length
@@ -44,17 +47,20 @@ export async function POST(request: Request) {
       return NextResponse.json({
         ok: true,
         dryRun: true,
+        retimestamp,
         wouldProcess: targetIds.length,
         orderIds: targetIds,
         candidates: diagnostics.candidates.filter((row) => targetIds.includes(row.orderId)),
       });
     }
 
-    const batch = await backfillPurchaseBatch({
-      orderIds,
-      limit,
-      delayMs: 150,
-    });
+    const batch = retimestamp
+      ? await retimestampPurchaseBatch({ limit, delayMs: 150 })
+      : await backfillPurchaseBatch({
+          orderIds,
+          limit,
+          delayMs: 150,
+        });
 
     const diagnostics = await loadMetaPurchaseDiagnostics(50);
 

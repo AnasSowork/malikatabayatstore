@@ -81,8 +81,8 @@ export async function POST(request: Request) {
       : null;
 
     if (capiContext) {
-      metaFbp = capiContext.fbp ?? metaFbp;
-      metaFbc = capiContext.fbc ?? metaFbc;
+      metaFbp = metaFbp ?? capiContext.fbp;
+      metaFbc = metaFbc ?? capiContext.fbc;
     }
 
     const order = await prisma.order.create({

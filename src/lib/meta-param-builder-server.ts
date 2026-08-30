@@ -51,6 +51,17 @@ function verbatim(value: string | null | undefined): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+/** Extract fbclid from a landing URL without URLSearchParams (preserves case). */
+function fbclidFromLandingUrl(url: string): string | null {
+  try {
+    const search = new URL(url).search;
+    const match = /(?:^|[?&])fbclid=([^&]*)/.exec(search);
+    return match?.[1] ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
 function createParamBuilder(): ParamBuilder {
   return new ParamBuilder(STORE_DOMAINS);
 }
@@ -127,21 +138,21 @@ export function resolveMetaCapiUserFromRequest(
 
   const clientFbp = verbatim(input.clientFbp);
   const clientFbc = verbatim(input.clientFbc);
+  const hasClientFbc = Boolean(clientFbc);
+  const hasClientFbp = Boolean(clientFbp);
+
   if (clientFbp && !cookies._fbp) cookies._fbp = clientFbp;
   if (clientFbc && !cookies._fbc) cookies._fbc = clientFbc;
 
   const queryParams: QueryParams = {};
-  const landingFbclid = (() => {
-    if (!input.landingEventSourceUrl) return null;
-    try {
-      return new URL(input.landingEventSourceUrl).searchParams.get("fbclid");
-    } catch {
-      return null;
-    }
-  })();
-  // fbclid must stay exactly as captured from the URL — no trim, case change, or truncation.
-  const fbclid = verbatim(input.fbclid) ?? landingFbclid;
-  if (fbclid) queryParams.fbclid = fbclid;
+  // Never pass fbclid when the browser already sent _fbc — SDK would rebuild/modify fbc.
+  if (!hasClientFbc) {
+    const landingFbclid = input.landingEventSourceUrl
+      ? fbclidFromLandingUrl(input.landingEventSourceUrl)
+      : null;
+    const fbclid = verbatim(input.fbclid) ?? landingFbclid;
+    if (fbclid) queryParams.fbclid = fbclid;
+  }
 
   let scheme = "https";
   let requestUri = "/";
@@ -178,8 +189,9 @@ export function resolveMetaCapiUserFromRequest(
   const hashed = hashCustomerPii(builder, input);
 
   return {
-    fbp: builder.getFbp() ?? clientFbp,
-    fbc: builder.getFbc() ?? clientFbc,
+    // Browser _fbc/_fbp are authoritative — ParamBuilder may rebuild/modify when fbclid is present.
+    fbp: clientFbp ?? builder.getFbp(),
+    fbc: clientFbc ?? builder.getFbc(),
     clientIpAddress: builder.getClientIpAddress() ?? clientIpFromRequest(request),
     clientUserAgent: request.headers.get("user-agent"),
     eventSourceUrl: input.checkoutEventSourceUrl ?? builder.getEventSourceUrl(),

@@ -184,7 +184,10 @@ Per order: open the order modal → **Resend Purchase to Meta** when Purchase is
 ```json
 { "dryRun": true, "limit": 50 }
 { "limit": 50, "orderIds": ["<uuid>"] }
+{ "retimestamp": true, "limit": 50 }
 ```
+
+`retimestamp: true` re-sends backfilled Purchase events with `event_time=now` to clear Meta “timestamp too old” diagnostics (same `event_id` for deduplication).
 
 ### CLI (server with DATABASE_URL)
 
@@ -195,6 +198,15 @@ npx tsx scripts/backfill-meta-purchases.ts --order-id=<uuid>
 ```
 
 After backfill, check **Events Manager → Overview** (15–30 min delay). Old orders may be outside Meta’s attribution window if placed weeks ago.
+
+## Events Manager diagnostics (common warnings)
+
+| Warning | Cause | Fix in this codebase |
+| --- | --- | --- |
+| Modified `fbclid` in `fbc` | Server ParamBuilder rebuilt `_fbc` from `fbclid` instead of using the browser cookie | Prefer client `_fbc`/`_fbp`; skip `fbclid` when `_fbc` is present (`meta-param-builder-server.ts`) |
+| Timestamp too far in the past | Backfill sent old `event_time` | Live orders use real `createdAt`; backfill uses `now` for late orders; run `{ "retimestamp": true }` admin backfill to fix already-sent backfills |
+
+**Manual (Events Manager → Pixel → Settings):** Automatic Advanced Matching ON; enable phone, first/last name, city.
 
 ## Environment variables
 
