@@ -9,6 +9,14 @@ import {
 } from "@/lib/order-lifecycle-analytics";
 import { metaProductEventSourceUrl } from "@/lib/meta-store-url";
 
+/** Meta Graph API rejects events older than ~7 days — clamp for backfill. */
+export function metaBackfillEventTime(createdAt: Date): number {
+  const orderSec = Math.floor(createdAt.getTime() / 1000);
+  const maxAgeSec = 7 * 24 * 3600 - 600;
+  const floorSec = Math.floor(Date.now() / 1000) - maxAgeSec;
+  return Math.max(orderSec, floorSec);
+}
+
 let productionPrisma: PrismaClient | null = null;
 
 /** Use PRODUCTION_DATABASE_URL when set (Hostinger), else local DATABASE_URL. */
@@ -118,7 +126,7 @@ export async function backfillOrderPurchase(
     order: toLifecycleOrder(order),
     eventName: "Purchase",
     eventId: purchaseEventId(order.id),
-    eventTime: Math.floor(order.createdAt.getTime() / 1000),
+    eventTime: metaBackfillEventTime(order.createdAt),
     eventSourceUrl: metaProductEventSourceUrl(order.productId),
     productName: order.product?.name ?? null,
     fbp: order.metaFbp,
@@ -235,6 +243,7 @@ export async function backfillPurchaseBatch(input: {
     orderId: string;
     reason: PurchaseBackfillReason | null;
     result: MetaOrderSendResult;
+    errorCode?: string | null;
   }>;
 }> {
   const limit = Math.min(Math.max(input.limit ?? 50, 1), 200);
@@ -269,6 +278,7 @@ export async function backfillPurchaseBatch(input: {
     orderId: string;
     reason: PurchaseBackfillReason | null;
     result: MetaOrderSendResult;
+    errorCode: string | null;
   }> = [];
 
   let sent = 0;
@@ -279,7 +289,17 @@ export async function backfillPurchaseBatch(input: {
   for (let i = 0; i < orders.length; i += 1) {
     const order = orders[i]!;
     const { result, reason } = await backfillOrderPurchase(order);
-    results.push({ orderId: order.id, reason, result });
+    let errorCode: string | null = null;
+    if (result === "failed") {
+      const log = await prisma.metaEventLog.findUnique({
+        where: {
+          orderId_eventName: { orderId: order.id, eventName: "Purchase" },
+        },
+        select: { errorCode: true },
+      });
+      errorCode = log?.errorCode ?? null;
+    }
+    results.push({ orderId: order.id, reason, result, errorCode });
 
     if (result === "sent") sent += 1;
     else if (result === "failed") failed += 1;

@@ -138,7 +138,7 @@ export async function sendOrRetryMetaOrderEvent(input: {
     const quantity = Math.max(1, input.order.quantity);
     const hashedPii =
       input.paramBuilderHashed ?? hashOrderPiiForCapi(input.order);
-    const sent = await sendMetaCapiEvent({
+    const capi = await sendMetaCapiEvent({
       eventName: input.eventName,
       eventId,
       eventTime: input.eventTime ?? Math.floor(Date.now() / 1000),
@@ -165,11 +165,11 @@ export async function sendOrRetryMetaOrderEvent(input: {
       orderId: input.order.id,
       eventName: input.eventName,
       eventId,
-      status: sent ? "SENT" : "FAILED",
-      errorCode: sent ? null : "capi_send_failed",
+      status: capi.sent ? "SENT" : "FAILED",
+      errorCode: capi.sent ? null : capi.error ?? "capi_send_failed",
     });
 
-    return sent ? "sent" : "failed";
+    return capi.sent ? "sent" : "failed";
   } catch (error) {
     console.error(
       "[order-lifecycle-analytics]",

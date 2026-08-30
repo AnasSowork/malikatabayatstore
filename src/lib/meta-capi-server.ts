@@ -128,18 +128,23 @@ export function isMetaCapiConfigured(): boolean {
   return Boolean(getMetaPixelId() && process.env.META_CAPI_ACCESS_TOKEN?.trim());
 }
 
-export async function sendMetaCapiEvent(input: MetaCapiEventInput): Promise<boolean> {
+export type MetaCapiSendResult = {
+  sent: boolean;
+  error?: string | null;
+};
+
+export async function sendMetaCapiEvent(input: MetaCapiEventInput): Promise<MetaCapiSendResult> {
   const pixelId = getMetaPixelId();
   const accessToken = process.env.META_CAPI_ACCESS_TOKEN?.trim();
 
   if (!pixelId || !accessToken) {
     console.warn("[meta-capi] skipped — missing pixel id or access token", input.eventName);
-    return false;
+    return { sent: false, error: "missing_config" };
   }
 
   if (!input.eventId.trim()) {
     console.warn("[meta-capi] skipped event without event_id", input.eventName);
-    return false;
+    return { sent: false, error: "missing_event_id" };
   }
 
   const customData = buildMetaCommerceData(input.commerce);
@@ -186,19 +191,24 @@ export async function sendMetaCapiEvent(input: MetaCapiEventInput): Promise<bool
     const json = (await res.json()) as { error?: { message?: string; code?: number }; events_received?: number };
 
     if (!res.ok) {
+      const message = json.error?.message ?? "request failed";
       console.error(
         "[meta-capi]",
         input.eventName,
         json.error?.code ?? res.status,
-        json.error?.message ?? "request failed",
+        message,
       );
-      return false;
+      return {
+        sent: false,
+        error: `${json.error?.code ?? res.status}:${message}`.slice(0, 200),
+      };
     }
 
-    return (json.events_received ?? 0) > 0;
+    return { sent: (json.events_received ?? 0) > 0 };
   } catch (error) {
-    console.error("[meta-capi]", input.eventName, error instanceof Error ? error.message : "network error");
-    return false;
+    const message = error instanceof Error ? error.message : "network error";
+    console.error("[meta-capi]", input.eventName, message);
+    return { sent: false, error: message };
   }
 }
 

@@ -5,6 +5,7 @@ import {
   backfillOrderPurchase,
   findPurchaseLog,
   getPurchaseBackfillReason,
+  metaBackfillEventTime,
 } from "@/lib/meta-backfill";
 import {
   sendOrRetryMetaOrderEvent,
@@ -108,7 +109,7 @@ export async function POST(request: Request) {
       const result = await sendOrRetryMetaOrderEvent({
         order,
         eventName,
-        eventTime: Math.floor(order.createdAt.getTime() / 1000),
+        eventTime: metaBackfillEventTime(order.createdAt),
         eventSourceUrl: metaProductEventSourceUrl(order.productId),
         productName: order.product?.name ?? null,
         fbp: order.metaFbp,

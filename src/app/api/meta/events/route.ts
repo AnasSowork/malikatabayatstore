@@ -185,7 +185,7 @@ export async function POST(request: Request) {
       externalId: asString(body.user?.externalId, 128),
     });
 
-    const sent = await sendMetaCapiEvent({
+    const capi = await sendMetaCapiEvent({
       eventName: eventName as MetaCapiEventName,
       eventId,
       eventSourceUrl: resolved.eventSourceUrl,
@@ -206,7 +206,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ ok: sent });
+    return NextResponse.json({ ok: capi.sent });
   } catch (error) {
     console.error("[api/meta/events]", error instanceof Error ? error.message : error);
     return NextResponse.json({ error: "Failed to send event" }, { status: 500 });
