@@ -337,15 +337,15 @@ export async function retimestampPurchaseBatch(input: {
   const limit = Math.min(Math.max(input.limit ?? 50, 1), 200);
   const delayMs = Math.max(input.delayMs ?? 150, 0);
   const prisma = resolveBackfillPrisma();
-  const recentSendCutoff = new Date(Date.now() - 72 * 3600 * 1000);
+  const ageCutoff = new Date(Date.now() - 2 * 24 * 3600 * 1000);
 
   const orders = await prisma.order.findMany({
     where: {
+      createdAt: { lt: ageCutoff },
       metaEventLogs: {
         some: {
           eventName: "Purchase",
           status: "SENT",
-          sentAt: { gte: recentSendCutoff },
         },
       },
     },
@@ -358,8 +358,11 @@ export async function retimestampPurchaseBatch(input: {
 
   const candidates = orders.filter((order) => {
     const log = findPurchaseLog(order.metaEventLogs);
-    if (!log?.sentAt || log.status !== "SENT") return false;
-    return log.sentAt.getTime() - order.createdAt.getTime() > RETIMESTAMP_MIN_LAG_MS;
+    if (!log || log.status !== "SENT") return false;
+    if (log.sentAt) {
+      return log.sentAt.getTime() - order.createdAt.getTime() > RETIMESTAMP_MIN_LAG_MS;
+    }
+    return order.createdAt < ageCutoff;
   });
 
   const batch = candidates.slice(0, limit);
