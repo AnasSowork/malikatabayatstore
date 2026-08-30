@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { sanitizeMetaBrowserIdFromBody } from "@/lib/meta-browser-cookies-server";
 import { parseMarketingConsentFromBody } from "@/lib/consent";
 import {
-  clientIpFromRequest,
   META_BROWSER_RELAY_EVENTS,
   sendMetaCapiEvent,
   type MetaCapiEventName,
 } from "@/lib/meta-capi-server";
+import { resolveMetaCapiUserFromRequest } from "@/lib/meta-param-builder-server";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -59,7 +59,10 @@ function asNumber(value: unknown): number | null {
 }
 
 function clientKey(request: Request): string {
-  return clientIpFromRequest(request) || "unknown";
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip")?.trim();
+  return ip || "unknown";
 }
 
 function rateLimit(key: string): boolean {
@@ -162,10 +165,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid unitPrice" }, { status: 400 });
     }
 
+    const resolved = resolveMetaCapiUserFromRequest(request, {
+      checkoutEventSourceUrl: asString(body.eventSourceUrl, 2000),
+      clientFbp: sanitizeMetaBrowserIdFromBody(body.fbp, "fbp"),
+      clientFbc: sanitizeMetaBrowserIdFromBody(body.fbc, "fbc"),
+      phone: asString(body.user?.phone, 20),
+      fullName: asString(body.user?.fullName, 120),
+      city: asString(body.user?.city, 80),
+      externalId: asString(body.user?.externalId, 128),
+    });
+
     const sent = await sendMetaCapiEvent({
       eventName: eventName as MetaCapiEventName,
       eventId,
-      eventSourceUrl: asString(body.eventSourceUrl, 2000),
+      eventSourceUrl: resolved.eventSourceUrl,
+      referrerUrl: resolved.referrerUrl,
       productName: asString(body.productName, 200),
       commerce: {
         productId,
@@ -174,15 +188,11 @@ export async function POST(request: Request) {
         unitPrice: unitPrice ?? undefined,
       },
       user: {
-        phone: asString(body.user?.phone, 20),
-        firstName: asString(body.user?.firstName, 80),
-        fullName: asString(body.user?.fullName, 120),
-        city: asString(body.user?.city, 80),
-        externalId: asString(body.user?.externalId, 128),
-        fbp: sanitizeMetaBrowserIdFromBody(body.fbp, "fbp"),
-        fbc: sanitizeMetaBrowserIdFromBody(body.fbc, "fbc"),
-        clientIpAddress: clientIpFromRequest(request),
-        clientUserAgent: request.headers.get("user-agent"),
+        fbp: resolved.fbp,
+        fbc: resolved.fbc,
+        clientIpAddress: resolved.clientIpAddress,
+        clientUserAgent: resolved.clientUserAgent ?? request.headers.get("user-agent"),
+        paramBuilder: resolved.hashed,
       },
     });
 

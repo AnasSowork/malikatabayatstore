@@ -15,6 +15,10 @@ import {
 } from "@/lib/meta-pixel-events";
 import { hasMarketingConsent, readConsentPreferences } from "@/lib/consent";
 import { readStoredUtm } from "@/lib/meta-utm";
+import {
+  readFirstTouchFbclid,
+  readFirstTouchLandingUrl,
+} from "@/lib/meta-first-touch";
 
 type Props = {
   productId: string;
@@ -102,6 +106,8 @@ export function OrderForm({
           meta: {
             fbp,
             fbc,
+            fbclid: readFirstTouchFbclid(),
+            landingEventSourceUrl: readFirstTouchLandingUrl(),
             eventSourceUrl: window.location.href,
             productName,
             marketingConsent: readConsentPreferences()?.marketing ?? null,

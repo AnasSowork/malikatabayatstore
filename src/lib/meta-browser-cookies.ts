@@ -18,13 +18,27 @@ function saveFirstTouch(key: string, value: string) {
   }
 }
 
-/** fbc must stay exactly as the Pixel set it: fb.{subdomainIndex}.{time}.{fbclid} */
+/** fbc must stay exactly as Meta set it — case-sensitive, optional SDK appendix segment. */
 export function isValidMetaFbc(value: string): boolean {
-  return /^fb\.\d+\.\d+\..+$/.test(value);
+  const segments = value.split(".");
+  if (segments.length < 4 || segments.length > 5) return false;
+  return (
+    segments[0] === "fb" &&
+    /^\d+$/.test(segments[1]!) &&
+    /^\d+$/.test(segments[2]!) &&
+    segments[3]!.length > 0
+  );
 }
 
 export function isValidMetaFbp(value: string): boolean {
-  return /^fb\.\d+\.\d+\.\d+$/.test(value);
+  const segments = value.split(".");
+  if (segments.length < 4 || segments.length > 5) return false;
+  return (
+    segments[0] === "fb" &&
+    /^\d+$/.test(segments[1]!) &&
+    /^\d+$/.test(segments[2]!) &&
+    /^\d+$/.test(segments[3]!)
+  );
 }
 
 export function sanitizeMetaBrowserId(

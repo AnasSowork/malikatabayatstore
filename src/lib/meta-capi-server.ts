@@ -9,6 +9,7 @@ import {
 } from "@/lib/meta-capi-hash";
 import { META_PIXEL_COUNTRY } from "@/lib/meta-pixel-user";
 import { buildMetaCommerceData, type MetaCommerceInput } from "@/lib/meta-commerce";
+import type { MetaCapiResolvedUserData } from "@/lib/meta-param-builder-server";
 
 /** Standard Meta ecommerce events + COD quality custom events (CAPI-only). */
 export type MetaCapiEventName =
@@ -43,6 +44,8 @@ export type MetaCapiUserInput = {
   clientUserAgent?: string | null;
   fbp?: string | null;
   fbc?: string | null;
+  /** Pre-hashed PII from Meta Parameter Builder — preferred when present. */
+  paramBuilder?: MetaCapiResolvedUserData["hashed"] | null;
 };
 
 export type MetaCapiEventInput = {
@@ -50,12 +53,21 @@ export type MetaCapiEventInput = {
   eventId: string;
   eventTime?: number;
   eventSourceUrl?: string | null;
+  referrerUrl?: string | null;
   commerce: MetaCommerceInput;
   productName?: string | null;
   user?: MetaCapiUserInput;
 };
 
 type GraphUserData = Record<string, string | string[]>;
+
+function applyHashedField(
+  data: GraphUserData,
+  key: string,
+  hashed: string | null | undefined,
+) {
+  if (hashed) data[key] = [hashed];
+}
 
 function buildUserData(user?: MetaCapiUserInput): GraphUserData {
   const data: GraphUserData = {};
@@ -64,6 +76,18 @@ function buildUserData(user?: MetaCapiUserInput): GraphUserData {
   if (user?.clientUserAgent) data.client_user_agent = user.clientUserAgent;
   if (user?.fbp) data.fbp = user.fbp;
   if (user?.fbc) data.fbc = user.fbc;
+
+  const pb = user?.paramBuilder;
+  if (pb) {
+    applyHashedField(data, "em", pb.em);
+    applyHashedField(data, "ph", pb.ph);
+    applyHashedField(data, "fn", pb.fn);
+    applyHashedField(data, "ln", pb.ln);
+    applyHashedField(data, "ct", pb.ct);
+    applyHashedField(data, "country", pb.country);
+    applyHashedField(data, "external_id", pb.external_id);
+    return data;
+  }
 
   const emailHash = user?.email ? hashMetaEmail(user.email) : null;
   if (emailHash) data.em = [emailHash];
@@ -136,6 +160,10 @@ export async function sendMetaCapiEvent(input: MetaCapiEventInput): Promise<bool
     payload.event_source_url = input.eventSourceUrl;
   }
 
+  if (input.referrerUrl) {
+    payload.referrer_url = input.referrerUrl;
+  }
+
   const body: Record<string, unknown> = {
     data: [payload],
   };
@@ -174,11 +202,5 @@ export async function sendMetaCapiEvent(input: MetaCapiEventInput): Promise<bool
   }
 }
 
-export function clientIpFromRequest(request: Request): string | null {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) {
-    const first = forwarded.split(",")[0]?.trim();
-    if (first) return first;
-  }
-  return request.headers.get("x-real-ip")?.trim() || null;
-}
+
+export { clientIpFromRequest } from "@/lib/meta-request-ip";

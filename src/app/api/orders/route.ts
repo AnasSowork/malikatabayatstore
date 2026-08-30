@@ -5,8 +5,11 @@ import { parseOrderInput } from "@/lib/order-admin";
 import { serializeOrder } from "@/lib/order-serialize";
 import { readMetaBrowserId } from "@/lib/meta-browser-cookies-server";
 import { parseMarketingConsentFromBody } from "@/lib/consent";
-import { clientIpFromRequest } from "@/lib/meta-capi-server";
 import { purchaseEventId } from "@/lib/meta-event-id";
+import {
+  hashOrderPiiForCapi,
+  resolveMetaCapiUserFromRequest,
+} from "@/lib/meta-param-builder-server";
 import {
   scheduleOrderStatusTransition,
   sendOrRetryMetaOrderEvent,
@@ -52,9 +55,27 @@ export async function POST(request: Request) {
 
     const meta = body.meta;
     const utm = sanitizeUtmFromBody(meta);
-    const metaFbp = readMetaBrowserId(meta, "fbp");
-    const metaFbc = readMetaBrowserId(meta, "fbc");
+    let metaFbp = readMetaBrowserId(meta, "fbp");
+    let metaFbc = readMetaBrowserId(meta, "fbc");
     const marketingConsent = parseMarketingConsentFromBody(meta);
+
+    const capiContext = !isAdmin
+      ? resolveMetaCapiUserFromRequest(request, {
+          fbclid: readMetaString(body, "fbclid"),
+          landingEventSourceUrl: readMetaString(body, "landingEventSourceUrl"),
+          checkoutEventSourceUrl: readMetaString(body, "eventSourceUrl"),
+          clientFbp: metaFbp,
+          clientFbc: metaFbc,
+          phone: parsed.phone,
+          fullName: parsed.customerName,
+          city: parsed.city,
+        })
+      : null;
+
+    if (capiContext) {
+      metaFbp = capiContext.fbp ?? metaFbp;
+      metaFbc = capiContext.fbc ?? metaFbc;
+    }
 
     const order = await prisma.order.create({
       data: {
@@ -92,10 +113,14 @@ export async function POST(request: Request) {
         eventName: "Purchase",
         eventId: purchaseEventId(order.id),
         eventTime: Math.floor(order.createdAt.getTime() / 1000),
-        eventSourceUrl: readMetaString(body, "eventSourceUrl"),
+        eventSourceUrl: capiContext?.eventSourceUrl ?? readMetaString(body, "eventSourceUrl"),
+        referrerUrl: capiContext?.referrerUrl ?? null,
         productName: readMetaString(body, "productName"),
-        clientIpAddress: clientIpFromRequest(request),
-        clientUserAgent: request.headers.get("user-agent"),
+        clientIpAddress: capiContext?.clientIpAddress ?? null,
+        clientUserAgent: capiContext?.clientUserAgent ?? request.headers.get("user-agent"),
+        paramBuilderHashed: hashOrderPiiForCapi(order),
+        fbp: metaFbp,
+        fbc: metaFbc,
       });
     } else {
       // Admin-created non-PENDING statuses still need lifecycle analytics once.

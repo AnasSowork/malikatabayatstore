@@ -1,5 +1,9 @@
 import type { OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import {
+  hashOrderPiiForCapi,
+  type MetaCapiResolvedUserData,
+} from "@/lib/meta-param-builder-server";
 import { sendMetaCapiEvent } from "@/lib/meta-capi-server";
 import {
   cancelledOrderEventId,
@@ -66,6 +70,10 @@ export async function sendOrRetryMetaOrderEvent(input: {
   /** Only for Purchase at checkout — omit for later lifecycle events */
   clientIpAddress?: string | null;
   clientUserAgent?: string | null;
+  referrerUrl?: string | null;
+  fbp?: string | null;
+  fbc?: string | null;
+  paramBuilderHashed?: MetaCapiResolvedUserData["hashed"] | null;
   /** When true, only FAILED rows are re-attempted (admin retry). */
   failedOnly?: boolean;
   /** Admin retry: re-send Purchase previously SKIPPED for marketing consent. */
@@ -128,11 +136,14 @@ export async function sendOrRetryMetaOrderEvent(input: {
 
     const value = orderValue(input.order);
     const quantity = Math.max(1, input.order.quantity);
+    const hashedPii =
+      input.paramBuilderHashed ?? hashOrderPiiForCapi(input.order);
     const sent = await sendMetaCapiEvent({
       eventName: input.eventName,
       eventId,
       eventTime: input.eventTime ?? Math.floor(Date.now() / 1000),
       eventSourceUrl: input.eventSourceUrl,
+      referrerUrl: input.referrerUrl,
       productName: input.productName ?? input.order.product?.name ?? null,
       commerce: {
         productId: input.order.productId,
@@ -141,14 +152,11 @@ export async function sendOrRetryMetaOrderEvent(input: {
         unitPrice: value / quantity,
       },
       user: {
-        phone: input.order.phone,
-        fullName: input.order.customerName,
-        city: input.order.city,
-        externalId: input.order.id,
-        fbp: input.order.metaFbp,
-        fbc: input.order.metaFbc,
+        fbp: input.fbp ?? input.order.metaFbp,
+        fbc: input.fbc ?? input.order.metaFbc,
         clientIpAddress: input.clientIpAddress,
         clientUserAgent: input.clientUserAgent,
+        paramBuilder: hashedPii,
       },
     });
 

@@ -43,6 +43,21 @@ On order create, validated values are persisted on `Order`:
 
 First-touch UTMs are captured in `sessionStorage` by `AttributionCapture` without rewriting URLs.
 
+## Match quality (Parameter Builder)
+
+Server-side checkout uses Meta’s official [`capi-param-builder-nodejs`](https://developers.facebook.com/documentation/ads-commerce/conversions-api/parameter-builder-library) to:
+
+- Build **`fbc` from first-touch `fbclid`** (stored in session before consent/Pixel)
+- Prefer **IPv6 client IP** when available
+- Send **`event_source_url`** and **`referrer_url`**
+- Normalize + SHA256-hash **phone, name, city, country, external_id** per Meta rules
+
+First-touch capture (`src/lib/meta-first-touch.ts`) runs on every page load — no marketing consent required for storing `fbclid`.
+
+Browser Pixel + funnel CAPI still require marketing consent. **Server CAPI Purchase always sends** (first-party order).
+
+In Events Manager → Pixel **Settings**: enable **Automatic Advanced Matching** and check phone/city/name parameters.
+
 ## Consent behavior
 
 Categories: `necessary` | `analytics` | `marketing`.
