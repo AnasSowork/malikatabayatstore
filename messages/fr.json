@@ -556,6 +556,9 @@
     "ar": "العربية",
     "fr": "Français"
   },
+  "whatsapp": {
+    "label": "Contactez-nous sur WhatsApp"
+  },
   "thankYou": {
     "eyebrow": "Commande confirmée",
     "title": "Merci pour votre commande",

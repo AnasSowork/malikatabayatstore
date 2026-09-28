@@ -40,6 +40,7 @@ export function ConsentBanner() {
   return (
     <div
       className="fixed inset-x-0 bottom-0 z-[60] border-t border-black/10 bg-[var(--color-surface-container-lowest,#fff)] p-4 shadow-[0_-8px_30px_rgba(0,0,0,0.12)]"
+      data-consent-banner=""
       role="dialog"
       aria-label={t("title")}
       dir={locale === "ar" ? "rtl" : "ltr"}

@@ -13,6 +13,7 @@ import { MetaPixel } from "@/components/MetaPixel";
 import { SiteAnalyticsBeacon } from "@/components/SiteAnalyticsBeacon";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import { AttributionCapture } from "@/components/AttributionCapture";
+import { WhatsAppFab } from "@/components/WhatsAppFab";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -106,6 +107,7 @@ export default async function LocaleLayout({ children, params }: Props) {
           <StorefrontOnly>
             <SiteFooter />
           </StorefrontOnly>
+          <WhatsAppFab />
         </NextIntlClientProvider>
       </body>
     </html>
