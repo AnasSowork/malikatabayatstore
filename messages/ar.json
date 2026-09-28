@@ -400,7 +400,7 @@
     "deliveryNoOpen": "لا يُسمح للمستلم بفتح الطرد قبل التسليم",
     "orderCitySenditChecking": "جاري التحقق من Sendit…",
     "orderCitySenditOk": "مدينة Sendit: {city}",
-    "orderCitySenditUnknown": "تعذر التحقق من المدينة في Sendit.",
+    "orderCitySenditUnknown": "تعذر التحقق من المدينة في Sendit. اختر حياً من القائمة.",
     "orderShippingRiskCheck": "فحص مخاطر الزبونة",
     "orderShippingRisky": "تنبيه: {count} مرتجع(ات) لهذا الرقم.",
     "orderShippingSafe": "السجل جيد: {delivered} توصيل(ات) ناجحة.",

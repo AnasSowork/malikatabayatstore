@@ -160,6 +160,9 @@ export function AdminOrderModal({
   const [cityValidation, setCityValidation] = useState<string | null>(null);
   const [cityValidationOk, setCityValidationOk] = useState<boolean | null>(null);
   const [cityValidationBusy, setCityValidationBusy] = useState(false);
+  const [cityCandidates, setCityCandidates] = useState<
+    Array<{ id: number; name: string; ville: string }>
+  >([]);
 
   const product = useMemo(
     () => products.find((p) => p.id === form.productId) ?? null,
@@ -204,12 +207,14 @@ export function AdminOrderModal({
     if (!open || !shippingConfigured || shippingTrackingId) {
       setCityValidation(null);
       setCityValidationOk(null);
+      setCityCandidates([]);
       return;
     }
     const city = form.city.trim();
     if (city.length < 2) {
       setCityValidation(null);
       setCityValidationOk(null);
+      setCityCandidates([]);
       return;
     }
 
@@ -217,19 +222,28 @@ export function AdminOrderModal({
       setCityValidationBusy(true);
       void fetch(`/api/admin/shipping/validate-city?city=${encodeURIComponent(city)}`)
         .then(async (res) => {
-          const data = (await res.json()) as { ok?: boolean; error?: string; district?: { name: string } };
+          const data = (await res.json()) as {
+            ok?: boolean;
+            kind?: string;
+            error?: string;
+            district?: { name: string };
+            candidates?: Array<{ id: number; name: string; ville: string }>;
+          };
           if (data.ok) {
             setCityValidationOk(true);
+            setCityCandidates([]);
             setCityValidation(
               data.district?.name ? t("orderCitySenditOk", { city: data.district.name }) : null,
             );
             return;
           }
           setCityValidationOk(false);
+          setCityCandidates(Array.isArray(data.candidates) ? data.candidates : []);
           setCityValidation(data.error ?? t("orderCitySenditUnknown"));
         })
         .catch(() => {
           setCityValidationOk(null);
+          setCityCandidates([]);
           setCityValidation(t("orderCitySenditUnknown"));
         })
         .finally(() => setCityValidationBusy(false));
@@ -531,6 +545,20 @@ export function AdminOrderModal({
                 >
                   {cityValidation}
                 </span>
+              ) : null}
+              {cityCandidates.length > 0 ? (
+                <div className="mt-1 flex max-h-36 flex-wrap gap-1 overflow-y-auto">
+                  {cityCandidates.slice(0, 40).map((candidate) => (
+                    <button
+                      key={candidate.id}
+                      type="button"
+                      className="rounded-md border border-black/15 bg-white px-2 py-0.5 text-left text-xs text-on-surface hover:border-black/40"
+                      onClick={() => setForm((f) => ({ ...f, city: candidate.name }))}
+                    >
+                      {candidate.name}
+                    </button>
+                  ))}
+                </div>
               ) : null}
             </label>
             <label className="admin-field">

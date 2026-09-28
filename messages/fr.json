@@ -400,7 +400,7 @@
     "deliveryNoOpen": "Le destinataire ne peut pas ouvrir le colis avant livraison",
     "orderCitySenditChecking": "Vérification Sendit…",
     "orderCitySenditOk": "Ville Sendit : {city}",
-    "orderCitySenditUnknown": "Impossible de vérifier la ville Sendit.",
+    "orderCitySenditUnknown": "Impossible de vérifier la ville Sendit. Choisissez un quartier dans la liste.",
     "orderShippingRiskCheck": "Vérifier le risque client",
     "orderShippingRisky": "Attention : {count} retour(s) pour ce numéro.",
     "orderShippingSafe": "Historique OK : {delivered} livraison(s) réussie(s).",

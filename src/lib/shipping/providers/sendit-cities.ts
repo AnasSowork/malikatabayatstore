@@ -200,40 +200,87 @@ export function getSenditPickupDistrictId(): number {
 type DistrictNamesCache = {
   fetchedAt: number;
   names: string[];
+  districts: SenditDistrict[];
 };
 
 type DistrictNamesGlobal = typeof globalThis & {
   senditDistrictNamesCache?: DistrictNamesCache;
 };
 
-/** Distinct Sendit city names for admin autocomplete (cached 30 min). */
-export async function listSenditCityNames(): Promise<string[]> {
+async function fetchAllSenditDistricts(): Promise<SenditDistrict[]> {
   const g = globalThis as DistrictNamesGlobal;
   const now = Date.now();
   const cached = g.senditDistrictNamesCache;
   if (cached && now - cached.fetchedAt <= DISTRICT_TTL_MS) {
-    return cached.names;
+    return cached.districts;
   }
 
-  const names = new Set<string>();
+  const byId = new Map<number, SenditDistrict>();
   const pickup = process.env.SENDIT_PICKUP_DISTRICT_ID?.trim();
-  for (let page = 1; page <= 50; page += 1) {
-    const query = new URLSearchParams({ querystring: "", page: String(page) });
+  let emptyPages = 0;
+
+  for (let page = 1; page <= 200; page += 1) {
+    const query = new URLSearchParams({
+      querystring: "",
+      page: String(page),
+    });
     if (pickup && /^\d+$/.test(pickup)) {
       query.set("pickup-district", pickup);
     }
+
     const response = await senditRequest<DistrictsListResponse>(`/districts?${query.toString()}`);
     const rows = (response.data ?? [])
       .map((row) => toDistrict(row))
       .filter((d): d is SenditDistrict => Boolean(d && d.active !== 0));
-    if (rows.length === 0) break;
-    for (const district of rows) {
-      names.add(district.ville.trim() || district.name.trim());
+
+    if (rows.length === 0) {
+      emptyPages += 1;
+      if (emptyPages >= 2) break;
+      continue;
     }
-    if (rows.length < 25) break;
+    emptyPages = 0;
+
+    let newOnPage = 0;
+    for (const district of rows) {
+      if (!byId.has(district.id)) {
+        byId.set(district.id, district);
+        newOnPage += 1;
+      }
+    }
+    // Stop when a page adds nothing new (API looping) or short page.
+    if (newOnPage === 0 || rows.length < 15) break;
   }
 
-  const sorted = [...names].sort((a, b) => a.localeCompare(b, "fr"));
-  g.senditDistrictNamesCache = { fetchedAt: now, names: sorted };
-  return sorted;
+  const districts = [...byId.values()].sort((a, b) =>
+    (a.name || a.ville).localeCompare(b.name || b.ville, "fr"),
+  );
+
+  const names = new Set<string>();
+  for (const district of districts) {
+    const label = district.name.trim() || district.ville.trim();
+    if (label) names.add(label);
+    // Keep plain ville too when it differs (helps simple city entries).
+    const ville = district.ville.trim();
+    if (ville && ville !== label) names.add(ville);
+  }
+
+  const sortedNames = [...names].sort((a, b) => a.localeCompare(b, "fr"));
+  g.senditDistrictNamesCache = {
+    fetchedAt: now,
+    names: sortedNames,
+    districts,
+  };
+  return districts;
+}
+
+/** Distinct Sendit district + city labels for admin autocomplete (cached 30 min). */
+export async function listSenditCityNames(): Promise<string[]> {
+  await fetchAllSenditDistricts();
+  const cached = (globalThis as DistrictNamesGlobal).senditDistrictNamesCache;
+  return cached?.names ?? [];
+}
+
+/** Full active Sendit districts for admin autocomplete / mapping (cached 30 min). */
+export async function listSenditDistricts(): Promise<SenditDistrict[]> {
+  return fetchAllSenditDistricts();
 }
