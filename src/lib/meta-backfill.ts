@@ -1,6 +1,6 @@
 import type { MetaEventLog, Order } from "@prisma/client";
 import { PrismaClient } from "@prisma/client";
-import { prisma as defaultPrisma } from "@/lib/prisma";
+import { prisma as defaultPrisma, type AppPrismaClient } from "@/lib/prisma";
 import { purchaseEventId } from "@/lib/meta-event-id";
 import {
   sendOrRetryMetaOrderEvent,
@@ -21,7 +21,7 @@ export function metaBackfillEventTime(createdAt: Date): number {
 let productionPrisma: PrismaClient | null = null;
 
 /** Use PRODUCTION_DATABASE_URL when set (Hostinger), else local DATABASE_URL. */
-export function resolveBackfillPrisma(): PrismaClient {
+export function resolveBackfillPrisma(): PrismaClient | AppPrismaClient {
   const url = process.env.PRODUCTION_DATABASE_URL?.trim();
   if (url) {
     if (!productionPrisma) {

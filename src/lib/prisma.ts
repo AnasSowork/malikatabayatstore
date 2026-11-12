@@ -1,6 +1,9 @@
 import { PrismaClient } from "@prisma/client";
+import { ensureProductDeliveryFeeColumn } from "@/lib/ensure-product-schema";
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
+export type AppPrismaClient = ReturnType<typeof createPrismaClient>;
+
+const globalForPrisma = globalThis as unknown as { prisma: AppPrismaClient | undefined };
 
 function trimOuterQuotes(value?: string): string {
   if (!value) return "";
@@ -90,14 +93,25 @@ if (resolvedDatabaseUrl) {
 }
 
 function createPrismaClient() {
-  return new PrismaClient({
+  const base = new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+  });
+
+  return base.$extends({
+    query: {
+      $allModels: {
+        async $allOperations({ args, query }) {
+          await ensureProductDeliveryFeeColumn(base);
+          return query(args);
+        },
+      },
+    },
   });
 }
 
-function isStalePrismaClient(client: PrismaClient | undefined): client is undefined {
+function isStalePrismaClient(client: AppPrismaClient | undefined): client is undefined {
   if (!client) return true;
-  const c = client as PrismaClient & {
+  const c = client as AppPrismaClient & {
     category?: { findMany?: unknown };
     homeSection?: { findMany?: unknown };
   };

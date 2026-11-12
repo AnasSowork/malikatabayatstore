@@ -74,32 +74,120 @@ if (isPassenger) {
   PhusionPassenger.configure({ autoInstall: false });
 }
 
-function runMigrationsInBackground() {
-  if (dev) return;
-  const hasDb =
-    process.env.DATABASE_URL ||
-    (process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME);
-  if (!hasDb) return;
+function trimEnv(value) {
+  if (!value) return "";
+  let trimmed = String(value).trim().replace(/^\uFEFF/, "");
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    trimmed = trimmed.slice(1, -1).trim();
+  }
+  return trimmed.replace(/^DATABASE_URL\s*=\s*/i, "").trim();
+}
 
+/** Prisma CLI reads DATABASE_URL. Hostinger only injects DB_* into the app. */
+function resolveDatabaseUrlFromDbEnv() {
+  const database = trimEnv(
+    process.env.DB_DATABASE || process.env.DB_NAME || process.env.MYSQL_DATABASE,
+  );
+  const username = trimEnv(
+    process.env.DB_USERNAME || process.env.DB_USER || process.env.MYSQL_USER,
+  );
+  const password = trimEnv(process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD);
+  const host = trimEnv(process.env.DB_HOST || "localhost");
+  const port = trimEnv(process.env.DB_PORT || "3306");
+
+  if (database && username) {
+    process.env.DATABASE_URL = `mysql://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}/${encodeURIComponent(database)}`;
+    return true;
+  }
+
+  const direct = trimEnv(process.env.DATABASE_URL);
+  if (direct.startsWith("mysql://")) {
+    process.env.DATABASE_URL = direct;
+    return true;
+  }
+  return false;
+}
+
+function logServer(level, message) {
+  const safe = String(message).replace(/mysql:\/\/[^@\s]+@/g, "mysql://***@");
+  console.log(
+    JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level,
+      message: safe.slice(0, 2000),
+    }),
+  );
+}
+
+function runPrisma(args) {
   const { spawn } = require("node:child_process");
-  const child = spawn("npx", ["prisma", "migrate", "deploy"], {
-    cwd: __dirname,
-    env: process.env,
-    stdio: "ignore",
-    detached: true,
+  const prismaCli = path.join(__dirname, "node_modules", "prisma", "build", "index.js");
+  const useLocal = fs.existsSync(prismaCli);
+  return new Promise((resolve) => {
+    const child = spawn(
+      useLocal ? process.execPath : "npx",
+      useLocal ? [prismaCli, ...args] : ["prisma", ...args],
+      { cwd: __dirname, env: process.env },
+    );
+    let output = "";
+    child.stdout?.on("data", (chunk) => {
+      output += chunk;
+    });
+    child.stderr?.on("data", (chunk) => {
+      output += chunk;
+    });
+    const timer = setTimeout(() => {
+      child.kill("SIGTERM");
+      logServer("error", `prisma ${args.join(" ")} timed out`);
+      resolve({ code: 1, output });
+    }, 90000);
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      logServer("error", `prisma ${args.join(" ")} failed to start: ${err.message}`);
+      resolve({ code: 1, output });
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      resolve({ code: code ?? 1, output });
+    });
   });
-  child.unref();
-  child.on("error", (err) => {
-    console.warn("[server] background migrate spawn failed:", err.message);
+}
+
+function runMigrationsBeforeListen() {
+  if (dev) return Promise.resolve();
+  if (!resolveDatabaseUrlFromDbEnv()) {
+    logServer("warn", "skipping prisma migrate deploy; database url is not configured");
+    return Promise.resolve();
+  }
+
+  const migration = "20261112010000_product_delivery_fee";
+  return runPrisma(["migrate", "deploy"]).then(async (result) => {
+    const tail = result.output.trim().slice(-1500);
+    logServer(
+      result.code === 0 ? "info" : "error",
+      `prisma migrate deploy exit ${result.code}${tail ? `: ${tail}` : ""}`,
+    );
+    if (result.code === 0) return;
+
+    // The column may already exist from the request-path patch, which makes
+    // this migration fail with a duplicate column. Mark that one migration applied.
+    if (!/deliveryFee|duplicate column|1060/i.test(result.output)) return;
+    await runPrisma(["migrate", "resolve", "--rolled-back", migration]);
+    const applied = await runPrisma(["migrate", "resolve", "--applied", migration]);
+    logServer(
+      applied.code === 0 ? "info" : "error",
+      `prisma migrate resolve --applied ${migration} exit ${applied.code}: ${applied.output.trim().slice(-800)}`,
+    );
   });
-  console.log("[server] prisma migrate deploy started in background");
 }
 
 const app = next({ dev, dir: __dirname, hostname, port });
 const handle = app.getRequestHandler();
 
-app
-  .prepare()
+Promise.all([app.prepare(), runMigrationsBeforeListen()])
   .then(() => {
     const server = http.createServer((request, response) => {
       handle(request, response);
@@ -114,14 +202,12 @@ app
       server.listen("passenger", () => {
         console.log("[server] Next.js listening through Phusion Passenger");
         console.log("[server] UPLOAD_STORAGE_DIR=", process.env.UPLOAD_STORAGE_DIR || "(unset)");
-        runMigrationsInBackground();
       });
       return;
     }
 
     server.listen(port, hostname, () => {
       console.log(`[server] Next.js listening on http://${hostname}:${port}`);
-      runMigrationsInBackground();
     });
   })
   .catch((error) => {
