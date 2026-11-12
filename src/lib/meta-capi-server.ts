@@ -7,7 +7,7 @@ import {
   hashMetaName,
   hashMetaPhone,
 } from "@/lib/meta-capi-hash";
-import { META_PIXEL_COUNTRY } from "@/lib/meta-pixel-user";
+import { META_PIXEL_COUNTRY, NIRA_META_PIXEL_ID } from "@/lib/meta-pixel-user";
 import { buildMetaCommerceData, type MetaCommerceInput } from "@/lib/meta-commerce";
 import type { MetaCapiResolvedUserData } from "@/lib/meta-param-builder-server";
 
@@ -119,9 +119,7 @@ function buildUserData(user?: MetaCapiUserInput): GraphUserData {
 }
 
 export function getMetaPixelId(): string | undefined {
-  const fromServer = process.env.META_PIXEL_ID?.trim();
-  const fromPublic = process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim();
-  return fromServer || fromPublic || undefined;
+  return NIRA_META_PIXEL_ID;
 }
 
 export function isMetaCapiConfigured(): boolean {

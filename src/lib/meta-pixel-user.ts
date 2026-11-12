@@ -28,6 +28,13 @@ export function lastNameFromFullName(fullName: string): string {
   return parts[parts.length - 1] ?? "";
 }
 
+/**
+ * NIRA MODE Meta Pixel. This id is public (it is sent in the browser) and is
+ * fixed here so a stale hosting variable cannot keep the previous pixel.
+ * Taken from the Meta install snippet: 2625439914582737.
+ */
+export const NIRA_META_PIXEL_ID = "2625439914582737";
+
 /** ISO 3166-1 alpha-2 — Morocco for this store. */
 export const META_PIXEL_COUNTRY = "ma";
 

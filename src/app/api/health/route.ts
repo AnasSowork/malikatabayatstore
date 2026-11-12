@@ -60,7 +60,7 @@ export async function GET() {
         pixelId: pixelId ? `${pixelId.slice(0, 4)}…${pixelId.slice(-4)}` : null,
         capiConfigured: isMetaCapiConfigured(),
         testMode: metaTestMode,
-        publicPixelConfigured: Boolean(process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim()),
+        publicPixelConfigured: Boolean(getMetaPixelId()),
       },
       shipping,
       env,
@@ -75,7 +75,7 @@ export async function GET() {
         metaCapi: isMetaCapiConfigured(),
         meta: {
           testMode: metaTestMode,
-          publicPixelConfigured: Boolean(process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim()),
+          publicPixelConfigured: Boolean(getMetaPixelId()),
         },
         shipping,
         env,

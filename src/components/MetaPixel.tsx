@@ -5,8 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "@/i18n/navigation";
 import { hasMarketingConsent, readConsentPreferences } from "@/lib/consent";
 import { flushCapiQueue, captureMetaBrowserIds } from "@/lib/meta-pixel-events";
+import { NIRA_META_PIXEL_ID } from "@/lib/meta-pixel-user";
 
-const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+const PIXEL_ID = NIRA_META_PIXEL_ID;
 
 declare global {
   interface Window {

@@ -8,7 +8,11 @@ import { readFirstTouchFbclid, readFirstTouchLandingUrl } from "@/lib/meta-first
 import { hasMarketingConsent } from "@/lib/consent";
 import { buildMetaCommerceData } from "@/lib/meta-commerce";
 import { createMetaEventId, purchaseEventId } from "@/lib/meta-event-id";
-import { buildMetaPixelUserData, type MetaPixelUserData } from "@/lib/meta-pixel-user";
+import {
+  buildMetaPixelUserData,
+  NIRA_META_PIXEL_ID,
+  type MetaPixelUserData,
+} from "@/lib/meta-pixel-user";
 
 const CURRENCY = "MAD";
 export const META_PENDING_PURCHASE_KEY = "meta_pending_purchase";
@@ -77,7 +81,7 @@ function trackPixel(eventName: string, params: Record<string, unknown>, eventId:
   });
 }
 
-const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+const META_PIXEL_ID = NIRA_META_PIXEL_ID;
 
 /** Updates Pixel Advanced Matching when the customer fills checkout fields. */
 export function setMetaPixelUserData(user: MetaPixelUserData) {
