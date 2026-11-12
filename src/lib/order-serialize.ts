@@ -1,10 +1,41 @@
 import { toOrderLineItems } from "@/lib/bundle-offers";
-import { serializeProduct } from "@/lib/product-serialize";
+import { createDefaultProductDetailContent } from "@/lib/product-detail-content";
+import { serializeProduct, type ProductForClient } from "@/lib/product-serialize";
 import {
   serializeMetaEventLog,
   type SerializedMetaEventLog,
 } from "@/lib/meta-event-log";
 import type { OrderStatus } from "@prisma/client";
+
+/** Order row after its catalog product was removed. */
+export function detachedProduct(name: string, id: string): ProductForClient {
+  const label = name.trim() || "—";
+  return {
+    id: id || "removed",
+    name: label,
+    nameAr: null,
+    nameFr: null,
+    price: "0",
+    compareAtPrice: null,
+    deliveryFee: "0",
+    sku: null,
+    stockQuantity: null,
+    soldCount: 0,
+    rating: null,
+    reviewCount: 0,
+    description: "",
+    descriptionAr: null,
+    descriptionFr: null,
+    categories: [],
+    images: [],
+    colorVariants: [],
+    bundleOffers: [],
+    availableSizes: [],
+    detailContent: createDefaultProductDetailContent(),
+    createdAt: new Date(0).toISOString(),
+    updatedAt: new Date(0).toISOString(),
+  };
+}
 
 export type SerializedOrder = {
   id: string;
@@ -41,7 +72,8 @@ export function serializeOrder(order: {
   quantity: number;
   totalPrice: { toString(): string };
   lineItems: unknown;
-  productId: string;
+  productId: string | null;
+  productName?: string | null;
   createdAt: Date;
   updatedAt: Date;
   status: OrderStatus;
@@ -54,7 +86,7 @@ export function serializeOrder(order: {
   shippingProvider?: string | null;
   shippingTrackingId?: string | null;
   shippedAt: Date | null;
-  product: Parameters<typeof serializeProduct>[0];
+  product: Parameters<typeof serializeProduct>[0] | null;
   metaEventLogs?: Parameters<typeof serializeMetaEventLog>[0][];
 }): SerializedOrder {
   return {
@@ -66,7 +98,7 @@ export function serializeOrder(order: {
     quantity: order.quantity,
     totalPrice: order.totalPrice.toString(),
     lineItems: toOrderLineItems(order.lineItems),
-    productId: order.productId,
+    productId: order.productId ?? "",
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
     status: order.status,
@@ -79,7 +111,9 @@ export function serializeOrder(order: {
     shippingProvider: order.shippingProvider ?? null,
     shippingTrackingId: order.shippingTrackingId ?? null,
     shippedAt: order.shippedAt?.toISOString() ?? null,
-    product: serializeProduct(order.product),
+    product: order.product
+      ? serializeProduct(order.product)
+      : detachedProduct(order.productName ?? "", order.productId ?? ""),
     ...(order.metaEventLogs
       ? { metaEventLogs: order.metaEventLogs.map(serializeMetaEventLog) }
       : {}),

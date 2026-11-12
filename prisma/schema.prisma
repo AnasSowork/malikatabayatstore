@@ -89,8 +89,10 @@ model Order {
   quantity              Int         @default(1)
   totalPrice            Decimal     @db.Decimal(10, 2)
   lineItems             Json?
-  productId             String
-  product               Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productId             String?
+  /// Kept when the catalog product is deleted, so the order still shows a name.
+  productName           String?     @db.VarChar(255)
+  product               Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
   status                OrderStatus @default(PENDING)
   statusNote            String?     @db.Text
   statusUpdatedAt       DateTime?

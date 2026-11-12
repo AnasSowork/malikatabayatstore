@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { OrderStatus } from "@prisma/client";
 import { serializeProduct } from "@/lib/product-serialize";
+import { detachedProduct } from "@/lib/order-serialize";
 import { toOrderLineItems } from "@/lib/bundle-offers";
 import {
   buildDefaultShippingDescription,
@@ -100,7 +101,9 @@ export async function createShipmentForOrder(orderId: string): Promise<ShipmentC
     throw new ShippingAlreadyExistsError(existingTracking!);
   }
 
-  const product = serializeProduct(order.product);
+  const product = order.product
+    ? serializeProduct(order.product)
+    : detachedProduct(order.productName ?? "", order.productId ?? "");
   const shippingOrder = {
     id: order.id,
     customerName: order.customerName,

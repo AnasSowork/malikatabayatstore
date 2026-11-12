@@ -251,6 +251,7 @@
     "needOneImage": "Ajoutez au moins une photo.",
     "waitForUploads": "Attendez la fin de l'enregistrement.",
     "delete": "Supprimer",
+    "deleteProductError": "Impossible de supprimer ce produit.",
     "saveProduct": "Enregistrer le produit",
     "editProduct": "Modifier le produit",
     "saveChanges": "Enregistrer",

@@ -17,6 +17,7 @@ export type ParsedOrderInput = {
   phone: string;
   city: string;
   productId: string;
+  productName?: string;
   quantity: number;
   lineItems: OrderLineItem[];
   totalPrice: number;
@@ -46,7 +47,12 @@ export type ParseOrderError = { error: string; status: number };
 
 export async function parseOrderInput(
   body: Record<string, unknown>,
-  options?: { allowCustomTotalPrice?: boolean; allowAdminFields?: boolean },
+  options?: {
+    allowCustomTotalPrice?: boolean;
+    allowAdminFields?: boolean;
+    /** Admin update of an order whose catalog product was already deleted. */
+    allowDetachedProduct?: boolean;
+  },
 ): Promise<ParsedOrderInput | ParseOrderError> {
   const {
     customerName,
@@ -67,7 +73,7 @@ export async function parseOrderInput(
     typeof city !== "string" ||
     !city.trim() ||
     typeof productId !== "string" ||
-    !productId.trim()
+    (!productId.trim() && !options?.allowDetachedProduct)
   ) {
     return { error: "Missing required fields", status: 400 };
   }
@@ -81,6 +87,41 @@ export async function parseOrderInput(
     typeof rawQuantity === "number" && Number.isInteger(rawQuantity) && rawQuantity >= 1
       ? rawQuantity
       : 1;
+
+  const adminFields = options?.allowAdminFields
+    ? {
+        status: parseOrderStatus(body.status) ?? undefined,
+        statusNote: readOptionalString(body.statusNote),
+        streetAddress: readOptionalString(body.streetAddress),
+        shippingComment: readOptionalString(body.shippingComment),
+        shippingDescription: readOptionalString(body.shippingDescription),
+        shippingNoOpen: readOptionalBoolean(body.shippingNoOpen),
+      }
+    : {};
+
+  if (!productId.trim()) {
+    const custom =
+      typeof rawTotalPrice === "number"
+        ? rawTotalPrice
+        : typeof rawTotalPrice === "string"
+          ? Number(rawTotalPrice)
+          : NaN;
+    if (!Number.isFinite(custom) || custom < 0) {
+      return { error: "Invalid total price", status: 400 };
+    }
+    const lineItems = toOrderLineItems(rawLineItems);
+    return {
+      customerName: customerName.trim(),
+      phone: normalizedPhone,
+      city: city.trim(),
+      productId: "",
+      quantity,
+      lineItems,
+      totalPrice: custom,
+      selectedColor: lineItems[0]?.color ?? null,
+      ...adminFields,
+    };
+  }
 
   const product = await prisma.product.findUnique({
     where: { id: productId.trim() },
@@ -149,19 +190,11 @@ export async function parseOrderInput(
     phone: normalizedPhone,
     city: city.trim(),
     productId: productId.trim(),
+    productName: product.name,
     quantity,
     lineItems,
     totalPrice,
     selectedColor: lineItems[0]?.color ?? null,
-    ...(options?.allowAdminFields
-      ? {
-          status: parseOrderStatus(body.status) ?? undefined,
-          statusNote: readOptionalString(body.statusNote),
-          streetAddress: readOptionalString(body.streetAddress),
-          shippingComment: readOptionalString(body.shippingComment),
-          shippingDescription: readOptionalString(body.shippingDescription),
-          shippingNoOpen: readOptionalBoolean(body.shippingNoOpen),
-        }
-      : {}),
+    ...adminFields,
   };
 }

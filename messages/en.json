@@ -251,6 +251,7 @@
     "needOneImage": "Add at least one photo.",
     "waitForUploads": "Wait for uploads to finish.",
     "delete": "Delete",
+    "deleteProductError": "Could not delete this product.",
     "saveProduct": "Save product",
     "editProduct": "Edit product",
     "saveChanges": "Save",

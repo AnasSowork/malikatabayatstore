@@ -74,9 +74,21 @@ export async function DELETE(_request: Request, { params }: Params) {
       return NextResponse.json({ error: "Invalid id" }, { status: 400 });
     }
 
-    await prisma.product.delete({
+    const product = await prisma.product.findUnique({
       where: { id },
+      select: { name: true },
     });
+    if (!product) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    await prisma.$transaction([
+      prisma.order.updateMany({
+        where: { productId: id },
+        data: { productName: product.name },
+      }),
+      prisma.product.delete({ where: { id } }),
+    ]);
 
     return NextResponse.json({ ok: true });
   } catch (e) {

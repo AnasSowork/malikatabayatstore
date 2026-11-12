@@ -241,6 +241,7 @@
     "needOneImage": "أضيفي صورة واحدة على الأقل قبل الحفظ.",
     "waitForUploads": "انتظري حتى تنتهي حفظ جميع الصور.",
     "delete": "حذف",
+    "deleteProductError": "تعذر حذف هذا المنتج.",
     "saveProduct": "حفظ المنتج",
     "editProduct": "تعديل المنتج",
     "saveChanges": "حفظ التغييرات",

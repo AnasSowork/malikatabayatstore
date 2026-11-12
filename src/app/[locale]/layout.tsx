@@ -73,10 +73,10 @@ export async function generateMetadata({
     description: messages.meta.description,
     icons: {
       icon: [
-        { url: "/favicon.ico", sizes: "any" },
         { url: "/icon.png", type: "image/png", sizes: "512x512" },
+        { url: "/favicon.ico", sizes: "any" },
       ],
-      shortcut: "/favicon.ico",
+      shortcut: "/icon.png",
       apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
     },
   };

@@ -23,6 +23,7 @@ export async function PATCH(request: Request, context: Ctx) {
     const parsed = await parseOrderInput(body, {
       allowCustomTotalPrice: true,
       allowAdminFields: true,
+      allowDetachedProduct: existing.productId == null,
     });
     if ("error" in parsed) {
       return NextResponse.json({ error: parsed.error }, { status: parsed.status });
@@ -38,7 +39,8 @@ export async function PATCH(request: Request, context: Ctx) {
         customerName: parsed.customerName,
         phone: parsed.phone,
         city: parsed.city,
-        productId: parsed.productId,
+        productId: parsed.productId || null,
+        ...(parsed.productName ? { productName: parsed.productName } : {}),
         selectedColor: parsed.selectedColor,
         quantity: parsed.quantity,
         totalPrice: parsed.totalPrice,

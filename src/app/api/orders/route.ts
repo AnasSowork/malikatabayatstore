@@ -91,6 +91,7 @@ export async function POST(request: Request) {
         phone: parsed.phone,
         city: parsed.city,
         productId: parsed.productId,
+        productName: parsed.productName ?? null,
         selectedColor: parsed.selectedColor,
         quantity: parsed.quantity,
         totalPrice: parsed.totalPrice,

@@ -211,7 +211,12 @@ export function AdminDashboard({ view }: { view: AdminView }) {
     setDeletingId(id);
     try {
       const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
-      if (res.ok) await load(true);
+      if (res.ok) {
+        await load(true);
+        return;
+      }
+      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      window.alert(body?.error || t("deleteProductError"));
     } finally {
       setDeletingId(null);
     }

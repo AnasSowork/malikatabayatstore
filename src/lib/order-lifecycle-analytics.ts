@@ -24,7 +24,7 @@ export type OrderForLifecycleMeta = {
   customerName: string;
   phone: string;
   city: string;
-  productId: string;
+  productId: string | null;
   quantity: number;
   totalPrice: { toString(): string } | number | string;
   marketingConsent: boolean | null;
@@ -146,7 +146,7 @@ export async function sendOrRetryMetaOrderEvent(input: {
       referrerUrl: input.referrerUrl,
       productName: input.productName ?? input.order.product?.name ?? null,
       commerce: {
-        productId: input.order.productId,
+        productId: input.order.productId ?? "",
         value,
         quantity,
         unitPrice: value / quantity,
