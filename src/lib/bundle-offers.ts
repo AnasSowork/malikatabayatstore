@@ -39,7 +39,11 @@ export function toBundleOffers(value: unknown, basePrice: number): BundleOffer[]
   }
 
   if (!parsed.some((o) => o.quantity === 1)) {
-    parsed.unshift({ quantity: 1, price: basePrice });
+    parsed.unshift({
+      quantity: 1,
+      price: basePrice,
+      featured: !parsed.some((o) => o.featured),
+    });
   }
 
   return parsed;
