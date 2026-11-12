@@ -1,5 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import { ensureProductDeliveryFeeColumn } from "@/lib/ensure-product-schema";
+import {
+  ensureOrderProductSnapshot,
+  ensureProductDeliveryFeeColumn,
+} from "@/lib/ensure-product-schema";
 
 export type AppPrismaClient = ReturnType<typeof createPrismaClient>;
 
@@ -102,6 +105,7 @@ function createPrismaClient() {
       $allModels: {
         async $allOperations({ args, query }) {
           await ensureProductDeliveryFeeColumn(base);
+          await ensureOrderProductSnapshot(base);
           return query(args);
         },
       },

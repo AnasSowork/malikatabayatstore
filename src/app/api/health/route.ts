@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getMetaPixelId, isMetaCapiConfigured } from "@/lib/meta-capi-server";
-import { productDeliveryFeeColumnExists } from "@/lib/ensure-product-schema";
+import {
+  ensureOrderProductSnapshot,
+  orderProductSnapshotReady,
+  productDeliveryFeeColumnExists,
+} from "@/lib/ensure-product-schema";
 import { getDbEnvDebug, prisma } from "@/lib/prisma";
 import { getConfiguredShippingProviderId } from "@/lib/shipping/provider";
 import { isSenditConfigured } from "@/lib/shipping/providers/sendit-client";
@@ -38,11 +42,19 @@ export async function GET() {
     } catch {
       deliveryFeeColumn = false;
     }
+    let orderProductReady = false;
+    try {
+      await ensureOrderProductSnapshot(prisma);
+      orderProductReady = await orderProductSnapshotReady(prisma);
+    } catch {
+      orderProductReady = false;
+    }
     return NextResponse.json({
       ok: true,
       db: "connected",
       tables: Number(tables[0]?.n ?? 0),
       deliveryFeeColumn,
+      orderProductReady,
       metaCapi: isMetaCapiConfigured(),
       meta: {
         pixelId: pixelId ? `${pixelId.slice(0, 4)}…${pixelId.slice(-4)}` : null,

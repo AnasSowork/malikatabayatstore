@@ -163,7 +163,6 @@ function runMigrationsBeforeListen() {
     return Promise.resolve();
   }
 
-  const migration = "20261112010000_product_delivery_fee";
   return runPrisma(["migrate", "deploy"]).then(async (result) => {
     const tail = result.output.trim().slice(-1500);
     logServer(
@@ -172,16 +171,25 @@ function runMigrationsBeforeListen() {
     );
     if (result.code === 0) return;
 
-    // The column may already exist from the request-path patch, which makes
-    // this migration fail with a duplicate column. Mark that one migration applied.
-    if (!/deliveryFee|duplicate column|1060/i.test(result.output)) return;
-    await runPrisma(["migrate", "resolve", "--rolled-back", migration]);
-    const applied = await runPrisma(["migrate", "resolve", "--applied", migration]);
-    logServer(
-      applied.code === 0 ? "info" : "error",
-      `prisma migrate resolve --applied ${migration} exit ${applied.code}: ${applied.output.trim().slice(-800)}`,
-    );
+    // A column added on the request path makes its migration fail as a
+    // duplicate. Mark only that migration applied, then let deploy continue.
+    const duplicate = /duplicate column|already exists|1060/i.test(result.output);
+    if (duplicate && /deliveryFee|20261112010000_product_delivery_fee/i.test(result.output)) {
+      await markMigrationApplied("20261112010000_product_delivery_fee");
+    }
+    if (duplicate && /productName|20261112020000_order_product_set_null/i.test(result.output)) {
+      await markMigrationApplied("20261112020000_order_product_set_null");
+    }
   });
+}
+
+async function markMigrationApplied(migration) {
+  await runPrisma(["migrate", "resolve", "--rolled-back", migration]);
+  const applied = await runPrisma(["migrate", "resolve", "--applied", migration]);
+  logServer(
+    applied.code === 0 ? "info" : "error",
+    `prisma migrate resolve --applied ${migration} exit ${applied.code}: ${applied.output.trim().slice(-800)}`,
+  );
 }
 
 const app = next({ dev, dir: __dirname, hostname, port });
