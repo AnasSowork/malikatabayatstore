@@ -2,6 +2,9 @@ export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   if (process.env.NEXT_PHASE === "phase-production-build") return;
 
+  const { loadMissingHostingerEnv } = await import("@/lib/load-hostinger-env");
+  loadMissingHostingerEnv();
+
   const { prisma } = await import("@/lib/prisma");
   const { ensureOrderProductSnapshot, ensureProductDeliveryFeeColumn } = await import(
     "@/lib/ensure-product-schema"
