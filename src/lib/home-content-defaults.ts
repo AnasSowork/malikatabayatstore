@@ -9,7 +9,7 @@ import {
   type ValuePropsContent,
 } from "@/lib/home-content-types";
 
-const HERO_IMAGE = "/images/hero/luxury-abaya-hero-banner.png";
+const HERO_IMAGE = "/images/hero/nira-mode-hero-banner.png";
 
 const CAMPAIGN_IMG =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuA5pMfJ3uiVQMngtLc8LkPLTdufhrEY3NdOHlRsFXpDWGSxxoock0swZoWfVZQXqL5dSGYBkzGvizmRZ9zYvfQfRZDZ8CKIFrOoimCzopNeqEIPMWenMzqGxZyt2iGfTO47RQAacMniCglgCzqMSOrjGoF5Tkd5UeIXFqDYY9B9wBMl6yNrHggyN5PybwNuogo40xXcKgA4uT-p29bs8f43SawFZUQ6VQkJ_tMGWfc2RbwyqO1ZUg7uPb1E8Cn8Fnj9HJIGRxyl3FzA";
@@ -62,23 +62,23 @@ export const HOME_SECTION_SORT: Record<HomeSectionKey, number> = {
 export function defaultHeroContent(): HeroContent {
   return {
     image: HERO_IMAGE,
-    line1: lt("Queen", "ملكة", "Reine"),
-    line2: lt("of Abayas", "العبايات", "des abayas"),
+    line1: lt("Nira", "Nira", "Nira"),
+    line2: lt("mode", "mode", "mode"),
     tagline: lt(
-      "Modest elegance for the modern woman. Abayas designed to drape beautifully, every day.",
-      "أناقة محتشمة للمرأة العصرية. عبايات تنسدل بجمال في كل يوم.",
-      "Élégance pudique pour la femme moderne. Des abayas qui tombent avec grâce, chaque jour.",
+      "Modern. Elegant. Effortless. Contemporary women's fashion for everyday elegance across Morocco.",
+      "Modern. Elegant. Effortless. Contemporary women's fashion for everyday elegance across Morocco.",
+      "Moderne. Élégante. Naturelle. La mode féminine contemporaine pour une élégance au quotidien, partout au Maroc.",
     ),
     primaryCta: {
-      label: lt("Shop abayas", "تسوق العبايات", "Voir les abayas"),
+      label: lt("Shop the collection", "Shop the collection", "Voir la collection"),
       href: "/products",
     },
     secondaryCta: {
-      label: lt("New arrivals", "وصل حديثاً", "Nouveautés"),
+      label: lt("New arrivals", "New arrivals", "Nouveautés"),
       href: "/products?category=New",
     },
     showScrollHint: true,
-    scrollLabel: lt("Scroll", "مرر", "Défiler"),
+    scrollLabel: lt("Scroll", "Scroll", "Défiler"),
   };
 }
 
@@ -87,28 +87,28 @@ export function defaultValuePropsContent(): ValuePropsContent {
     items: [
       {
         icon: "local_shipping",
-        title: lt("Nationwide delivery", "توصيل لجميع المدن", "Livraison nationale"),
+        title: lt("Nationwide delivery", "Nationwide delivery", "Livraison nationale"),
         body: lt(
           "Fast delivery to every city in Morocco",
-          "توصيل سريع لكل مدينة في المغرب",
+          "Fast delivery to every city in Morocco",
           "Livraison rapide dans toutes les villes du Maroc",
         ),
       },
       {
         icon: "payments",
-        title: lt("Cash on delivery", "الدفع عند الاستلام", "Paiement à la livraison"),
+        title: lt("Cash on delivery", "Cash on delivery", "Paiement à la livraison"),
         body: lt(
-          "Pay only when your abaya arrives",
-          "ادفعي فقط عند وصول عبايتك",
-          "Payez uniquement à la réception de votre abaya",
+          "Pay only when your order arrives",
+          "Pay only when your order arrives",
+          "Payez uniquement à la réception de votre commande",
         ),
       },
       {
         icon: "diamond",
-        title: lt("Queenly quality", "جودة ملكية", "Qualité royale"),
+        title: lt("Careful quality", "Careful quality", "Qualité soignée"),
         body: lt(
           "Premium fabrics, finished with care",
-          "أقمشة فاخرة بتشطيبات متقنة",
+          "Premium fabrics, finished with care",
           "Tissus premium, finitions soignées",
         ),
       },
@@ -118,11 +118,11 @@ export function defaultValuePropsContent(): ValuePropsContent {
 
 export function defaultFeaturedCollectionContent(): FeaturedCollectionContent {
   return {
-    eyebrow: lt("New collection", "مجموعة جديدة", "Nouvelle collection"),
-    title: lt("Abayas for every", "عبايات لكل", "Des abayas pour chaque"),
-    titleItalic: lt("moment", "لحظة", "instant"),
-    titleEnd: lt("of grace.", "من الأناقة.", "de grâce."),
-    viewAllLabel: lt("View all abayas", "عرض كل العبايات", "Voir toutes les abayas"),
+    eyebrow: lt("New collection", "New collection", "Nouvelle collection"),
+    title: lt("Pieces for every", "Pieces for every", "Des pièces pour chaque"),
+    titleItalic: lt("moment", "moment", "instant"),
+    titleEnd: lt("of style.", "of style.", "de style."),
+    viewAllLabel: lt("View the full collection", "View the full collection", "Voir toute la collection"),
     viewAllHref: "/products",
     items: FEATURED.map(({ src, shift }) => ({ image: src, href: "/products", shift })),
   };
@@ -130,51 +130,39 @@ export function defaultFeaturedCollectionContent(): FeaturedCollectionContent {
 
 export function defaultArticlesContent(): ArticlesContent {
   return {
-    eyebrow: lt("Abaya journal", "مجلة العباية", "Journal abaya"),
-    title: lt("Style & care", "أسلوب وعناية", "Style & entretien"),
-    readLabel: lt("Read more", "اقرأ المزيد", "Lire"),
+    eyebrow: lt("Fashion journal", "Fashion journal", "Journal mode"),
+    title: lt("Style & care", "Style & care", "Style & entretien"),
+    readLabel: lt("Read more", "Read more", "Lire"),
     items: [
       {
-        category: lt("Fabric", "القماش", "Tissu"),
-        title: lt(
-          "Choosing the right abaya fabric",
-          "كيف تختارين قماش العباية",
-          "Choisir le bon tissu d'abaya",
-        ),
+        category: lt("Fabric", "Fabric", "Tissu"),
+        title: lt("Choosing the right fabric", "Choosing the right fabric", "Choisir le bon tissu"),
         excerpt: lt(
-          "From breathable crepe to flowing nida, how fabric weight shapes drape, comfort, and season.",
-          "من الكريب الخفيف إلى النيدا الانسيابي، كيف يؤثر وزن القماش على الانسدال والراحة والموسم.",
-          "Du crêpe respirant au nida fluide, comment le grammage influence la tombée, le confort et la saison.",
+          "From breathable crepe to fluid fabrics, how weight shapes drape, comfort, and season.",
+          "From breathable crepe to fluid fabrics, how weight shapes drape, comfort, and season.",
+          "Du crêpe respirant aux matières fluides, comment le grammage influence la tombée, le confort et la saison.",
         ),
         image: FEATURED[0].src,
         href: "/products",
       },
       {
-        category: lt("Fit", "المقاس", "Coupe"),
-        title: lt(
-          "Length, sleeve & silhouette",
-          "الطول والأكمام والقصة",
-          "Longueur, manches & silhouette",
-        ),
+        category: lt("Fit", "Fit", "Coupe"),
+        title: lt("Length, sleeves & silhouette", "Length, sleeves & silhouette", "Longueur, manches & silhouette"),
         excerpt: lt(
-          "A simple guide to finding an abaya that flatters your frame without compromising modesty.",
-          "دليل بسيط لاختيار عباية تناسب قوامك دون التنازل عن الاحتشام.",
-          "Un guide simple pour trouver une abaya flatteuse sans compromettre la pudeur.",
+          "A simple guide to finding a flattering, elegant silhouette.",
+          "A simple guide to finding a flattering, elegant silhouette.",
+          "Un guide simple pour trouver une silhouette flatteuse et élégante.",
         ),
         image: FEATURED[2].src,
         href: "/products",
       },
       {
-        category: lt("Care", "العناية", "Entretien"),
-        title: lt(
-          "Keeping your abaya pristine",
-          "الحفاظ على عبايتك أنيقة",
-          "Garder son abaya impeccable",
-        ),
+        category: lt("Care", "Care", "Entretien"),
+        title: lt("Keep your pieces impeccable", "Keep your pieces impeccable", "Garder vos pièces impeccables"),
         excerpt: lt(
-          "Washing, steaming, and storing your abaya so it stays elegant wear after wear.",
-          "الغسيل والكي والتخزين حتى تبقى عبايتك راقية مع كل ارتداء.",
-          "Lavage, repassage et rangement pour une abaya élégante à chaque port.",
+          "Washing, ironing, and storage so every piece stays elegant.",
+          "Washing, ironing, and storage so every piece stays elegant.",
+          "Lavage, repassage et rangement pour une allure élégante à chaque port.",
         ),
         image: CAMPAIGN_IMG,
         href: "/products",
@@ -186,15 +174,15 @@ export function defaultArticlesContent(): ArticlesContent {
 export function defaultCampaignContent(): CampaignContent {
   return {
     image: CAMPAIGN_IMG,
-    eyebrow: lt("The Malikat Abayat promise", "وعد ملكة العبايات", "La promesse Malikat Abayat"),
-    title: lt("Crafted", "صُنعت", "Confectionnées"),
-    titleItalic: lt("for you", "من أجلك", "pour vous"),
+    eyebrow: lt("The NIRA MODE promise", "The NIRA MODE promise", "La promesse NIRA MODE"),
+    title: lt("Crafted", "Crafted", "Confectionnées"),
+    titleItalic: lt("for you", "for you", "pour vous"),
     body: lt(
-      "Premium fabrics, modest cuts, and finishing made for Moroccan women who value comfort, coverage, and quiet luxury.",
-      "أقمشة فاخرة، قصات محتشمة، وتشطيبات مصممة للمرأة المغربية التي تقدّر الراحة والستر والفخامة الهادئة.",
-      "Tissus premium, coupes modestes et finitions pensées pour les femmes marocaines qui recherchent confort, pudeur et luxe discret.",
+      "Modern feminine fashion combining elegance, simplicity and accessibility — refined cuts and comfortable styles for women who value quiet confidence.",
+      "Modern feminine fashion combining elegance, simplicity and accessibility — refined cuts and comfortable styles for women who value quiet confidence.",
+      "Une mode féminine moderne alliant élégance, simplicité et accessibilité — des coupes soignées et des styles confortables pour les femmes qui privilégient une confiance discrète.",
     ),
-    ctaLabel: lt("Explore the collection", "اكتشف المجموعة", "Découvrir la collection"),
+    ctaLabel: lt("Discover the collection", "Discover the collection", "Découvrir la collection"),
     href: "/products",
   };
 }
@@ -206,25 +194,25 @@ export function defaultCategoryTilesContent(): CategoryTilesContent {
         layout: "large",
         image: CAT_CLASSIC,
         href: "/products?category=Classic",
-        title: lt("Classic abayas", "عبايات كلاسيك", "Abayas classiques"),
-        linkLabel: lt("View classic styles", "عرض الكلاسيك", "Voir le classique"),
+        title: lt("Classic", "Classic", "Classiques"),
+        linkLabel: lt("Explore classic", "Explore classic", "Voir le classique"),
         subtitle: null,
       },
       {
         layout: "small",
         image: CAT_EMBROIDERED,
         href: "/products?category=Embroidered",
-        title: lt("Embroidered", "مطرزة", "Brodées"),
-        linkLabel: lt("Shop embroidered", "تسوق المطرزة", "Voir les brodées"),
+        title: lt("Embroidered", "Embroidered", "Brodées"),
+        linkLabel: lt("Shop embroidered", "Shop embroidered", "Voir les brodées"),
         subtitle: null,
       },
       {
         layout: "small",
         image: CAT_NEW,
         href: "/products",
-        title: lt("New arrivals", "وصل حديثاً", "Nouveautés"),
+        title: lt("New arrivals", "New arrivals", "Nouveautés"),
         linkLabel: lt("", "", ""),
-        subtitle: lt("Fresh styles weekly", "تصاميم جديدة أسبوعياً", "Nouveaux modèles chaque semaine"),
+        subtitle: lt("Fresh styles weekly", "Fresh styles weekly", "Nouveaux modèles chaque semaine"),
       },
     ],
   };

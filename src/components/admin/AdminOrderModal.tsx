@@ -35,7 +35,10 @@ export function emptyOrderForm(products: ProductForClient[]): OrderFormState {
   const size = product?.availableSizes[0] ?? "M";
   const color = product?.colorVariants[0]?.name ?? null;
   const price = product
-    ? String(findBundleOffer(product.bundleOffers, quantity)?.price ?? product.price)
+    ? String(
+        Number(findBundleOffer(product.bundleOffers, quantity)?.price ?? product.price) +
+          Number(product.deliveryFee || 0),
+      )
     : "";
   return {
     customerName: "",
@@ -294,7 +297,9 @@ export function AdminOrderModal({
     const quantity = findBundleOffer(next.bundleOffers, form.quantity)
       ? form.quantity
       : (next.bundleOffers[0]?.quantity ?? 1);
-    const price = findBundleOffer(next.bundleOffers, quantity)?.price ?? Number(next.price);
+    const price =
+      Number(findBundleOffer(next.bundleOffers, quantity)?.price ?? next.price) +
+      Number(next.deliveryFee || 0);
     const lineItems = syncLineItems(next, quantity, form.lineItems);
     setForm((f) => ({
       ...f,
@@ -320,7 +325,9 @@ export function AdminOrderModal({
 
   function onQuantityChange(quantity: number) {
     if (!product) return;
-    const price = findBundleOffer(product.bundleOffers, quantity)?.price ?? Number(product.price) * quantity;
+    const price =
+      Number(findBundleOffer(product.bundleOffers, quantity)?.price ?? Number(product.price) * quantity) +
+      Number(product.deliveryFee || 0);
     const lineItems = syncLineItems(product, quantity, form.lineItems);
     setForm((f) => ({
       ...f,

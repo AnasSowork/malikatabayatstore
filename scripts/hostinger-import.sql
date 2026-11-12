@@ -1,4 +1,4 @@
--- MalikatAbayat Store: run once in phpMyAdmin on empty database u299601727_Malikatabayat
+-- NIRA MODE: run once in phpMyAdmin on empty database u299601727_Niramode
 -- Import tab → Choose file → Go
 
 -- === 20260414100000_init ===
@@ -119,12 +119,12 @@ CREATE TABLE `categories` (
 
 -- Seed default categories (matches former preset list)
 INSERT INTO `categories` (`id`, `name`, `nameAr`, `nameFr`, `sortOrder`, `createdAt`, `updatedAt`) VALUES
-    (REPLACE(UUID(), '-', ''), 'Abaya', 'عباية', 'Abaya', 0, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3)),
+    (REPLACE(UUID(), '-', ''), 'Essentials', 'أساسيات', 'Essentiels', 0, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3)),
     (REPLACE(UUID(), '-', ''), 'Classic', 'كلاسيك', 'Classique', 1, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3)),
     (REPLACE(UUID(), '-', ''), 'Embroidered', 'مطرزة', 'Brodée', 2, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3)),
     (REPLACE(UUID(), '-', ''), 'Open', 'مفتوحة', 'Ouverte', 3, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3)),
     (REPLACE(UUID(), '-', ''), 'Kimono', 'كيمونو', 'Kimono', 4, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3)),
-    (REPLACE(UUID(), '-', ''), 'Prayer', 'صلاة', 'Prière', 5, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3)),
+    (REPLACE(UUID(), '-', ''), 'Everyday', 'يومي', 'Quotidien', 5, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3)),
     (REPLACE(UUID(), '-', ''), 'New', 'جديد', 'Nouveau', 6, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3)),
     (REPLACE(UUID(), '-', ''), 'Occasion', 'مناسبات', 'Occasion', 7, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3));
 

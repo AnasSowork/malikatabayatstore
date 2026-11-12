@@ -9,7 +9,7 @@ import type {
   ProductLocalizedText,
 } from "@/lib/product-detail-content";
 
-type Language = "ar" | "fr";
+type Language = "en" | "fr";
 
 type Props = {
   value: ProductDetailContent;
@@ -17,12 +17,12 @@ type Props = {
   disabled?: boolean;
 };
 
-const emptyText = (): ProductLocalizedText => ({ ar: "", fr: "" });
+const emptyText = (): ProductLocalizedText => ({ en: "", fr: "" });
 const emptyFaq = (): ProductFaqItem => ({ question: emptyText(), answer: emptyText() });
 
 export function AdminProductDetailsEditor({ value, onChange, disabled }: Props) {
   const t = useTranslations("admin");
-  const [language, setLanguage] = useState<Language>("ar");
+  const [language, setLanguage] = useState<Language>("en");
 
   const setText = (
     current: ProductLocalizedText,
@@ -32,14 +32,14 @@ export function AdminProductDetailsEditor({ value, onChange, disabled }: Props) 
   return (
     <div className="product-detail-editor">
       <div className="admin-segmented admin-segmented-sm self-start">
-        {(["ar", "fr"] as const).map((item) => (
+        {(["en", "fr"] as const).map((item) => (
           <button
             key={item}
             type="button"
             className={language === item ? "admin-segmented-active" : ""}
             onClick={() => setLanguage(item)}
           >
-            {item === "ar" ? "العربية" : "Français"}
+            {item === "en" ? "English" : "Français"}
           </button>
         ))}
       </div>
@@ -49,7 +49,7 @@ export function AdminProductDetailsEditor({ value, onChange, disabled }: Props) 
         <textarea
           className="admin-input"
           rows={2}
-          dir={language === "ar" ? "rtl" : "ltr"}
+          dir="ltr"
           disabled={disabled}
           value={value.shortDescription[language]}
           onChange={(event) =>
@@ -68,7 +68,7 @@ export function AdminProductDetailsEditor({ value, onChange, disabled }: Props) 
           <span>{t("productPieceLabel")}</span>
           <input
             className="admin-input"
-            dir={language === "ar" ? "rtl" : "ltr"}
+            dir="ltr"
             disabled={disabled}
             placeholder={t("productPieceLabelPlaceholder")}
             value={value.purchaseUi.pieceLabel[language]}
@@ -87,7 +87,7 @@ export function AdminProductDetailsEditor({ value, onChange, disabled }: Props) 
           <span>{t("productSelectSizeLabel")}</span>
           <input
             className="admin-input"
-            dir={language === "ar" ? "rtl" : "ltr"}
+            dir="ltr"
             disabled={disabled}
             placeholder={t("productSelectSizePlaceholder")}
             value={value.purchaseUi.selectSizeLabel[language]}
@@ -106,7 +106,7 @@ export function AdminProductDetailsEditor({ value, onChange, disabled }: Props) 
           <span>{t("productColorLabel")}</span>
           <input
             className="admin-input"
-            dir={language === "ar" ? "rtl" : "ltr"}
+            dir="ltr"
             disabled={disabled}
             placeholder={t("productColorPlaceholder")}
             value={value.purchaseUi.colorLabel[language]}
@@ -146,7 +146,7 @@ export function AdminProductDetailsEditor({ value, onChange, disabled }: Props) 
                   <span>{t("homeTitle")}</span>
                   <input
                     className="admin-input"
-                    dir={language === "ar" ? "rtl" : "ltr"}
+                    dir="ltr"
                     disabled={disabled}
                     value={item.title[language]}
                     onChange={(event) => {
@@ -164,7 +164,7 @@ export function AdminProductDetailsEditor({ value, onChange, disabled }: Props) 
                   <textarea
                     className="admin-input"
                     rows={2}
-                    dir={language === "ar" ? "rtl" : "ltr"}
+                    dir="ltr"
                     disabled={disabled}
                     value={item.body[language]}
                     onChange={(event) => {
@@ -189,7 +189,7 @@ export function AdminProductDetailsEditor({ value, onChange, disabled }: Props) 
           <div key={`accordion-${index}`} className="product-detail-editor-row">
             <input
               className="admin-input"
-              dir={language === "ar" ? "rtl" : "ltr"}
+              dir="ltr"
               disabled={disabled}
               value={item.title[language]}
               onChange={(event) => {
@@ -201,7 +201,7 @@ export function AdminProductDetailsEditor({ value, onChange, disabled }: Props) 
             <textarea
               className="admin-input"
               rows={2}
-              dir={language === "ar" ? "rtl" : "ltr"}
+              dir="ltr"
               disabled={disabled}
               value={item.body[language]}
               onChange={(event) => {
@@ -232,7 +232,7 @@ export function AdminProductDetailsEditor({ value, onChange, disabled }: Props) 
             <input
               className="admin-input"
               placeholder={t("productFaqQuestion")}
-              dir={language === "ar" ? "rtl" : "ltr"}
+              dir="ltr"
               disabled={disabled}
               value={item.question[language]}
               onChange={(event) => {
@@ -248,7 +248,7 @@ export function AdminProductDetailsEditor({ value, onChange, disabled }: Props) 
               className="admin-input"
               rows={2}
               placeholder={t("productFaqAnswer")}
-              dir={language === "ar" ? "rtl" : "ltr"}
+              dir="ltr"
               disabled={disabled}
               value={item.answer[language]}
               onChange={(event) => {
@@ -281,7 +281,7 @@ export function AdminProductDetailsEditor({ value, onChange, disabled }: Props) 
               <textarea
                 className="admin-input"
                 rows={2}
-                dir={language === "ar" ? "rtl" : "ltr"}
+                dir="ltr"
                 disabled={disabled}
                 value={value.trust[field][language]}
                 onChange={(event) =>
@@ -297,7 +297,7 @@ export function AdminProductDetailsEditor({ value, onChange, disabled }: Props) 
             ) : (
               <input
                 className="admin-input"
-                dir={language === "ar" ? "rtl" : "ltr"}
+                dir="ltr"
                 disabled={disabled}
                 value={value.trust[field][language]}
                 onChange={(event) =>
@@ -317,7 +317,7 @@ export function AdminProductDetailsEditor({ value, onChange, disabled }: Props) 
           <input
             key={`trust-point-${index}`}
             className="admin-input"
-            dir={language === "ar" ? "rtl" : "ltr"}
+            dir="ltr"
             disabled={disabled}
             value={point[language]}
             onChange={(event) => {

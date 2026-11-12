@@ -34,7 +34,7 @@ export function ProductAssuranceSections({ content }: Props) {
 
       <section className="product-accordions" aria-label={t("informationLabel")}>
         {content.accordions.map((detail, index) => (
-          <details key={`${detail.title.ar}-${index}`} className="product-accordion" open={index === 0}>
+          <details key={`${detail.title.en || detail.title.fr}-${index}`} className="product-accordion" open={index === 0}>
             <summary>
               <span>{localizeProductText(detail.title, locale)}</span>
               <MaterialIcon name="add" className="product-accordion-icon !text-xl" />
@@ -49,7 +49,7 @@ export function ProductAssuranceSections({ content }: Props) {
           <h2 id="product-faq-title">{t("faqTitle")}</h2>
           <div className="product-accordions">
             {content.faqs.map((faq, index) => (
-              <details key={`${faq.question.ar}-${index}`} className="product-accordion">
+              <details key={`${faq.question.en || faq.question.fr}-${index}`} className="product-accordion">
                 <summary>
                   <span>{localizeProductText(faq.question, locale)}</span>
                   <MaterialIcon name="add" className="product-accordion-icon !text-xl" />

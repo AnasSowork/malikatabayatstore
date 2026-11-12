@@ -1,6 +1,8 @@
 export type BundleOffer = {
   quantity: number;
   price: number;
+  /** The single offer shown on the product page. */
+  featured?: boolean;
 };
 
 export type OrderLineItem = {
@@ -15,7 +17,7 @@ export function toBundleOffers(value: unknown, basePrice: number): BundleOffer[]
 
   const parsed = value
     .filter(
-      (v): v is { quantity: number; price: number } =>
+      (v): v is { quantity: number; price: number; featured?: boolean } =>
         Boolean(
           v &&
             typeof v === "object" &&
@@ -25,7 +27,11 @@ export function toBundleOffers(value: unknown, basePrice: number): BundleOffer[]
             (v as { price: number }).price >= 0,
         ),
     )
-    .map((v) => ({ quantity: Math.floor(v.quantity), price: v.price }))
+    .map((v) => ({
+      quantity: Math.floor(v.quantity),
+      price: v.price,
+      featured: v.featured === true,
+    }))
     .sort((a, b) => a.quantity - b.quantity);
 
   if (parsed.length === 0) {
@@ -43,6 +49,7 @@ export function buildBundleOffersFromPrices(
   price1: number,
   price2?: number | null,
   price3?: number | null,
+  featuredQuantity = 1,
 ): BundleOffer[] {
   const offers: BundleOffer[] = [{ quantity: 1, price: price1 }];
   if (price2 != null && Number.isFinite(price2) && price2 > 0) {
@@ -51,7 +58,19 @@ export function buildBundleOffersFromPrices(
   if (price3 != null && Number.isFinite(price3) && price3 > 0) {
     offers.push({ quantity: 3, price: price3 });
   }
-  return offers;
+  const featured = offers.some((offer) => offer.quantity === featuredQuantity)
+    ? featuredQuantity
+    : 1;
+  return offers.map((offer) => ({ ...offer, featured: offer.quantity === featured }));
+}
+
+/** The one quantity offer shown on the product page. */
+export function storefrontOffer(offers: BundleOffer[], unitPrice: number): BundleOffer {
+  return (
+    offers.find((offer) => offer.featured) ??
+    offers.find((offer) => offer.quantity === 1) ??
+    offers[0] ?? { quantity: 1, price: unitPrice }
+  );
 }
 
 export function bundleSavings(offer: BundleOffer, unitPrice: number): number {

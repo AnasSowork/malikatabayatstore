@@ -55,7 +55,7 @@ export function AdminProductModal({
   const canSave =
     form.imageUrls.length > 0 &&
     form.availableSizes.length > 0 &&
-    Boolean(form.nameAr.trim() && form.descriptionAr.trim()) &&
+    Boolean(form.name.trim() && form.description.trim()) &&
     !imageUploadBusy &&
     !creating;
 
@@ -70,7 +70,7 @@ export function AdminProductModal({
           <div>
             <p className="brand-eyebrow">{editingId ? t("editProduct") : t("addProduct")}</p>
             <h2 className="font-headline text-2xl text-on-surface">
-              {editingId ? form.nameAr || t("editProduct") : t("addProduct")}
+              {editingId ? form.name || form.nameFr || t("editProduct") : t("addProduct")}
             </h2>
           </div>
           <button type="button" onClick={onClose} className="admin-icon-btn" aria-label={t("cancel")}>
@@ -86,10 +86,10 @@ export function AdminProductModal({
             </h3>
             <div className="admin-form-grid">
               <label className="admin-field sm:col-span-2">
-                <span>{t("nameAr")}</span>
-                <input required className="admin-input" dir="rtl" value={form.nameAr} onChange={(e) => setForm((f) => ({ ...f, nameAr: e.target.value, name: e.target.value }))} />
+                <span>{t("nameEn")}</span>
+                <input required className="admin-input" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
               </label>
-              <label className="admin-field">
+              <label className="admin-field sm:col-span-2">
                 <span>{t("nameFr")}</span>
                 <input className="admin-input" value={form.nameFr} onChange={(e) => setForm((f) => ({ ...f, nameFr: e.target.value }))} />
               </label>
@@ -107,12 +107,33 @@ export function AdminProductModal({
                 <input required type="number" min={0} step="0.01" className="admin-input" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} />
               </label>
               <label className="admin-field">
+                <span>{t("deliveryFee")}</span>
+                <input type="number" min={0} step="0.01" className="admin-input" value={form.deliveryFee} onChange={(e) => setForm((f) => ({ ...f, deliveryFee: e.target.value }))} />
+              </label>
+              <label className="admin-field">
                 <span>{t("priceFor2")}</span>
                 <input type="number" min={0} step="0.01" className="admin-input" placeholder={t("priceFor2Hint")} value={form.priceFor2} onChange={(e) => setForm((f) => ({ ...f, priceFor2: e.target.value }))} />
               </label>
               <label className="admin-field">
                 <span>{t("priceFor3")}</span>
                 <input type="number" min={0} step="0.01" className="admin-input" placeholder={t("priceFor3Hint")} value={form.priceFor3} onChange={(e) => setForm((f) => ({ ...f, priceFor3: e.target.value }))} />
+              </label>
+              <label className="admin-field">
+                <span>{t("storefrontQuantity")}</span>
+                <select
+                  className="admin-input"
+                  value={form.storefrontQuantity}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      storefrontQuantity: e.target.value as "1" | "2" | "3",
+                    }))
+                  }
+                >
+                  <option value="1">{t("storefrontQuantity1")}</option>
+                  <option value="2">{t("storefrontQuantity2")}</option>
+                  <option value="3">{t("storefrontQuantity3")}</option>
+                </select>
               </label>
               <label className="admin-field">
                 <span>{t("compareAtPrice")}</span>
@@ -178,8 +199,8 @@ export function AdminProductModal({
             </h3>
             <div className="admin-form-grid">
               <label className="admin-field sm:col-span-2">
-                <span>{t("descriptionAr")}</span>
-                <textarea required rows={3} dir="rtl" className="admin-input" value={form.descriptionAr} onChange={(e) => setForm((f) => ({ ...f, descriptionAr: e.target.value, description: e.target.value }))} />
+                <span>{t("descriptionEn")}</span>
+                <textarea required rows={3} className="admin-input" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
               </label>
               <label className="admin-field sm:col-span-2">
                 <span>{t("descriptionFr")}</span>

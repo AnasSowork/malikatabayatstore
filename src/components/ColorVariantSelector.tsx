@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { MaterialIcon } from "@/components/MaterialIcon";
 import type { ProductColorVariant } from "@/lib/product-serialize";
 
 type Props = {
@@ -12,16 +11,6 @@ type Props = {
   label?: string;
 };
 
-function isLightHex(hex: string | null): boolean {
-  if (!hex) return false;
-  const raw = hex.replace("#", "");
-  if (raw.length !== 6) return false;
-  const r = parseInt(raw.slice(0, 2), 16);
-  const g = parseInt(raw.slice(2, 4), 16);
-  const b = parseInt(raw.slice(4, 6), 16);
-  return (r * 299 + g * 587 + b * 114) / 1000 > 180;
-}
-
 export function ColorVariantSelector({ variants, selectedColor, onSelect, compact, label }: Props) {
   const t = useTranslations("product");
   if (variants.length === 0) return null;
@@ -29,15 +18,11 @@ export function ColorVariantSelector({ variants, selectedColor, onSelect, compac
   const colorLabel = label ?? t("colorVariant");
 
   return (
-    <div className={`color-variant-picker ${compact ? "color-variant-picker-compact" : ""}`}>
-      <div className="color-variant-picker-head">
-        <span className="shop-toolbar-label">{colorLabel}</span>
-      </div>
-
-      <div className="color-variant-picker-rail" role="listbox" aria-label={t("colorVariant")}>
+    <div className={compact ? "space-y-2" : "space-y-3"}>
+      <span className="text-sm text-on-surface-variant">{colorLabel}</span>
+      <div className={`flex flex-wrap items-center ${compact ? "gap-2" : "gap-x-5 gap-y-2"}`} role="listbox" aria-label={colorLabel}>
         {variants.map((variant) => {
           const selected = selectedColor === variant.name;
-          const light = isLightHex(variant.hex);
           return (
             <button
               key={variant.name}
@@ -45,21 +30,18 @@ export function ColorVariantSelector({ variants, selectedColor, onSelect, compac
               role="option"
               aria-selected={selected}
               onClick={() => onSelect(variant.name)}
-              className={`color-variant-swatch ${selected ? "color-variant-swatch-selected" : ""}`}
-              title={variant.name}
+              className={
+                selected
+                  ? "inline-flex items-center gap-2 rounded-md bg-brand-black px-3 py-1.5 text-sm text-brand-ivory"
+                  : "inline-flex items-center gap-2 px-1 py-1.5 text-sm text-on-surface/75 hover:text-on-surface"
+              }
             >
               <span
-                className={`color-variant-swatch-inner ${light ? "color-variant-swatch-light" : ""}`}
-                style={{ backgroundColor: variant.hex || "#cccccc" }}
-              >
-                {selected ? (
-                  <MaterialIcon
-                    name="check"
-                    className={`!text-sm ${light ? "!text-brand-black" : "!text-white"}`}
-                  />
-                ) : null}
-              </span>
-              <span className="color-variant-swatch-label">{variant.name}</span>
+                className="h-2.5 w-2.5 shrink-0 rounded-full border border-brand-black/15"
+                style={{ backgroundColor: variant.hex || "#211C1A" }}
+                aria-hidden
+              />
+              {variant.name}
             </button>
           );
         })}

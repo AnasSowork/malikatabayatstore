@@ -94,7 +94,10 @@ export type HomeSectionForClient = {
 
 export function pickLocalized(text: LocalizedText | null | undefined, locale: AppLocale): string {
   if (!text) return "";
-  return text[locale]?.trim() || text.en?.trim() || text.ar?.trim() || text.fr?.trim() || "";
+  if (locale === "fr") {
+    return text.fr?.trim() || text.en?.trim() || text.ar?.trim() || "";
+  }
+  return text.en?.trim() || text.fr?.trim() || text.ar?.trim() || "";
 }
 
 export function lt(en: string, ar: string, fr: string): LocalizedText {

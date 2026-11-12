@@ -27,6 +27,7 @@ export default async function ProductsPage({
   setRequestLocale(locale);
 
   const t = await getTranslations("products");
+  const brand = await getTranslations("brand");
   const sp = await searchParams;
   const category = sp.category?.trim() || undefined;
   const sort = sp.sort || "new";
@@ -54,10 +55,10 @@ export default async function ProductsPage({
     <div className="bg-surface">
       <main className="mx-auto max-w-[1920px] px-6 py-12 md:px-8 md:py-16">
         <section className="mb-12 md:mb-16">
-          <span className="brand-eyebrow mb-3 block">Malikat Abayat</span>
-          <h1 className="font-headline text-5xl tracking-tight text-on-surface md:text-7xl md:leading-[1.05]">
+          <span className="brand-eyebrow mb-3 block">{brand("display")}</span>
+          <h1 className="font-headline text-5xl font-medium leading-[0.95] tracking-[-0.03em] text-on-surface md:text-7xl">
             {t("title")}{" "}
-            <span className="italic brand-gold-text">{t("titleItalic")}</span>
+            <span className="italic">{t("titleItalic")}</span>
           </h1>
           <p className="font-store mt-4 max-w-lg text-base leading-relaxed text-on-surface/70 md:text-lg">
             {t("intro")}

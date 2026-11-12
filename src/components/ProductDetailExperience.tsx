@@ -8,7 +8,6 @@ import type { AppLocale } from "@/lib/product-i18n";
 import { MadPrice } from "@/components/MadPrice";
 import { ProductImageCarousel } from "@/components/ProductImageCarousel";
 import { ProductPurchasePanel } from "@/components/ProductPurchasePanel";
-import { CustomerReviewsSection } from "@/components/CustomerReviewsSection";
 import { ProductAssuranceSections } from "@/components/ProductAssuranceSections";
 import { ProductRatingBadge } from "@/components/ProductRatingBadge";
 import { MaterialIcon } from "@/components/MaterialIcon";
@@ -22,6 +21,7 @@ import { trackViewContent } from "@/lib/meta-pixel-events";
 type Props = {
   productId: string;
   unitPrice: number;
+  deliveryFee: number;
   images: string[];
   productName: string;
   description: string;
@@ -42,6 +42,7 @@ type Props = {
 export function ProductDetailExperience({
   productId,
   unitPrice,
+  deliveryFee,
   images,
   productName,
   description,
@@ -174,6 +175,7 @@ export function ProductDetailExperience({
           productId={productId}
           productName={productName}
           unitPrice={unitPrice}
+          deliveryFee={deliveryFee}
           colorVariants={colorVariants}
           bundleOffers={bundleOffers}
           availableSizes={availableSizes}
@@ -182,7 +184,6 @@ export function ProductDetailExperience({
           purchaseUi={detailContent.purchaseUi}
           onColorChange={syncColorToImage}
         />
-        <CustomerReviewsSection />
         <ProductAssuranceSections content={detailContent} />
       </section>
       </div>

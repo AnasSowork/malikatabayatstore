@@ -35,9 +35,9 @@ export function ProductsToolbar({ categories }: Props) {
   const activeSort = sp.get("sort") ?? "new";
 
   const pillActive =
-    "shop-filter-pill rounded-full border border-brand-black bg-brand-black px-5 py-2.5 text-white shadow-[0_2px_12px_-2px_rgba(0,0,0,0.25)]";
+    "shop-filter-pill border-b border-brand-black px-1 py-2 text-on-surface";
   const pillIdle =
-    "shop-filter-pill rounded-full border border-brand-black/20 bg-surface-container-low px-5 py-2.5 text-on-surface transition-colors hover:border-brand-black/45 hover:bg-brand-cream";
+    "shop-filter-pill px-1 py-2 text-on-surface/55 transition-colors hover:text-on-surface";
 
   return (
     <div className="mb-12 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">

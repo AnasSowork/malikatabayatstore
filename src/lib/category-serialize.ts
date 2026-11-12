@@ -20,7 +20,6 @@ export function serializeCategory(row: Category): CategoryForClient {
 }
 
 export function getLocalizedCategoryLabel(category: CategoryForClient, locale: AppLocale): string {
-  if (locale === "ar") return category.nameAr?.trim() || category.name;
   if (locale === "fr") return category.nameFr?.trim() || category.name;
   return category.name;
 }

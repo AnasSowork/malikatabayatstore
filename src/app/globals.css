@@ -1,46 +1,46 @@
 @import "tailwindcss";
 
-/* Malikat Abayat — black & white */
+/* NIRA MODE — deep espresso & warm ivory */
 @theme inline {
-  --color-brand-gold: #000000;
-  --color-brand-gold-light: #ffffff;
-  --color-brand-gold-dark: #000000;
-  --color-brand-gold-muted: #000000;
-  --color-brand-black: #000000;
-  --color-brand-charcoal: #000000;
-  --color-brand-ivory: #ffffff;
-  --color-brand-cream: #ffffff;
-  --color-brand-champagne: #000000;
+  --color-brand-gold: #211c1a;
+  --color-brand-gold-light: #f7f4ef;
+  --color-brand-gold-dark: #211c1a;
+  --color-brand-gold-muted: #6b635c;
+  --color-brand-black: #211c1a;
+  --color-brand-charcoal: #211c1a;
+  --color-brand-ivory: #f7f4ef;
+  --color-brand-cream: #f7f4ef;
+  --color-brand-champagne: #efeae3;
 
-  --color-surface: #ffffff;
-  --color-surface-bright: #ffffff;
-  --color-surface-container-low: #ffffff;
-  --color-surface-container: #ffffff;
-  --color-surface-container-high: #ffffff;
-  --color-surface-container-highest: #000000;
-  --color-surface-container-lowest: #ffffff;
-  --color-primary: #000000;
-  --color-on-primary: #ffffff;
-  --color-on-surface: #000000;
-  --color-on-surface-variant: #000000;
-  --color-secondary: #000000;
-  --color-on-secondary: #ffffff;
-  --color-secondary-fixed: #ffffff;
-  --color-on-secondary-fixed: #000000;
-  --color-outline: #000000;
-  --color-outline-variant: #000000;
-  --color-error: #000000;
-  --color-error-container: #ffffff;
+  --color-surface: #f7f4ef;
+  --color-surface-bright: #fbf9f6;
+  --color-surface-container-low: #efeae3;
+  --color-surface-container: #e8e2d9;
+  --color-surface-container-high: #e0d9ce;
+  --color-surface-container-highest: #211c1a;
+  --color-surface-container-lowest: #fbf9f6;
+  --color-primary: #211c1a;
+  --color-on-primary: #f7f4ef;
+  --color-on-surface: #211c1a;
+  --color-on-surface-variant: #6b635c;
+  --color-secondary: #211c1a;
+  --color-on-secondary: #f7f4ef;
+  --color-secondary-fixed: #f7f4ef;
+  --color-on-secondary-fixed: #211c1a;
+  --color-outline: #211c1a;
+  --color-outline-variant: #d9d2c8;
+  --color-error: #8a3b32;
+  --color-error-container: #f7f4ef;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-headline: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-headline: var(--font-display), "Iowan Old Style", Georgia, serif;
   --font-store: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #000000;
+  --background: #f7f4ef;
+  --foreground: #211c1a;
 }
 
 .material-symbols-outlined {
@@ -128,24 +128,24 @@ body {
     0 20px 50px -24px rgba(0, 0, 0, 0.12);
 }
 
-/* ── CTAs (black & white) ── */
+/* ── CTAs (espresso on ivory) ── */
 .btn-brand {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.75rem;
+  gap: 0.6rem;
+  border-radius: 0;
   background: var(--color-brand-black);
-  padding: 1rem 2.5rem;
+  padding: 0.95rem 1.5rem;
   font-family: var(--font-sans);
   font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.22em;
+  font-weight: 500;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--color-brand-ivory);
-  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
   transition:
     transform 0.2s ease,
-    box-shadow 0.3s ease,
     background-color 0.3s ease;
 }
 
@@ -168,14 +168,15 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.75rem;
-  border: 1.5px solid var(--color-brand-black);
+  gap: 0.6rem;
+  border-radius: 0;
+  border: 1px solid var(--color-brand-black);
   background: transparent;
-  padding: calc(1rem - 1.5px) calc(2.5rem - 1.5px);
+  padding: calc(0.9rem - 1px) calc(1.5rem - 1px);
   font-family: var(--font-sans);
   font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.22em;
+  font-weight: 500;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--color-brand-black);
   transition:
@@ -441,16 +442,15 @@ a:hover .brand-link::after,
 
 /* ── Announcement bar marquee-safe styling ── */
 .announcement-bar {
-  background: linear-gradient(90deg, var(--color-brand-charcoal), var(--color-brand-black) 30%, var(--color-brand-black) 70%, var(--color-brand-charcoal));
+  background: var(--color-brand-black);
   color: var(--color-brand-ivory);
   font-family: var(--font-store);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: none;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   text-align: center;
-  padding: 0.625rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0.55rem 1rem;
 }
 
 /* ── Storefront nav & shop UI (clear sans, readable sizes) ── */
@@ -460,27 +460,27 @@ a:hover .brand-link::after,
 
 .store-nav-link {
   font-family: var(--font-store);
-  font-size: 0.9375rem;
-  font-weight: 600;
+  font-size: 0.8125rem;
+  font-weight: 500;
   line-height: 1.25;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.04em;
   text-transform: none;
   transition: color 0.2s ease;
 }
 
 .store-nav-link-idle {
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--color-on-surface);
 }
 
 .store-nav-link-idle:hover {
-  color: #ffffff;
+  color: var(--color-on-surface-variant);
 }
 
 .store-nav-link-active {
-  color: #ffffff;
+  color: var(--color-on-surface);
   text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 0.35rem;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.45rem;
 }
 
 .shop-filter-pill {
@@ -503,9 +503,9 @@ a:hover .brand-link::after,
 
 .shop-product-name {
   font-family: var(--font-store);
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.35;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.4;
   letter-spacing: 0;
   color: var(--color-on-surface);
 }
@@ -522,10 +522,11 @@ a:hover .brand-link::after,
 
 .shop-product-price {
   font-family: var(--font-store);
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1.2;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.3;
   letter-spacing: 0;
+  color: var(--color-on-surface);
 }
 
 .shop-product-price .price-amount {
@@ -566,12 +567,12 @@ a:hover .brand-link::after,
 /* Hero tagline — readable sans (Cairo in Arabic), no uppercase tracking */
 .hero-tagline {
   font-family: var(--font-store);
-  font-size: 1rem;
-  font-weight: 500;
-  line-height: 1.75;
+  font-size: 0.95rem;
+  font-weight: 400;
+  line-height: 1.7;
   letter-spacing: 0;
   text-transform: none;
-  color: #ffffff;
+  color: var(--color-on-surface-variant);
   text-wrap: balance;
 }
 
@@ -3705,12 +3706,12 @@ html[dir="rtl"] .product-detail-shell {
 }
 
 .product-summary h1 {
-  margin-top: 0.35rem;
+  margin-top: 0.45rem;
   font-family: var(--font-headline);
-  font-size: 1.75rem;
+  font-size: 2.5rem;
   font-weight: 500;
-  line-height: 1.3;
-  letter-spacing: 0.01em;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
 }
 
 .product-favorite {

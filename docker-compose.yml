@@ -30,7 +30,7 @@ services:
     environment:
       DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-password}@db:3306/${MYSQL_DATABASE:-youthstore}
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@malikatabayat.local}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@niramode.local}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
     depends_on:
       db:

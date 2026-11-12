@@ -14,6 +14,7 @@ export type ParsedProductPayload = {
   nameFr: string | null;
   price: number;
   compareAtPrice: number | null;
+  deliveryFee: number;
   sku: string | null;
   stockQuantity: number | null;
   soldCount: number;
@@ -39,6 +40,7 @@ export function parseProductPayload(body: Record<string, unknown>):
     nameFr,
     price,
     compareAtPrice,
+    deliveryFee,
     sku,
     stockQuantity,
     soldCount,
@@ -97,6 +99,7 @@ export function parseProductPayload(body: Record<string, unknown>):
 
   const optionalNumber = (value: unknown): number | null =>
     value === undefined || value === null || value === "" ? null : Number(value);
+  const deliveryFeeNum = optionalNumber(deliveryFee) ?? 0;
   const compareAtPriceNum = optionalNumber(compareAtPrice);
   const stockQuantityNum = optionalNumber(stockQuantity);
   const ratingNum = optionalNumber(rating);
@@ -104,6 +107,8 @@ export function parseProductPayload(body: Record<string, unknown>):
   const reviewCountNum = reviewCount === undefined || reviewCount === "" ? 0 : Number(reviewCount);
 
   if (
+    !Number.isFinite(deliveryFeeNum) ||
+    deliveryFeeNum < 0 ||
     (compareAtPriceNum != null &&
       (!Number.isFinite(compareAtPriceNum) || compareAtPriceNum <= priceNum)) ||
     (stockQuantityNum != null &&
@@ -145,7 +150,9 @@ export function parseProductPayload(body: Record<string, unknown>):
     if (p3 != null && (!Number.isFinite(p3) || p3 < 0)) {
       return { ok: false, error: "Invalid bundle price for 3" };
     }
-    offers = buildBundleOffersFromPrices(priceNum, p2, p3);
+    const featuredRaw = Number((body as { storefrontQuantity?: unknown }).storefrontQuantity);
+    const featuredQuantity = featuredRaw === 2 || featuredRaw === 3 ? featuredRaw : 1;
+    offers = buildBundleOffersFromPrices(priceNum, p2, p3, featuredQuantity);
   }
 
   return {
@@ -156,6 +163,7 @@ export function parseProductPayload(body: Record<string, unknown>):
       nameFr: typeof nameFr === "string" && nameFr.trim() ? nameFr.trim() : null,
       price: priceNum,
       compareAtPrice: compareAtPriceNum,
+      deliveryFee: deliveryFeeNum,
       sku: typeof sku === "string" && sku.trim() ? sku.trim() : null,
       stockQuantity: stockQuantityNum,
       soldCount: soldCountNum,

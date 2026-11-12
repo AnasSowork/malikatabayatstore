@@ -120,7 +120,6 @@ export function AdminCategoriesView({
               <thead>
                 <tr>
                   <th>{t("categoryNameEn")}</th>
-                  <th>{t("categoryNameAr")}</th>
                   <th>{t("categoryNameFr")}</th>
                   <th>{t("categorySortOrder")}</th>
                   <th>{t("categoryProductCount")}</th>
@@ -131,7 +130,6 @@ export function AdminCategoriesView({
                 {sorted.map((cat) => (
                   <tr key={cat.id}>
                     <td className="font-medium">{cat.name}</td>
-                    <td dir="rtl">{cat.nameAr || "—"}</td>
                     <td>{cat.nameFr || "—"}</td>
                     <td>{cat.sortOrder}</td>
                     <td>{productCounts[cat.name] ?? 0}</td>
@@ -182,15 +180,6 @@ export function AdminCategoriesView({
                   className="admin-input"
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                />
-              </label>
-              <label className="admin-field">
-                <span>{t("categoryNameAr")}</span>
-                <input
-                  className="admin-input"
-                  dir="rtl"
-                  value={form.nameAr}
-                  onChange={(e) => setForm((f) => ({ ...f, nameAr: e.target.value }))}
                 />
               </label>
               <label className="admin-field">

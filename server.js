@@ -1,6 +1,6 @@
 "use strict";
 
-console.log("[server] Starting malikat-abayat…");
+console.log("[server] Starting nira-mode…");
 
 const fs = require("node:fs");
 const http = require("node:http");

@@ -100,6 +100,7 @@ export default async function ProductDetailPage({ params }: Props) {
       <ProductDetailExperience
         productId={product.id}
         unitPrice={Number(product.price.toString())}
+        deliveryFee={Number(serialized.deliveryFee)}
         images={serialized.images}
         productName={name}
         description={description}
@@ -121,7 +122,7 @@ export default async function ProductDetailPage({ params }: Props) {
 
       {relatedProducts.length > 0 && (
         <section className="mt-20 border-t border-brand-gold/15 pt-16">
-          <h2 className="mb-10 font-headline text-2xl text-on-surface md:text-3xl">
+          <h2 className="mb-10 font-headline text-4xl font-medium tracking-[-0.03em] text-on-surface md:text-5xl">
             {t("youMayAlsoLike")}
           </h2>
           <div className="grid grid-cols-2 gap-6 md:grid-cols-4 md:gap-8">

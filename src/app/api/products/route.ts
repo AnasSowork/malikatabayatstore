@@ -38,6 +38,7 @@ export async function POST(request: Request) {
         sku: d.sku,
         price: d.price,
         compareAtPrice: d.compareAtPrice,
+        deliveryFee: d.deliveryFee,
         stockQuantity: d.stockQuantity,
         soldCount: d.soldCount,
         rating: d.rating,

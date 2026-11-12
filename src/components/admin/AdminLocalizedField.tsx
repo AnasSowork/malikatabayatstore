@@ -3,8 +3,8 @@
 import { useState } from "react";
 import type { LocalizedText } from "@/lib/home-content-types";
 
-const LANGS: { key: keyof LocalizedText; label: string; dir?: "rtl" }[] = [
-  { key: "ar", label: "AR", dir: "rtl" },
+const LANGS: { key: "en" | "fr"; label: string }[] = [
+  { key: "en", label: "EN" },
   { key: "fr", label: "FR" },
 ];
 
@@ -16,8 +16,7 @@ type Props = {
 };
 
 export function AdminLocalizedField({ label, value, onChange, multiline }: Props) {
-  const [lang, setLang] = useState<keyof LocalizedText>("ar");
-  const active = LANGS.find((l) => l.key === lang)!;
+  const [lang, setLang] = useState<"en" | "fr">("en");
 
   return (
     <fieldset className="admin-field-group">
@@ -39,14 +38,12 @@ export function AdminLocalizedField({ label, value, onChange, multiline }: Props
       {multiline ? (
         <textarea
           className="admin-input min-h-[88px]"
-          dir={active.dir}
           value={value[lang]}
           onChange={(e) => onChange({ ...value, [lang]: e.target.value })}
         />
       ) : (
         <input
           className="admin-input"
-          dir={active.dir}
           value={value[lang]}
           onChange={(e) => onChange({ ...value, [lang]: e.target.value })}
         />

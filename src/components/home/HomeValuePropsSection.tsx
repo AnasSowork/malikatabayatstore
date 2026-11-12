@@ -3,20 +3,21 @@ import type { ResolvedValueProps } from "@/lib/home-content-resolve";
 
 export function HomeValuePropsSection({ items }: ResolvedValueProps) {
   return (
-    <section className="mx-auto max-w-[1400px] px-6 py-14 md:px-12">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:gap-6">
+    <section className="border-y border-brand-black/10 bg-brand-ivory">
+      <ul className="mx-auto grid max-w-[1440px] grid-cols-1 sm:grid-cols-3">
         {items.map((item, i) => (
-          <div key={i} className="value-chip reveal-up">
-            <span className="value-chip-icon">
-              <MaterialIcon name={item.icon} className="!text-xl" />
-            </span>
+          <li
+            key={i}
+            className="flex items-center gap-4 px-6 py-8 md:px-10 md:py-9 sm:border-l sm:border-brand-black/10 sm:first:border-l-0"
+          >
+            <MaterialIcon name={item.icon} className="!text-[26px] text-on-surface" />
             <div>
-              <h3 className="font-sans text-sm font-semibold text-on-surface">{item.title}</h3>
+              <h3 className="text-sm font-medium text-on-surface">{item.title}</h3>
               <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">{item.body}</p>
             </div>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </section>
   );
 }

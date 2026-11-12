@@ -3,7 +3,7 @@ export type HeroVideoSource = {
   label: string;
 };
 
-/** Placeholder abaya / modest-fashion hero clips (Mixkit, free license). Replace when you have your own footage. */
+/** Placeholder women's fashion hero clips (Mixkit, free license). Replace when you have your own footage. */
 export const HERO_VIDEOS: HeroVideoSource[] = [
   { src: "/videos/hero/48201.mp4", label: "Woman walking in street" },
   { src: "/videos/hero/49305.mp4", label: "Muslim woman in hijab at the park" },

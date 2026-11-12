@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { usePathname } from "@/i18n/navigation";
 
-const WHATSAPP_URL = "https://wa.me/212707330094";
+const WHATSAPP_URL = "https://wa.me/212675737156?utm_source=chatgpt.com";
 
 export function WhatsAppFab() {
   const t = useTranslations("whatsapp");

@@ -125,14 +125,19 @@ export function AdminDashboard({ view }: { view: AdminView }) {
   function beginEditProduct(product: ProductForClient) {
     const offer2 = product.bundleOffers.find((o) => o.quantity === 2);
     const offer3 = product.bundleOffers.find((o) => o.quantity === 3);
+    const featured = product.bundleOffers.find((o) => o.featured);
+    const storefrontQuantity =
+      featured?.quantity === 2 || featured?.quantity === 3 ? String(featured.quantity) : "1";
     setEditingProductId(product.id);
     setForm({
       name: product.name,
       nameAr: product.nameAr ?? product.name,
       nameFr: product.nameFr ?? "",
       price: product.price,
+      deliveryFee: product.deliveryFee ?? "0",
       priceFor2: offer2 ? String(offer2.price) : "",
       priceFor3: offer3 ? String(offer3.price) : "",
+      storefrontQuantity: storefrontQuantity as "1" | "2" | "3",
       compareAtPrice: product.compareAtPrice ?? "",
       sku: product.sku ?? "",
       stockQuantity: product.stockQuantity == null ? "" : String(product.stockQuantity),
@@ -158,10 +163,11 @@ export function AdminDashboard({ view }: { view: AdminView }) {
       const colorVariants = draftsToPayload(form.colorVariants);
 
       const payload = {
-        name: form.nameAr,
-        nameAr: form.nameAr,
+        name: form.name,
+        nameAr: form.nameAr || undefined,
         nameFr: form.nameFr || undefined,
         price: Number(form.price),
+        deliveryFee: form.deliveryFee === "" ? 0 : Number(form.deliveryFee),
         compareAtPrice: form.compareAtPrice ? Number(form.compareAtPrice) : undefined,
         sku: form.sku || undefined,
         stockQuantity: form.stockQuantity === "" ? undefined : Number(form.stockQuantity),
@@ -170,8 +176,9 @@ export function AdminDashboard({ view }: { view: AdminView }) {
         reviewCount: Number(form.reviewCount || 0),
         priceFor2: form.priceFor2 ? Number(form.priceFor2) : undefined,
         priceFor3: form.priceFor3 ? Number(form.priceFor3) : undefined,
-        description: form.descriptionAr,
-        descriptionAr: form.descriptionAr,
+        storefrontQuantity: Number(form.storefrontQuantity),
+        description: form.description,
+        descriptionAr: form.descriptionAr || undefined,
         descriptionFr: form.descriptionFr || undefined,
         categories: form.categories,
         images: form.imageUrls,
@@ -352,7 +359,7 @@ export function AdminDashboard({ view }: { view: AdminView }) {
   const productNameById = useMemo(() => {
     const map = new Map<string, string>();
     for (const product of products) {
-      map.set(product.id, locale === "ar" ? product.nameAr || product.name : product.nameFr || product.name);
+      map.set(product.id, locale === "fr" ? product.nameFr || product.name : product.name);
     }
     return map;
   }, [products, locale]);

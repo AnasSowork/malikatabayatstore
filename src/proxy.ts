@@ -18,6 +18,15 @@ export default function proxy(request: NextRequest) {
     url.pathname = pathname.replace("/uploads/p/", "/api/uploads/p/");
     return NextResponse.redirect(url, 308);
   }
+
+  // Legacy Arabic cookie / Accept-Language: force French when next-intl would otherwise keep "ar".
+  const cookieLocale = request.cookies.get("NEXT_LOCALE")?.value;
+  if (cookieLocale === "ar") {
+    const response = intlMiddleware(request);
+    response.cookies.set("NEXT_LOCALE", routing.defaultLocale, { path: "/", sameSite: "lax" });
+    return response;
+  }
+
   return intlMiddleware(request);
 }
 

@@ -25,6 +25,7 @@ type Props = {
   productName: string;
   quantity: number;
   totalPrice: number;
+  deliveryFee?: number;
   lineItems: OrderLineItem[];
   requiresColorSelection: boolean;
   canSubmit: boolean;
@@ -41,6 +42,7 @@ export function OrderForm({
   productName,
   quantity,
   totalPrice,
+  deliveryFee = 0,
   lineItems,
   requiresColorSelection,
   canSubmit,
@@ -48,11 +50,7 @@ export function OrderForm({
 }: Props) {
   const t = useTranslations("product");
   const router = useRouter();
-  const localizedInputClass = `${inputClass} ${
-    locale === "ar"
-      ? "text-right placeholder:text-right"
-      : "text-left placeholder:text-left"
-  }`;
+  const localizedInputClass = `${inputClass} text-left placeholder:text-left`;
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
@@ -77,12 +75,13 @@ export function OrderForm({
     if (disabled) return;
     setStatus("loading");
     try {
+      const payable = totalPrice + deliveryFee;
       trackInitiateCheckout({
         productId,
         productName,
-        value: totalPrice,
+        value: payable,
         quantity,
-        unitPrice: totalPrice / quantity,
+        unitPrice: payable / quantity,
         user: {
           phone,
           fullName: customerName,
@@ -124,7 +123,7 @@ export function OrderForm({
       savePendingPurchase({
         productId,
         productName,
-        value: totalPrice,
+        value: payable,
         quantity,
         orderId: order.id,
       });
@@ -161,7 +160,7 @@ export function OrderForm({
             <input
               required
               className={localizedInputClass}
-              dir={locale === "ar" ? "rtl" : "ltr"}
+              dir="ltr"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               autoComplete="name"
@@ -173,7 +172,7 @@ export function OrderForm({
             <input
               required
               className={localizedInputClass}
-              dir={locale === "ar" ? "rtl" : "ltr"}
+              dir="ltr"
               value={city}
               onChange={(e) => setCity(e.target.value)}
               autoComplete="address-level2"
@@ -188,7 +187,7 @@ export function OrderForm({
             type="tel"
             inputMode="numeric"
             className={localizedInputClass}
-            dir={locale === "ar" ? "rtl" : "ltr"}
+            dir="ltr"
             value={phone}
             onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
             autoComplete="tel-national"
@@ -213,13 +212,13 @@ export function OrderForm({
           <div className="order-cost-row">
             <span>{t("delivery")}</span>
             <strong>
-              <MadPrice amount={0} locale={locale} />
+              <MadPrice amount={deliveryFee} locale={locale} />
             </strong>
           </div>
           <div className="order-cost-row order-cost-row-total">
             <span>{quantity > 1 ? t("bundleTotal", { count: quantity }) : t("total")}</span>
             <strong>
-              <MadPrice amount={totalPrice} locale={locale} />
+              <MadPrice amount={totalPrice + deliveryFee} locale={locale} />
             </strong>
           </div>
         </div>

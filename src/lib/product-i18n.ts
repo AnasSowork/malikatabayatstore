@@ -1,4 +1,4 @@
-export type AppLocale = "ar" | "fr";
+export type AppLocale = "fr" | "en";
 
 export type LocalizableProduct = {
   name: string;
@@ -9,13 +9,8 @@ export type LocalizableProduct = {
   descriptionFr: string | null;
 };
 
+/** English uses base name/description; French uses *Fr with base fallback. Arabic columns retained in DB only. */
 export function getLocalizedProductFields(product: LocalizableProduct, locale: AppLocale) {
-  if (locale === "ar") {
-    return {
-      name: product.nameAr?.trim() || product.name,
-      description: product.descriptionAr?.trim() || product.description,
-    };
-  }
   if (locale === "fr") {
     return {
       name: product.nameFr?.trim() || product.name,

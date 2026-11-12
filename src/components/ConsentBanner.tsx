@@ -43,7 +43,7 @@ export function ConsentBanner() {
       data-consent-banner=""
       role="dialog"
       aria-label={t("title")}
-      dir={locale === "ar" ? "rtl" : "ltr"}
+      dir="ltr"
     >
       <div className="mx-auto flex max-w-4xl flex-col gap-4">
         <div>

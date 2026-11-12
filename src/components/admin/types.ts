@@ -53,8 +53,10 @@ export type ProductFormState = {
   nameAr: string;
   nameFr: string;
   price: string;
+  deliveryFee: string;
   priceFor2: string;
   priceFor3: string;
+  storefrontQuantity: "1" | "2" | "3";
   compareAtPrice: string;
   sku: string;
   stockQuantity: string;
@@ -72,12 +74,12 @@ export type ProductFormState = {
 };
 
 export const PRESET_CATEGORIES = [
-  "Abaya",
+  "Essentials",
   "Classic",
   "Embroidered",
   "Open",
   "Kimono",
-  "Prayer",
+  "Everyday",
   "New",
   "Occasion",
 ] as const;
@@ -88,8 +90,10 @@ export function createEmptyProductForm(): ProductFormState {
     nameAr: "",
     nameFr: "",
     price: "",
+    deliveryFee: "0",
     priceFor2: "",
     priceFor3: "",
+    storefrontQuantity: "1",
     compareAtPrice: "",
     sku: "",
     stockQuantity: "",

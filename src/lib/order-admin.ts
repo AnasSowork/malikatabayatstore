@@ -129,7 +129,8 @@ export async function parseOrderInput(
     }
   }
 
-  let totalPrice = bundle?.price ?? Number(product.price) * quantity;
+  const deliveryFee = Number(product.deliveryFee ?? 0);
+  let totalPrice = (bundle?.price ?? Number(product.price) * quantity) + deliveryFee;
   if (options?.allowCustomTotalPrice && rawTotalPrice != null) {
     const custom =
       typeof rawTotalPrice === "number"

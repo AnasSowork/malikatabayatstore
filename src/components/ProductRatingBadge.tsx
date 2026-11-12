@@ -34,10 +34,6 @@ export function ProductRatingBadge({ rating, reviewCount, soldCount }: Props) {
         </span>
         <span className="product-rating-count">{t("reviewsCount", { count: reviews })}</span>
       </span>
-      <span className="product-rating-verified">
-        <span aria-hidden>✓</span>
-        {t("reviewsVerified")}
-      </span>
       {soldCount > 0 ? <span>{t("soldCount", { count: soldCount })}</span> : null}
     </div>
   );

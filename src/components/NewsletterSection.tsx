@@ -6,10 +6,11 @@ import { BrandButton } from "@/components/BrandButton";
 
 export function NewsletterSection() {
   const t = useTranslations("home");
+  const brand = useTranslations("brand");
   const [submitted, setSubmitted] = useState(false);
 
   return (
-    <section className="brand-section-dark relative mt-24 overflow-hidden py-20 md:mt-32 md:py-28">
+    <section className="relative mt-24 overflow-hidden border-y border-brand-black/10 bg-surface-container-low py-20 md:mt-32 md:py-28">
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.07]"
         aria-hidden
@@ -20,15 +21,15 @@ export function NewsletterSection() {
       />
       <div className="brand-divider absolute inset-x-0 top-0 opacity-40" aria-hidden />
       <div className="relative mx-auto max-w-4xl px-8 text-center">
-        <p className="brand-eyebrow brand-eyebrow-light">Malikat Abayat</p>
-        <h2 className="mt-4 font-headline text-3xl text-brand-ivory md:text-4xl">
+        <p className="brand-eyebrow">{brand("display")}</p>
+        <h2 className="mt-4 font-headline text-4xl text-on-surface md:text-5xl">
           {t("newsletterTitle")}
         </h2>
-        <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-white/70">
+        <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-on-surface-variant">
           {t("newsletterBody")}
         </p>
         {submitted ? (
-          <p className="mt-8 text-sm text-white">{t("newsletterThanks")}</p>
+          <p className="mt-8 text-sm text-on-surface">{t("newsletterThanks")}</p>
         ) : (
           <div
             role="form"
@@ -39,7 +40,7 @@ export function NewsletterSection() {
               type="email"
               required
               placeholder={t("newsletterPlaceholder")}
-              className="min-h-[52px] flex-1 rounded-xl border border-white/20 bg-brand-charcoal px-6 py-4 text-sm text-brand-ivory placeholder:text-white/40 focus:border-white/50 focus:outline-none focus:ring-1 focus:ring-white/30"
+              className="min-h-[52px] flex-1 border border-brand-black/15 bg-brand-ivory px-6 py-4 text-sm text-on-surface placeholder:text-on-surface/40 focus:border-brand-black/40 focus:outline-none"
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();

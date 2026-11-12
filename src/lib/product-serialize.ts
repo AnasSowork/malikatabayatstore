@@ -21,6 +21,7 @@ export type ProductForClient = {
   nameFr: string | null;
   price: string;
   compareAtPrice: string | null;
+  deliveryFee: string;
   sku: string | null;
   stockQuantity: number | null;
   soldCount: number;
@@ -78,6 +79,7 @@ export function serializeProduct(p: Product): ProductForClient {
     nameFr: p.nameFr,
     price: p.price.toString(),
     compareAtPrice: p.compareAtPrice?.toString() ?? null,
+    deliveryFee: p.deliveryFee?.toString() ?? "0",
     sku: p.sku,
     stockQuantity: p.stockQuantity,
     soldCount: p.soldCount,

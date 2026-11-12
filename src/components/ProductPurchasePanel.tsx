@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { SizeSelector } from "@/components/SizeSelector";
 import { ColorVariantSelector } from "@/components/ColorVariantSelector";
@@ -9,16 +9,16 @@ import { PieceConfigurator } from "@/components/PieceConfigurator";
 import { OrderForm } from "@/components/OrderForm";
 import type { ProductColorVariant } from "@/lib/product-serialize";
 import type { AppLocale } from "@/lib/product-i18n";
-import { findBundleOffer, type BundleOffer, type OrderLineItem } from "@/lib/bundle-offers";
+import { storefrontOffer, type BundleOffer, type OrderLineItem } from "@/lib/bundle-offers";
 import { MadPrice } from "@/components/MadPrice";
 import { DEFAULT_PRODUCT_SIZE } from "@/lib/product-sizes";
 import type { ProductPurchaseUi } from "@/lib/product-detail-content";
-import { trackAddToCart } from "@/lib/meta-pixel-events";
 
 type Props = {
   productId: string;
   productName: string;
   unitPrice: number;
+  deliveryFee: number;
   colorVariants: ProductColorVariant[];
   bundleOffers: BundleOffer[];
   availableSizes: string[];
@@ -49,6 +49,7 @@ export function ProductPurchasePanel({
   productId,
   productName,
   unitPrice,
+  deliveryFee,
   colorVariants,
   bundleOffers,
   availableSizes,
@@ -59,36 +60,13 @@ export function ProductPurchasePanel({
 }: Props) {
   const t = useTranslations("product");
   const locale = useLocale() as AppLocale;
-  const defaultQty = bundleOffers[0]?.quantity ?? 1;
-
-  const [selectedQuantity, setSelectedQuantity] = useState(defaultQty);
+  const offer = storefrontOffer(bundleOffers, unitPrice);
+  const selectedQuantity = offer.quantity;
   const [pieces, setPieces] = useState<OrderLineItem[]>(() =>
-    buildPieces(defaultQty, colorVariants, availableSizes, []),
-  );
-  const addToCartSent = useRef<Set<number>>(new Set());
-
-  const selectedOffer = useMemo(
-    () => findBundleOffer(bundleOffers, selectedQuantity) ?? bundleOffers[0],
-    [bundleOffers, selectedQuantity],
+    buildPieces(offer.quantity, colorVariants, availableSizes, []),
   );
 
-  const totalPrice = selectedOffer?.price ?? unitPrice;
-
-  /**
-   * AddToCart only on deliberate bundle selection (user clicks a quantity offer).
-   * Never fire on PDP mount / default quantity.
-   */
-  function fireAddToCart(qty: number, price: number) {
-    if (addToCartSent.current.has(qty)) return;
-    addToCartSent.current.add(qty);
-    trackAddToCart({
-      productId,
-      productName,
-      value: price,
-      quantity: qty,
-      unitPrice: price / qty,
-    });
-  }
+  const totalPrice = offer.price;
 
   useEffect(() => {
     if (!preferredColor) return;
@@ -101,28 +79,6 @@ export function ProductPurchasePanel({
 
   const requiresColor = colorVariants.length > 0;
   const isMultiPiece = selectedQuantity > 1;
-
-  function scrollToPiece(index: number) {
-    window.setTimeout(() => {
-      document.getElementById(`product-piece-${index}`)?.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    }, 80);
-  }
-
-  function onQuantityChange(qty: number) {
-    const prevQty = selectedQuantity;
-    setSelectedQuantity(qty);
-    setPieces((prev) => buildPieces(qty, colorVariants, availableSizes, prev));
-
-    const offer = findBundleOffer(bundleOffers, qty) ?? bundleOffers[0];
-    fireAddToCart(qty, offer?.price ?? unitPrice);
-
-    if (qty > 1 && qty > prevQty) {
-      scrollToPiece(qty - 1);
-    }
-  }
 
   function onSingleSizeChange(size: string) {
     setPieces([{ ...pieces[0], size }]);
@@ -140,13 +96,7 @@ export function ProductPurchasePanel({
 
   return (
     <div className="product-purchase-panel">
-      <BundleQuantitySelector
-        offers={bundleOffers}
-        unitPrice={unitPrice}
-        selectedQuantity={selectedQuantity}
-        onSelect={onQuantityChange}
-        locale={locale}
-      />
+      <BundleQuantitySelector offer={offer} locale={locale} />
 
       {isMultiPiece ? (
         <PieceConfigurator
@@ -159,15 +109,15 @@ export function ProductPurchasePanel({
         />
       ) : (
         <>
-          <SizeSelector
-            selectedSize={singlePiece.size}
-            onSelect={onSingleSizeChange}
-            sizes={availableSizes}
-          />
           <ColorVariantSelector
             variants={colorVariants}
             selectedColor={preferredColor ?? singlePiece.color}
             onSelect={onSingleColorChange}
+          />
+          <SizeSelector
+            selectedSize={singlePiece.size}
+            onSelect={onSingleSizeChange}
+            sizes={availableSizes}
           />
         </>
       )}
@@ -178,6 +128,7 @@ export function ProductPurchasePanel({
           productName={productName}
           quantity={selectedQuantity}
           totalPrice={totalPrice}
+          deliveryFee={deliveryFee}
           lineItems={pieces}
           requiresColorSelection={requiresColor}
           canSubmit={lineItemsValid}
@@ -193,7 +144,7 @@ export function ProductPurchasePanel({
         <a href="#order-form" className="product-mobile-order-cta">
           <span>{t("submit")}</span>
           <strong>
-            <MadPrice amount={totalPrice} locale={locale} />
+            <MadPrice amount={totalPrice + deliveryFee} locale={locale} />
           </strong>
         </a>
       ) : null}

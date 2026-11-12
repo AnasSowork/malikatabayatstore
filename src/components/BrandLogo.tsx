@@ -1,11 +1,14 @@
 import Image from "next/image";
 
-const LOGO_WIDTH = 253;
-const LOGO_HEIGHT = 150;
+/** Intrinsic pixel size of the Nira logo assets. */
+const LOGO_WIDTH = 2017;
+const LOGO_HEIGHT = 1298;
 
 const LOGO_SRC = {
-  light: "/logo.png",
-  dark: "/logo-dark.png",
+  /** Black wordmark — use on light / white surfaces. */
+  light: "/nira-logo-black.png",
+  /** White wordmark — use on black / dark surfaces. */
+  dark: "/nira-logo-white.png",
 } as const;
 
 type Props = {
@@ -13,7 +16,7 @@ type Props = {
   priority?: boolean;
   className?: string;
   alt: string;
-  /** Use `dark` on black backgrounds (gold + white wordmark). Default `light` for cream/white surfaces. */
+  /** Use `dark` on black backgrounds. Default `light` for cream/white surfaces. */
   variant?: keyof typeof LOGO_SRC;
 };
 

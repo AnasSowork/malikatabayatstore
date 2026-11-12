@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { PRODUCT_SIZES } from "@/lib/product-sizes";
+import { MaterialIcon } from "@/components/MaterialIcon";
 
 type Props = {
   selectedSize: string;
@@ -16,35 +17,21 @@ export function SizeSelector({ selectedSize, onSelect, compact, sizes = PRODUCT_
   const sizeLabel = label ?? t("selectSize");
 
   return (
-    <div className={compact ? "size-selector-compact space-y-2" : "space-y-4"}>
-      {!compact ? (
-        <div className="flex items-center justify-between">
-          <span className="font-store text-xs font-semibold text-on-surface-variant">{sizeLabel}</span>
-          <button type="button" className="text-xs text-secondary underline underline-offset-4">
-            {t("sizeGuide")}
-          </button>
-        </div>
-      ) : (
-        <span className="font-store text-[10px] font-semibold text-on-surface-variant">{sizeLabel}</span>
-      )}
-      <div className={`flex flex-wrap ${compact ? "gap-1.5" : "gap-2"}`}>
+    <div className={compact ? "size-selector-compact space-y-2" : "space-y-3"}>
+      <span className="text-sm text-on-surface-variant">{sizeLabel}</span>
+      <div className={`flex flex-wrap items-center ${compact ? "gap-2" : "gap-x-5 gap-y-2"}`}>
         {sizes.map((size) => {
           const selected = selectedSize === size;
-          const wide = size.length > 1;
           return (
             <button
               key={size}
               type="button"
               onClick={() => onSelect(size)}
-              className={`flex items-center justify-center rounded-full border font-store font-semibold transition-all hover:border-primary ${
-                compact
-                  ? `h-7 text-[10px] ${wide ? "min-w-[2rem] px-2" : "w-7"}`
-                  : `h-8 text-xs ${wide ? "min-w-[2.35rem] px-2.5" : "w-8"}`
-              } ${
+              className={
                 selected
-                  ? "border-black bg-black text-white shadow-sm"
-                  : "border-outline-variant text-on-surface hover:bg-surface-container-low"
-              }`}
+                  ? "rounded-md bg-brand-black px-3 py-1.5 text-sm text-brand-ivory"
+                  : "px-1 py-1.5 text-sm text-on-surface/75 hover:text-on-surface"
+              }
               aria-pressed={selected}
             >
               {size}
@@ -52,6 +39,12 @@ export function SizeSelector({ selectedSize, onSelect, compact, sizes = PRODUCT_
           );
         })}
       </div>
+      {!compact ? (
+        <p className="inline-flex items-center gap-2 text-sm text-on-surface">
+          <MaterialIcon name="straighten" className="!text-base" />
+          <span className="underline underline-offset-4">{t("sizeGuide")}</span>
+        </p>
+      ) : null}
     </div>
   );
 }

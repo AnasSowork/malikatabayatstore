@@ -20,16 +20,6 @@ export function MadPrice({
   const amountEl = <span className={amountClassName}>{parts.amount}</span>;
   const currencyEl = <span className={currencyClassName}>{parts.currency}</span>;
 
-  // Arabic: درهم then number (درهم 280). French: number then MAD.
-  if (locale === "ar") {
-    return (
-      <span className={`mad-price ${className}`.trim()} dir="ltr">
-        {currencyEl}
-        {amountEl}
-      </span>
-    );
-  }
-
   return (
     <span className={`mad-price ${className}`.trim()} dir="ltr">
       {amountEl}

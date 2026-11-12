@@ -34,6 +34,7 @@ export async function PATCH(request: Request, { params }: Params) {
         sku: d.sku,
         price: d.price,
         compareAtPrice: d.compareAtPrice,
+        deliveryFee: d.deliveryFee,
         stockQuantity: d.stockQuantity,
         soldCount: d.soldCount,
         rating: d.rating,

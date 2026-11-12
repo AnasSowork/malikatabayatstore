@@ -12,11 +12,11 @@ export function LocaleSwitcher() {
 
   return (
     <label className="flex items-center gap-2">
-      <span className="hidden font-sans text-[10px] uppercase tracking-widest text-outline sm:inline">
+      <span className="hidden font-sans text-[10px] uppercase tracking-[0.22em] text-on-surface/50 sm:inline">
         Lang
       </span>
       <select
-        className="store-locale-select cursor-pointer appearance-none rounded-lg border border-white/30 bg-brand-charcoal px-3 py-2 pr-8 text-white focus:border-white/60 focus:outline-none focus:ring-1 focus:ring-white/25"
+        className="store-locale-select cursor-pointer appearance-none border border-brand-black/15 bg-transparent px-3 py-2 pr-8 text-on-surface focus:border-brand-black/40 focus:outline-none"
         value={locale}
         onChange={(e) => router.replace(pathname, { locale: e.target.value })}
         aria-label="Language"
