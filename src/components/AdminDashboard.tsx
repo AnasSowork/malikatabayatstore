@@ -70,6 +70,7 @@ export function AdminDashboard({ view }: { view: AdminView }) {
   const [refreshing, setRefreshing] = useState(false);
   const [form, setForm] = useState(() => createEmptyProductForm());
   const [creating, setCreating] = useState(false);
+  const [productSaveError, setProductSaveError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
   const [savingCategory, setSavingCategory] = useState(false);
@@ -110,19 +111,47 @@ export function AdminDashboard({ view }: { view: AdminView }) {
     void load();
   }, [load]);
 
+  function productErrorMessage(code: string | undefined, fallback: string | undefined) {
+    switch (code) {
+      case "name":
+        return t("needName");
+      case "description":
+        return t("needDescription");
+      case "category":
+        return t("needCategory");
+      case "image":
+        return t("needOneImage");
+      case "price":
+        return t("invalidPrice");
+      case "compareAt":
+        return t("invalidComparePrice");
+      case "merchandising":
+        return t("invalidMerchandising");
+      case "bundle2":
+        return t("invalidBundle2");
+      case "bundle3":
+        return t("invalidBundle3");
+      default:
+        return fallback || t("saveProductError");
+    }
+  }
+
   function closeProductModal() {
     setEditingProductId(null);
     setShowCreateForm(false);
+    setProductSaveError(null);
     setForm(createEmptyProductForm());
   }
 
   function openCreateModal() {
     setEditingProductId(null);
+    setProductSaveError(null);
     setForm(createEmptyProductForm());
     setShowCreateForm(true);
   }
 
   function beginEditProduct(product: ProductForClient) {
+    setProductSaveError(null);
     const offer2 = product.bundleOffers.find((o) => o.quantity === 2);
     const offer3 = product.bundleOffers.find((o) => o.quantity === 3);
     const featured = product.bundleOffers.find((o) => o.featured);
@@ -159,6 +188,7 @@ export function AdminDashboard({ view }: { view: AdminView }) {
   async function saveProduct(e: React.FormEvent) {
     e.preventDefault();
     setCreating(true);
+    setProductSaveError(null);
     try {
       const colorVariants = draftsToPayload(form.colorVariants);
 
@@ -201,7 +231,10 @@ export function AdminDashboard({ view }: { view: AdminView }) {
       if (res.ok) {
         closeProductModal();
         await load(true);
+        return;
       }
+      const body = (await res.json().catch(() => null)) as { error?: string; code?: string } | null;
+      setProductSaveError(productErrorMessage(body?.code, body?.error));
     } finally {
       setCreating(false);
     }
@@ -586,6 +619,7 @@ export function AdminDashboard({ view }: { view: AdminView }) {
             onBusyChange={setImageUploadBusy}
             onClose={closeProductModal}
             onSubmit={(e) => void saveProduct(e)}
+            saveError={productSaveError}
             categories={categories}
           />
         </>

@@ -21,7 +21,7 @@ export async function PATCH(request: Request, { params }: Params) {
     const body = (await request.json()) as Record<string, unknown>;
     const parsed = parseProductPayload(body);
     if (!parsed.ok) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+      return NextResponse.json({ error: parsed.error, code: parsed.code }, { status: 400 });
     }
     const d = parsed.data;
 

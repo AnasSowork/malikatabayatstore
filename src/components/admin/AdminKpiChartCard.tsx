@@ -124,7 +124,12 @@ export function AdminKpiChartCard({
         </div>
       </div>
       <div className="admin-kpi-chart-wrap">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minWidth={0}
+          initialDimension={{ width: 320, height: 88 }}
+        >
           <MiniChart data={data} chartType={chartType} color={color} formatTooltip={formatTooltip} />
         </ResponsiveContainer>
       </div>

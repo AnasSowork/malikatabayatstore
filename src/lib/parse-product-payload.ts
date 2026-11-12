@@ -31,9 +31,27 @@ export type ParsedProductPayload = {
   detailContent: ProductDetailContent;
 };
 
+export type ProductSaveErrorCode =
+  | "name"
+  | "price"
+  | "description"
+  | "category"
+  | "image"
+  | "compareAt"
+  | "merchandising"
+  | "bundle2"
+  | "bundle3";
+
+function reject(
+  code: ProductSaveErrorCode,
+  error: string,
+): { ok: false; error: string; code: ProductSaveErrorCode } {
+  return { ok: false, error, code };
+}
+
 export function parseProductPayload(body: Record<string, unknown>):
   | { ok: true; data: ParsedProductPayload }
-  | { ok: false; error: string } {
+  | { ok: false; error: string; code: ProductSaveErrorCode } {
   const {
     name,
     nameAr,
@@ -81,20 +99,25 @@ export function parseProductPayload(body: Record<string, unknown>):
       )
     : [];
 
-  if (
-    typeof name !== "string" ||
-    !name.trim() ||
-    typeof price === "undefined" ||
-    typeof description !== "string" ||
-    categoryList.length === 0 ||
-    imageList.length === 0
-  ) {
-    return { ok: false, error: "Missing required fields" };
+  if (typeof name !== "string" || !name.trim()) {
+    return reject("name", "Name is required");
+  }
+  if (typeof price === "undefined") {
+    return reject("price", "Price is required");
+  }
+  if (typeof description !== "string" || !description.trim()) {
+    return reject("description", "Description is required");
+  }
+  if (categoryList.length === 0) {
+    return reject("category", "Choose a category");
+  }
+  if (imageList.length === 0) {
+    return reject("image", "Add at least one photo");
   }
 
   const priceNum = Number(price);
   if (!Number.isFinite(priceNum) || priceNum < 0) {
-    return { ok: false, error: "Invalid price" };
+    return reject("price", "Invalid price");
   }
 
   const optionalNumber = (value: unknown): number | null =>
@@ -106,11 +129,16 @@ export function parseProductPayload(body: Record<string, unknown>):
   const soldCountNum = soldCount === undefined || soldCount === "" ? 0 : Number(soldCount);
   const reviewCountNum = reviewCount === undefined || reviewCount === "" ? 0 : Number(reviewCount);
 
+  if (!Number.isFinite(deliveryFeeNum) || deliveryFeeNum < 0) {
+    return reject("merchandising", "Invalid delivery fee");
+  }
   if (
-    !Number.isFinite(deliveryFeeNum) ||
-    deliveryFeeNum < 0 ||
-    (compareAtPriceNum != null &&
-      (!Number.isFinite(compareAtPriceNum) || compareAtPriceNum <= priceNum)) ||
+    compareAtPriceNum != null &&
+    (!Number.isFinite(compareAtPriceNum) || compareAtPriceNum <= priceNum)
+  ) {
+    return reject("compareAt", "Compare-at price must be higher than the selling price");
+  }
+  if (
     (stockQuantityNum != null &&
       (!Number.isInteger(stockQuantityNum) || stockQuantityNum < 0)) ||
     !Number.isInteger(soldCountNum) ||
@@ -119,7 +147,7 @@ export function parseProductPayload(body: Record<string, unknown>):
     !Number.isInteger(reviewCountNum) ||
     reviewCountNum < 0
   ) {
-    return { ok: false, error: "Invalid merchandising values" };
+    return reject("merchandising", "Invalid stock, rating, or counts");
   }
 
   const sizeList = normalizeAvailableSizes(
@@ -145,10 +173,10 @@ export function parseProductPayload(body: Record<string, unknown>):
         ? null
         : Number(priceFor3);
     if (p2 != null && (!Number.isFinite(p2) || p2 < 0)) {
-      return { ok: false, error: "Invalid bundle price for 2" };
+      return reject("bundle2", "Invalid bundle price for 2");
     }
     if (p3 != null && (!Number.isFinite(p3) || p3 < 0)) {
-      return { ok: false, error: "Invalid bundle price for 3" };
+      return reject("bundle3", "Invalid bundle price for 3");
     }
     const featuredRaw = Number((body as { storefrontQuantity?: unknown }).storefrontQuantity);
     const featuredQuantity = featuredRaw === 2 || featuredRaw === 3 ? featuredRaw : 1;

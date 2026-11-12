@@ -22,6 +22,7 @@ type Props = {
   onBusyChange: (busy: boolean) => void;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
+  saveError: string | null;
   categories: CategoryForClient[];
 };
 
@@ -35,6 +36,7 @@ export function AdminProductModal({
   onBusyChange,
   onClose,
   onSubmit,
+  saveError,
   categories,
 }: Props) {
   const t = useTranslations("admin");
@@ -54,8 +56,9 @@ export function AdminProductModal({
 
   const canSave =
     form.imageUrls.length > 0 &&
+    form.categories.length > 0 &&
     form.availableSizes.length > 0 &&
-    Boolean(form.name.trim() && form.description.trim()) &&
+    Boolean(form.name.trim() && form.description.trim() && form.price.trim()) &&
     !imageUploadBusy &&
     !creating;
 
@@ -284,8 +287,12 @@ export function AdminProductModal({
         </div>
 
         <footer className="admin-modal-footer">
-          {!canSave && form.imageUrls.length === 0 ? (
+          {saveError ? (
+            <p className="mr-auto text-sm text-red-700">{saveError}</p>
+          ) : form.imageUrls.length === 0 ? (
             <p className="mr-auto text-xs text-on-surface-variant">{t("needOneImage")}</p>
+          ) : form.categories.length === 0 ? (
+            <p className="mr-auto text-xs text-on-surface-variant">{t("needCategory")}</p>
           ) : imageUploadBusy ? (
             <p className="mr-auto text-xs text-on-surface-variant">{t("waitForUploads")}</p>
           ) : (
