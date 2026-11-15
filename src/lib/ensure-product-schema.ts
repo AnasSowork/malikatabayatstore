@@ -14,6 +14,7 @@ import type { PrismaClient } from "@prisma/client";
 type SqlClient = Pick<PrismaClient, "$queryRaw" | "$executeRawUnsafe">;
 
 const ORDER_MIGRATION = "20261112020000_order_product_set_null";
+const PRODUCT_HIDDEN_MIGRATION = "20261115010000_product_hidden";
 
 let pending: Promise<void> | null = null;
 
@@ -48,6 +49,45 @@ async function applyDeliveryFeeColumn(client: SqlClient) {
   } catch (error) {
     if (!isBenignSql(error, /duplicate column|already exists|1060/i)) throw error;
   }
+}
+
+let hiddenPending: Promise<void> | null = null;
+
+export function ensureProductHiddenColumn(client: SqlClient): Promise<void> {
+  if (!hiddenPending) {
+    hiddenPending = applyProductHiddenColumn(client).catch((error) => {
+      hiddenPending = null;
+      throw error;
+    });
+  }
+  return hiddenPending;
+}
+
+export async function productHiddenColumnExists(client: SqlClient): Promise<boolean> {
+  const rows = await client.$queryRaw<Array<{ n: bigint | number }>>`
+    SELECT COUNT(*) AS n
+    FROM information_schema.columns
+    WHERE table_schema = DATABASE()
+      AND table_name = 'products'
+      AND column_name = 'hidden'
+  `;
+  return Number(rows[0]?.n ?? 0) > 0;
+}
+
+async function applyProductHiddenColumn(client: SqlClient) {
+  if (await productHiddenColumnExists(client)) {
+    await rememberSchemaMigration(client, PRODUCT_HIDDEN_MIGRATION);
+    return;
+  }
+
+  try {
+    await client.$executeRawUnsafe(
+      "ALTER TABLE `products` ADD COLUMN `hidden` BOOLEAN NOT NULL DEFAULT false",
+    );
+  } catch (error) {
+    if (!isBenignSql(error, /duplicate column|already exists|1060/i)) throw error;
+  }
+  await rememberSchemaMigration(client, PRODUCT_HIDDEN_MIGRATION);
 }
 
 type OrderProductState = {
@@ -187,15 +227,15 @@ function sqlColumnType(state: OrderProductState): string {
   return `${columnType} CHARACTER SET ${charset} COLLATE ${collation}`;
 }
 
-async function rememberOrderMigration(client: SqlClient) {
-  const checksum = orderMigrationChecksum();
-  if (!checksum) return;
+async function rememberSchemaMigration(client: SqlClient, migrationName: string) {
+  const checksum = migrationChecksum(migrationName);
+  if (!checksum || !/^[A-Za-z0-9_]+$/.test(migrationName)) return;
 
   try {
     const rows = await client.$queryRaw<Array<{ finished: Date | null }>>`
       SELECT finished_at AS finished
       FROM _prisma_migrations
-      WHERE migration_name = ${ORDER_MIGRATION}
+      WHERE migration_name = ${migrationName}
       LIMIT 5
     `;
     if (rows.some((row) => row.finished)) return;
@@ -208,7 +248,7 @@ async function rememberOrderMigration(client: SqlClient) {
              rolled_back_at = NULL,
              logs = NULL,
              applied_steps_count = 1
-         WHERE migration_name = '${ORDER_MIGRATION}'
+         WHERE migration_name = '${migrationName}'
            AND finished_at IS NULL`,
       );
       return;
@@ -219,24 +259,23 @@ async function rememberOrderMigration(client: SqlClient) {
       `INSERT INTO \`_prisma_migrations\`
          (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count)
        VALUES
-         ('${id}', '${checksum}', NOW(3), '${ORDER_MIGRATION}', NULL, NULL, NOW(3), 1)`,
+         ('${id}', '${checksum}', NOW(3), '${migrationName}', NULL, NULL, NOW(3), 1)`,
     );
   } catch (error) {
     logSchema(
       "warn",
-      `could not record ${ORDER_MIGRATION}: ${error instanceof Error ? error.message : String(error)}`,
+      `could not record ${migrationName}: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 }
 
-function orderMigrationChecksum(): string | null {
+async function rememberOrderMigration(client: SqlClient) {
+  await rememberSchemaMigration(client, ORDER_MIGRATION);
+}
+
+function migrationChecksum(migrationName: string): string | null {
   try {
-    const file = path.join(
-      process.cwd(),
-      "prisma/migrations",
-      ORDER_MIGRATION,
-      "migration.sql",
-    );
+    const file = path.join(process.cwd(), "prisma/migrations", migrationName, "migration.sql");
     return createHash("sha256").update(readFileSync(file)).digest("hex");
   } catch {
     return null;

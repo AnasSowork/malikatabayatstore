@@ -6,7 +6,9 @@ import { serializeProduct } from "@/lib/product-serialize";
 
 export async function GET() {
   try {
+    const isAdmin = await isAdminAuthenticated();
     const products = await prisma.product.findMany({
+      where: isAdmin ? undefined : { hidden: false },
       orderBy: { createdAt: "desc" },
     });
     return NextResponse.json(products.map(serializeProduct));

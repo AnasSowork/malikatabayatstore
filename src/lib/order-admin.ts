@@ -52,6 +52,8 @@ export async function parseOrderInput(
     allowAdminFields?: boolean;
     /** Admin update of an order whose catalog product was already deleted. */
     allowDetachedProduct?: boolean;
+    /** Admin can still sell a product that is hidden from the shop. */
+    allowHiddenProduct?: boolean;
   },
 ): Promise<ParsedOrderInput | ParseOrderError> {
   const {
@@ -126,7 +128,7 @@ export async function parseOrderInput(
   const product = await prisma.product.findUnique({
     where: { id: productId.trim() },
   });
-  if (!product) {
+  if (!product || (product.hidden && !options?.allowHiddenProduct)) {
     return { error: "Product not found", status: 400 };
   }
 

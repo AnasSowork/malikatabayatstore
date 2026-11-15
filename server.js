@@ -180,6 +180,9 @@ function runMigrationsBeforeListen() {
     if (duplicate && /productName|20261112020000_order_product_set_null/i.test(result.output)) {
       await markMigrationApplied("20261112020000_order_product_set_null");
     }
+    if (duplicate && /`hidden`|20261115010000_product_hidden/i.test(result.output)) {
+      await markMigrationApplied("20261115010000_product_hidden");
+    }
   });
 }
 

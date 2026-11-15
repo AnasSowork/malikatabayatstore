@@ -72,6 +72,7 @@ export function AdminDashboard({ view }: { view: AdminView }) {
   const [creating, setCreating] = useState(false);
   const [productSaveError, setProductSaveError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [hidingId, setHidingId] = useState<string | null>(null);
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
   const [savingCategory, setSavingCategory] = useState(false);
   const [savingHome, setSavingHome] = useState(false);
@@ -237,6 +238,25 @@ export function AdminDashboard({ view }: { view: AdminView }) {
       setProductSaveError(productErrorMessage(body?.code, body?.error));
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function setProductHidden(id: string, hidden: boolean) {
+    setHidingId(id);
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hidden }),
+      });
+      if (res.ok) {
+        await load(true);
+        return;
+      }
+      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      window.alert(body?.error || t("hideProductError"));
+    } finally {
+      setHidingId(null);
     }
   }
 
@@ -540,7 +560,7 @@ export function AdminDashboard({ view }: { view: AdminView }) {
                 label={t("kpiProducts")}
                 icon="inventory_2"
                 accent="dark"
-                value={products.length}
+                value={products.filter((product) => !product.hidden).length}
                 data={chartSeries("newProducts")}
                 chartType="bar"
                 color="#3d3d3d"
@@ -605,8 +625,10 @@ export function AdminDashboard({ view }: { view: AdminView }) {
           <AdminProductsView
             products={products}
             deletingId={deletingId}
+            hidingId={hidingId}
             onEdit={beginEditProduct}
             onDelete={(id) => void deleteProduct(id)}
+            onToggleHidden={(id, hidden) => void setProductHidden(id, hidden)}
             onAdd={openCreateModal}
           />
           <AdminProductModal

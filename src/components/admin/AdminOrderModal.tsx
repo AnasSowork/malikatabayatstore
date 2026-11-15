@@ -580,7 +580,7 @@ export function AdminOrderModal({
                   const { name } = getLocalizedProductFields(p, locale);
                   return (
                     <option key={p.id} value={p.id}>
-                      {name}
+                      {p.hidden ? `${name} (${t("hidden")})` : name}
                     </option>
                   );
                 })}

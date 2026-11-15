@@ -36,6 +36,7 @@ export type ProductForClient = {
   bundleOffers: BundleOffer[];
   availableSizes: string[];
   detailContent: ProductDetailContent;
+  hidden: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -94,6 +95,7 @@ export function serializeProduct(p: Product): ProductForClient {
     bundleOffers: toBundleOffers(p.bundleOffers, basePrice),
     availableSizes: normalizeAvailableSizes(toStringArray(p.availableSizes)),
     detailContent: normalizeProductDetailContent(p.detailContent),
+    hidden: p.hidden,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
   };

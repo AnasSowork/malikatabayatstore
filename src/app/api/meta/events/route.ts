@@ -162,9 +162,9 @@ export async function POST(request: Request) {
 
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      select: { id: true },
+      select: { id: true, hidden: true },
     });
-    if (!product) {
+    if (!product || product.hidden) {
       return NextResponse.json({ error: "Unknown productId" }, { status: 400 });
     }
 

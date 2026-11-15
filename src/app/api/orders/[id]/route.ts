@@ -24,6 +24,7 @@ export async function PATCH(request: Request, context: Ctx) {
       allowCustomTotalPrice: true,
       allowAdminFields: true,
       allowDetachedProduct: existing.productId == null,
+      allowHiddenProduct: true,
     });
     if ("error" in parsed) {
       return NextResponse.json({ error: parsed.error }, { status: parsed.status });

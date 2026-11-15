@@ -42,6 +42,8 @@ model Product {
   bundleOffers   Json?
   availableSizes Json?
   detailContent  Json?
+  /// Kept in admin and on existing orders, but left off the shop.
+  hidden         Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   orders         Order[]

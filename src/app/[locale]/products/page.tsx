@@ -40,6 +40,7 @@ export default async function ProductsPage({
         : { createdAt: "desc" as const };
 
   const rows = await prisma.product.findMany({
+    where: { hidden: false },
     orderBy,
   });
   const products = rows

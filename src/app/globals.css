@@ -1295,6 +1295,24 @@ html[dir="rtl"] .product-detail-shell {
   box-shadow: 0 20px 48px -24px rgba(0, 0, 0, 0.25);
 }
 
+.admin-product-card-hidden {
+  opacity: 0.72;
+}
+
+.admin-product-hidden-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  border-radius: 9999px;
+  background: #211c1a;
+  color: #f7f4ef;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .admin-product-thumb {
   position: relative;
   display: flex;
@@ -1349,6 +1367,7 @@ html[dir="rtl"] .product-detail-shell {
 
 .admin-product-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 1rem;
   padding-top: 1rem;

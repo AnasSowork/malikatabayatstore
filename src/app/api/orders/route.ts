@@ -56,6 +56,7 @@ export async function POST(request: Request) {
     const parsed = await parseOrderInput(body, {
       allowCustomTotalPrice: isAdmin,
       allowAdminFields: isAdmin,
+      allowHiddenProduct: isAdmin,
     });
     if ("error" in parsed) {
       return NextResponse.json({ error: parsed.error }, { status: parsed.status });

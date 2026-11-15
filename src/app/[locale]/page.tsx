@@ -29,7 +29,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
   let products: ReturnType<typeof serializeProduct>[] = [];
   try {
-    products = (await prisma.product.findMany({ orderBy: { createdAt: "desc" }, take: 8 })).map(
+    products = (
+      await prisma.product.findMany({
+        where: { hidden: false },
+        orderBy: { createdAt: "desc" },
+        take: 8,
+      })
+    ).map(
       serializeProduct,
     );
   } catch (error) {

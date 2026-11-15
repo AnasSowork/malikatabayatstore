@@ -9,23 +9,39 @@ import { formatMad } from "@/lib/format-price";
 import type { AppLocale } from "@/lib/product-i18n";
 import { getLocalizedProductFields } from "@/lib/product-i18n";
 
+type VisibilityFilter = "all" | "visible" | "hidden";
+
 type Props = {
   products: ProductForClient[];
   deletingId: string | null;
+  hidingId: string | null;
   onEdit: (product: ProductForClient) => void;
   onDelete: (id: string) => void;
+  onToggleHidden: (id: string, hidden: boolean) => void;
   onAdd: () => void;
 };
 
-export function AdminProductsView({ products, deletingId, onEdit, onDelete, onAdd }: Props) {
+export function AdminProductsView({
+  products,
+  deletingId,
+  hidingId,
+  onEdit,
+  onDelete,
+  onToggleHidden,
+  onAdd,
+}: Props) {
   const t = useTranslations("admin");
   const locale = useLocale() as AppLocale;
   const [search, setSearch] = useState("");
+  const [visibility, setVisibility] = useState<VisibilityFilter>("all");
+  const hiddenCount = products.filter((product) => product.hidden).length;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return products;
     return products.filter((p) => {
+      if (visibility === "hidden" && !p.hidden) return false;
+      if (visibility === "visible" && p.hidden) return false;
+      if (!q) return true;
       const { name } = getLocalizedProductFields(p, locale);
       return (
         name.toLowerCase().includes(q) ||
@@ -33,14 +49,18 @@ export function AdminProductsView({ products, deletingId, onEdit, onDelete, onAd
         p.colorVariants.some((v) => v.name.toLowerCase().includes(q))
       );
     });
-  }, [products, search, locale]);
+  }, [products, search, locale, visibility]);
 
   return (
     <section className="admin-section">
       <div className="admin-section-head">
         <div>
           <h2 className="admin-section-title">{t("products")}</h2>
-          <p className="admin-section-subtitle">{t("productsSubtitle", { count: products.length })}</p>
+          <p className="admin-section-subtitle">
+            {hiddenCount > 0
+              ? t("productsSubtitleHidden", { count: products.length, hidden: hiddenCount })
+              : t("productsSubtitle", { count: products.length })}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="admin-search-wrap">
@@ -60,13 +80,38 @@ export function AdminProductsView({ products, deletingId, onEdit, onDelete, onAd
         </div>
       </div>
 
+      <div className="delivery-filter-row mb-4">
+        {(
+          [
+            ["all", "productVisibilityAll"],
+            ["visible", "productVisibilityVisible"],
+            ["hidden", "productVisibilityHidden"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            className={visibility === key ? "delivery-filter-active" : ""}
+            onClick={() => setVisibility(key)}
+          >
+            {t(label)}
+          </button>
+        ))}
+      </div>
+
       {filtered.length === 0 ? (
         <AdminEmptyState
           icon="inventory_2"
-          title={search.trim() ? t("noSearchResults") : t("noProducts")}
-          description={search.trim() ? undefined : t("noProductsHint")}
+          title={
+            search.trim()
+              ? t("noSearchResults")
+              : visibility === "hidden"
+                ? t("noHiddenProducts")
+                : t("noProducts")
+          }
+          description={search.trim() || visibility === "hidden" ? undefined : t("noProductsHint")}
           action={
-            !search.trim() ? (
+            !search.trim() && visibility !== "hidden" ? (
               <button type="button" onClick={onAdd} className="admin-btn-primary">
                 <MaterialIcon name="add" className="!text-lg" />
                 {t("addNew")}
@@ -83,8 +128,12 @@ export function AdminProductsView({ products, deletingId, onEdit, onDelete, onAd
             const bundle3 = product.bundleOffers.find((o) => o.quantity === 3);
 
             return (
-              <article key={product.id} className="admin-product-card">
+              <article
+                key={product.id}
+                className={product.hidden ? "admin-product-card admin-product-card-hidden" : "admin-product-card"}
+              >
                 <div className="admin-product-thumb">
+                  {product.hidden ? <span className="admin-product-hidden-badge">{t("hidden")}</span> : null}
                   {cover ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={cover} alt="" className="h-full w-full object-cover" />
@@ -130,6 +179,15 @@ export function AdminProductsView({ products, deletingId, onEdit, onDelete, onAd
                     <button type="button" onClick={() => onEdit(product)} className="admin-btn-ghost">
                       <MaterialIcon name="edit" className="!text-base" />
                       {t("edit")}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={hidingId === product.id}
+                      onClick={() => onToggleHidden(product.id, !product.hidden)}
+                      className="admin-btn-ghost"
+                    >
+                      <MaterialIcon name={product.hidden ? "visibility" : "visibility_off"} className="!text-base" />
+                      {hidingId === product.id ? t("hiding") : product.hidden ? t("show") : t("hide")}
                     </button>
                     <button
                       type="button"

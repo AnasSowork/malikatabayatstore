@@ -19,6 +19,15 @@ export async function PATCH(request: Request, { params }: Params) {
     }
 
     const body = (await request.json()) as Record<string, unknown>;
+    const keys = Object.keys(body);
+    if (keys.length === 1 && keys[0] === "hidden" && typeof body.hidden === "boolean") {
+      const product = await prisma.product.update({
+        where: { id },
+        data: { hidden: body.hidden },
+      });
+      return NextResponse.json(serializeProduct(product));
+    }
+
     const parsed = parseProductPayload(body);
     if (!parsed.ok) {
       return NextResponse.json({ error: parsed.error, code: parsed.code }, { status: 400 });

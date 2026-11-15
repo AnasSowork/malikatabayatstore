@@ -6,12 +6,12 @@ export async function register() {
   loadMissingHostingerEnv();
 
   const { prisma } = await import("@/lib/prisma");
-  const { ensureOrderProductSnapshot, ensureProductDeliveryFeeColumn } = await import(
-    "@/lib/ensure-product-schema"
-  );
+  const { ensureOrderProductSnapshot, ensureProductDeliveryFeeColumn, ensureProductHiddenColumn } =
+    await import("@/lib/ensure-product-schema");
 
   try {
     await ensureProductDeliveryFeeColumn(prisma);
+    await ensureProductHiddenColumn(prisma);
     await ensureOrderProductSnapshot(prisma);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

@@ -32,6 +32,7 @@ export function detachedProduct(name: string, id: string): ProductForClient {
     bundleOffers: [],
     availableSizes: [],
     detailContent: createDefaultProductDetailContent(),
+    hidden: false,
     createdAt: new Date(0).toISOString(),
     updatedAt: new Date(0).toISOString(),
   };

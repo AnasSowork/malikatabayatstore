@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, id } = await params;
   if (!routing.locales.includes(locale as AppLocale)) return {};
   const product = await prisma.product.findUnique({ where: { id } });
-  if (!product) return {};
+  if (!product || product.hidden) return {};
   const serialized = serializeProduct(product);
   const { name, description } = getLocalizedProductFields(serialized, locale as AppLocale);
   return {
@@ -42,10 +42,10 @@ export default async function ProductDetailPage({ params }: Props) {
   setRequestLocale(locale);
 
   const product = await prisma.product.findUnique({ where: { id } });
-  if (!product) notFound();
+  if (!product || product.hidden) notFound();
 
   const otherProducts = await prisma.product.findMany({
-    where: { id: { not: id } },
+    where: { id: { not: id }, hidden: false },
     orderBy: { createdAt: "desc" },
     take: 12,
   });
