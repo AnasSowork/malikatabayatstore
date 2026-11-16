@@ -6,6 +6,7 @@ import { Cormorant_Garamond, Geist_Mono, Inter, Cairo, Noto_Kufi_Arabic } from "
 import { routing } from "@/i18n/routing";
 import "../globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
+import { listCategories } from "@/lib/list-categories";
 import { SiteFooter } from "@/components/SiteFooter";
 import { StorefrontMain } from "@/components/StorefrontMain";
 import { StorefrontOnly } from "@/components/StorefrontOnly";
@@ -91,6 +92,7 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   setRequestLocale(locale);
   const messages = await getMessages();
+  const categories = await listCategories();
   const fontVars = `${inter.variable} ${display.variable} ${cairo.variable} ${notoKufiArabic.variable} ${geistMono.variable}`;
 
   return (
@@ -107,7 +109,7 @@ export default async function LocaleLayout({ children, params }: Props) {
           <AttributionCapture />
           <SiteAnalyticsBeacon />
           <ConsentBanner />
-          <SiteHeader />
+          <SiteHeader categories={categories} />
           <StorefrontMain>{children}</StorefrontMain>
           <StorefrontOnly>
             <SiteFooter />
