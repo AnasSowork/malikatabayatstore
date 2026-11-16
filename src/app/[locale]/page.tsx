@@ -2,6 +2,7 @@ import { HomeCategoryTilesSection } from "@/components/home/HomeCategoryTilesSec
 import { HomeEditSection } from "@/components/home/HomeEditSection";
 import { HomeHeroSection } from "@/components/home/HomeHeroSection";
 import { HomeValuePropsSection } from "@/components/home/HomeValuePropsSection";
+import { listCategories } from "@/lib/list-categories";
 import { listHomeSections } from "@/lib/home-content";
 import {
   resolveCategoryTiles,
@@ -16,6 +17,7 @@ import type {
 import type { AppLocale } from "@/lib/product-i18n";
 import { prisma } from "@/lib/prisma";
 import { serializeProduct } from "@/lib/product-serialize";
+import type { CategoryForClient } from "@/lib/category-serialize";
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -28,16 +30,15 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const values = byKey.get("value_props");
 
   let products: ReturnType<typeof serializeProduct>[] = [];
+  let categories: CategoryForClient[] = [];
   try {
     products = (
       await prisma.product.findMany({
         where: { hidden: false },
         orderBy: { createdAt: "desc" },
-        take: 8,
       })
-    ).map(
-      serializeProduct,
-    );
+    ).map(serializeProduct);
+    categories = await listCategories();
   } catch (error) {
     console.error("[home] product edit failed:", error);
   }
@@ -47,7 +48,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       {hero?.enabled ? (
         <HomeHeroSection {...resolveHero(hero.content as HeroContent, appLocale)} />
       ) : null}
-      <HomeEditSection products={products} />
+      <HomeEditSection products={products} categories={categories} />
       {tiles?.enabled ? (
         <HomeCategoryTilesSection
           {...resolveCategoryTiles(tiles.content as CategoryTilesContent, appLocale)}
