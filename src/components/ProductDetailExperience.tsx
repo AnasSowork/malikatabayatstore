@@ -9,6 +9,7 @@ import { MadPrice } from "@/components/MadPrice";
 import { ProductImageCarousel } from "@/components/ProductImageCarousel";
 import { ProductPurchasePanel } from "@/components/ProductPurchasePanel";
 import { ProductAssuranceSections } from "@/components/ProductAssuranceSections";
+import { ProductTestimonials } from "@/components/ProductTestimonials";
 import { ProductRatingBadge } from "@/components/ProductRatingBadge";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { Link } from "@/i18n/navigation";
@@ -187,6 +188,7 @@ export function ProductDetailExperience({
         <ProductAssuranceSections content={detailContent} />
       </section>
       </div>
+      <ProductTestimonials items={detailContent.testimonials} />
     </div>
   );
 }

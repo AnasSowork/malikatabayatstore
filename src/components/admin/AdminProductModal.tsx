@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { ProductImageUploader } from "@/components/ProductImageUploader";
@@ -41,6 +42,10 @@ export function AdminProductModal({
 }: Props) {
   const t = useTranslations("admin");
   const locale = useLocale() as AppLocale;
+  const [detailBusy, setDetailBusy] = useState(false);
+  useEffect(() => {
+    if (!open) setDetailBusy(false);
+  }, [open]);
   if (!open) return null;
 
   const categoryOptions =
@@ -60,6 +65,7 @@ export function AdminProductModal({
     form.availableSizes.length > 0 &&
     Boolean(form.name.trim() && form.description.trim() && form.price.trim()) &&
     !imageUploadBusy &&
+    !detailBusy &&
     !creating;
 
   return (
@@ -282,6 +288,7 @@ export function AdminProductModal({
               value={form.detailContent}
               onChange={(detailContent) => setForm((current) => ({ ...current, detailContent }))}
               disabled={creating}
+              onBusyChange={setDetailBusy}
             />
           </section>
         </div>
@@ -293,7 +300,7 @@ export function AdminProductModal({
             <p className="mr-auto text-xs text-on-surface-variant">{t("needOneImage")}</p>
           ) : form.categories.length === 0 ? (
             <p className="mr-auto text-xs text-on-surface-variant">{t("needCategory")}</p>
-          ) : imageUploadBusy ? (
+          ) : imageUploadBusy || detailBusy ? (
             <p className="mr-auto text-xs text-on-surface-variant">{t("waitForUploads")}</p>
           ) : (
             <span className="mr-auto" />

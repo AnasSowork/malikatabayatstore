@@ -29,6 +29,12 @@ export type ProductPurchaseUi = {
   colorLabel: ProductLocalizedText;
 };
 
+export type ProductTestimonial = {
+  quote: ProductLocalizedText;
+  name: ProductLocalizedText;
+  imageUrl: string | null;
+};
+
 export type ProductDetailContent = {
   shortDescription: ProductLocalizedText;
   benefits: ProductInfoItem[];
@@ -42,6 +48,7 @@ export type ProductDetailContent = {
     points: ProductLocalizedText[];
   };
   purchaseUi: ProductPurchaseUi;
+  testimonials: ProductTestimonial[];
 };
 
 const text = (en: string, fr: string): ProductLocalizedText => ({ en, fr });
@@ -146,6 +153,7 @@ export function createDefaultProductDetailContent(): ProductDetailContent {
       selectSizeLabel: text("", ""),
       colorLabel: text("", ""),
     },
+    testimonials: [],
   };
 }
 
@@ -262,5 +270,45 @@ export function normalizeProductDetailContent(value: unknown): ProductDetailCont
       selectSizeLabel: localized(purchaseSource.selectSizeLabel, fallback.purchaseUi.selectSizeLabel),
       colorLabel: localized(purchaseSource.colorLabel, fallback.purchaseUi.colorLabel),
     },
+    testimonials: normalizeTestimonials(source.testimonials),
   };
+}
+
+function optionalLocalized(value: unknown): ProductLocalizedText {
+  if (!value || typeof value !== "object") return { en: "", fr: "" };
+  const item = value as Record<string, unknown>;
+  return {
+    en: typeof item.en === "string" ? item.en.trim() : "",
+    fr: typeof item.fr === "string" ? item.fr.trim() : "",
+    ar: typeof item.ar === "string" ? item.ar.trim() : undefined,
+  };
+}
+
+function testimonialImage(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > 500) return null;
+  if (trimmed.startsWith("/") || trimmed.startsWith("https://") || trimmed.startsWith("http://")) {
+    return trimmed;
+  }
+  return null;
+}
+
+function normalizeTestimonials(value: unknown): ProductTestimonial[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .slice(0, 12)
+    .map((entry) => {
+      const item = entry && typeof entry === "object" ? (entry as Record<string, unknown>) : {};
+      return {
+        quote: optionalLocalized(item.quote),
+        name: optionalLocalized(item.name),
+        imageUrl: testimonialImage(item.imageUrl),
+      };
+    })
+    .filter(
+      (item) =>
+        Boolean(item.imageUrl) ||
+        Boolean(item.quote.en || item.quote.fr || item.quote.ar || item.name.en || item.name.fr),
+    );
 }

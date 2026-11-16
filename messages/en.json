@@ -193,6 +193,8 @@
     "reviewsLabel": "Reviews",
     "reviewsCount": "{count} reviews",
     "reviewsTitle": "Customer reviews",
+    "testimonialsTitle": "Testimonials",
+    "testimonialImageAlt": "Customer photo",
     "reviewImageAlt": "Customer review screenshot number {number}",
     "reviewsVerified": "Verified customer reviews",
     "ratingAria": "Rating {score} out of 5 based on {count} reviews",
@@ -585,7 +587,13 @@
     "productTrustPanel": "Bloc de confiance",
     "productTrustEyebrow": "Surtitre",
     "productTrustTitle": "Titre",
-    "productTrustBody": "Texte"
+    "productTrustBody": "Texte",
+    "productTestimonials": "Témoignages",
+    "productTestimonialsHint": "Un témoignage par produit. Photo, nom et texte sont facultatifs : seul ce qui est rempli s’affiche, et la carte s’adapte au contenu. Remplissez le français, puis l’anglais.",
+    "productAddTestimonial": "Ajouter un témoignage",
+    "productTestimonialImage": "Photo",
+    "productTestimonialName": "Nom",
+    "productTestimonialQuote": "Texte"
   },
   "locale": {
     "fr": "Français",

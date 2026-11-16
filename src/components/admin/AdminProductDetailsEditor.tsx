@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { MaterialIcon } from "@/components/MaterialIcon";
+import { AdminSingleImagePicker } from "@/components/admin/AdminSingleImagePicker";
 import type {
   ProductDetailContent,
   ProductFaqItem,
@@ -15,14 +16,25 @@ type Props = {
   value: ProductDetailContent;
   onChange: (value: ProductDetailContent) => void;
   disabled?: boolean;
+  onBusyChange?: (busy: boolean) => void;
 };
 
 const emptyText = (): ProductLocalizedText => ({ en: "", fr: "" });
 const emptyFaq = (): ProductFaqItem => ({ question: emptyText(), answer: emptyText() });
 
-export function AdminProductDetailsEditor({ value, onChange, disabled }: Props) {
+export function AdminProductDetailsEditor({ value, onChange, disabled, onBusyChange }: Props) {
   const t = useTranslations("admin");
-  const [language, setLanguage] = useState<Language>("en");
+  const [language, setLanguage] = useState<Language>("fr");
+  const busyRef = useRef<Record<number, boolean>>({});
+
+  useEffect(() => {
+    return () => onBusyChange?.(false);
+  }, [onBusyChange]);
+
+  const reportBusy = (index: number, next: boolean) => {
+    busyRef.current[index] = next;
+    onBusyChange?.(Object.values(busyRef.current).some(Boolean));
+  };
 
   const setText = (
     current: ProductLocalizedText,
@@ -265,6 +277,90 @@ export function AdminProductDetailsEditor({ value, onChange, disabled }: Props) 
               onClick={() =>
                 onChange({ ...value, faqs: value.faqs.filter((_, itemIndex) => itemIndex !== index) })
               }
+            >
+              <MaterialIcon name="delete" className="!text-lg" />
+            </button>
+          </div>
+        ))}
+      </section>
+
+      <section className="product-detail-editor-group">
+        <div className="flex items-center justify-between gap-3">
+          <h4>{t("productTestimonials")}</h4>
+          <button
+            type="button"
+            className="admin-btn-ghost"
+            disabled={disabled || value.testimonials.length >= 12}
+            onClick={() =>
+              onChange({
+                ...value,
+                testimonials: [
+                  ...value.testimonials,
+                  { quote: { en: "", fr: "" }, name: { en: "", fr: "" }, imageUrl: null },
+                ],
+              })
+            }
+          >
+            {t("productAddTestimonial")}
+          </button>
+        </div>
+        <p className="text-xs leading-relaxed text-on-surface-variant">{t("productTestimonialsHint")}</p>
+        {value.testimonials.map((item, index) => (
+          <div key={`testimonial-${index}`} className="product-testimonial-editor">
+            <AdminSingleImagePicker
+              label={t("productTestimonialImage")}
+              value={item.imageUrl ?? ""}
+              aspect="square"
+              disabled={disabled}
+              onBusyChange={(next) => reportBusy(index, next)}
+              onChange={(url) => {
+                const items = [...value.testimonials];
+                items[index] = { ...item, imageUrl: url.trim() ? url.trim() : null };
+                onChange({ ...value, testimonials: items });
+              }}
+            />
+            <label className="admin-field">
+              <span>{t("productTestimonialName")}</span>
+              <input
+                className="admin-input"
+                dir="ltr"
+                disabled={disabled}
+                value={item.name[language]}
+                onChange={(event) => {
+                  const items = [...value.testimonials];
+                  items[index] = { ...item, name: setText(item.name, event.target.value) };
+                  onChange({ ...value, testimonials: items });
+                }}
+              />
+            </label>
+            <label className="admin-field">
+              <span>{t("productTestimonialQuote")}</span>
+              <textarea
+                className="admin-input"
+                rows={4}
+                dir="ltr"
+                disabled={disabled}
+                value={item.quote[language]}
+                onChange={(event) => {
+                  const items = [...value.testimonials];
+                  items[index] = { ...item, quote: setText(item.quote, event.target.value) };
+                  onChange({ ...value, testimonials: items });
+                }}
+              />
+            </label>
+            <button
+              type="button"
+              className="admin-icon-btn"
+              disabled={disabled}
+              aria-label={t("delete")}
+              onClick={() => {
+                busyRef.current = {};
+                onBusyChange?.(false);
+                onChange({
+                  ...value,
+                  testimonials: value.testimonials.filter((_, itemIndex) => itemIndex !== index),
+                });
+              }}
             >
               <MaterialIcon name="delete" className="!text-lg" />
             </button>

@@ -183,6 +183,8 @@
     "reviewsLabel": "التقييمات",
     "reviewsCount": "{count} تقييم",
     "reviewsTitle": "آراء الزبناء",
+    "testimonialsTitle": "شهادات",
+    "testimonialImageAlt": "صورة الزبونة",
     "reviewImageAlt": "رسالة رأي من عميلة رقم {number}",
     "reviewsVerified": "آراء زبناء حقيقيون",
     "ratingAria": "تقييم {score} من 5 بناءً على {count} تقييم",
@@ -575,7 +577,13 @@
     "productTrustPanel": "بطاقة الثقة",
     "productTrustEyebrow": "العنوان الصغير",
     "productTrustTitle": "العنوان",
-    "productTrustBody": "النص"
+    "productTrustBody": "النص",
+    "productTestimonials": "شهادات",
+    "productTestimonialsHint": "شهادة لكل منتج. الصورة والاسم والنص اختيارية، وتظهر البطاقة حسب ما تم إدخاله.",
+    "productAddTestimonial": "إضافة شهادة",
+    "productTestimonialImage": "صورة",
+    "productTestimonialName": "الاسم",
+    "productTestimonialQuote": "النص"
   },
   "locale": {
     "ar": "العربية",

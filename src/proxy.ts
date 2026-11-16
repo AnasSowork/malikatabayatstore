@@ -19,11 +19,19 @@ export default function proxy(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
-  // Legacy Arabic cookie / Accept-Language: force French when next-intl would otherwise keep "ar".
+  // First visits land in French, including browsers that ask for English.
+  // nira_locale marks that this browser has been through that landing once.
+  // After that, a saved fr/en choice from the language switcher is kept.
   const cookieLocale = request.cookies.get("NEXT_LOCALE")?.value;
-  if (cookieLocale === "ar") {
+  const landed = request.cookies.get("nira_locale")?.value === "1";
+  const chosen =
+    landed && (cookieLocale === "fr" || cookieLocale === "en") ? cookieLocale : routing.defaultLocale;
+  if (!landed || cookieLocale !== chosen) {
+    request.cookies.set("NEXT_LOCALE", chosen);
     const response = intlMiddleware(request);
-    response.cookies.set("NEXT_LOCALE", routing.defaultLocale, { path: "/", sameSite: "lax" });
+    const cookie = { path: "/", sameSite: "lax" as const, maxAge: 60 * 60 * 24 * 365 };
+    response.cookies.set("NEXT_LOCALE", chosen, cookie);
+    response.cookies.set("nira_locale", "1", cookie);
     return response;
   }
 
