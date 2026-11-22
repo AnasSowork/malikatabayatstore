@@ -4887,7 +4887,7 @@ body:has([data-consent-banner]) .whatsapp-fab {
   display: grid;
   gap: 0.2rem;
   z-index: 20;
-  max-height: 16rem;
+  max-height: min(22rem, 55vh);
   overflow: auto;
   border: 1.5px solid rgba(33, 28, 26, 0.22);
   background: #fff;
@@ -5044,9 +5044,9 @@ body:has([data-consent-banner]) .whatsapp-fab {
   padding-top: 0.85rem;
   border-top: 1px solid rgba(247, 244, 239, 0.16);
   color: #f7f4ef !important;
-  font-family: var(--font-headline);
+  font-family: var(--font-store);
   font-size: 1.45rem !important;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .checkout-rail .btn-brand {

@@ -25,6 +25,11 @@ type DistrictsListResponse = {
     arabic_name?: string;
     active?: number;
   }>;
+  total?: number;
+  per_page?: number;
+  current_page?: number;
+  last_page?: number;
+  next_page_url?: string | null;
 };
 
 export class SenditCityMappingError extends Error {
@@ -100,28 +105,74 @@ async function fetchDistrictsForQuery(city: string): Promise<SenditDistrict[]> {
   const hit = cache.byQuery.get(cacheKey);
   if (hit) return hit;
 
-  const query = new URLSearchParams({
-    querystring: city,
-    page: "1",
-  });
   const pickup = process.env.SENDIT_PICKUP_DISTRICT_ID?.trim();
-  if (pickup && /^\d+$/.test(pickup)) {
-    query.set("pickup-district", pickup);
+  const byId = new Map<number, SenditDistrict>();
+  let lastPage = 1;
+
+  for (let page = 1; page <= 50; page += 1) {
+    const query = new URLSearchParams({
+      querystring: city,
+      page: String(page),
+    });
+    if (pickup && /^\d+$/.test(pickup)) {
+      query.set("pickup-district", pickup);
+    }
+
+    const response = await senditRequest<DistrictsListResponse>(`/districts?${query.toString()}`);
+    const rows = (response.data ?? [])
+      .map((row) => toDistrict(row))
+      .filter((d): d is SenditDistrict => Boolean(d));
+
+    for (const district of rows) {
+      byId.set(district.id, district);
+    }
+
+    const reportedLast =
+      typeof response.last_page === "number" && response.last_page > 0
+        ? response.last_page
+        : page;
+    lastPage = reportedLast;
+
+    if (rows.length === 0 || page >= lastPage || !response.next_page_url) {
+      break;
+    }
   }
 
-  const response = await senditRequest<DistrictsListResponse>(`/districts?${query.toString()}`);
-  const rows = (response.data ?? [])
-    .map((row) => toDistrict(row))
-    .filter((d): d is SenditDistrict => Boolean(d));
-
+  const rows = [...byId.values()];
   cache.byQuery.set(cacheKey, rows);
   return rows;
 }
 
 /**
+ * When a city (ville) has many Sendit districts, pick one for shipping.
+ * Prefer a plain city row, then "Autres quartiers", else the shortest label.
+ */
+function pickPreferredDistrict(candidates: SenditDistrict[]): SenditDistrict {
+  const list = candidates.filter((d) => d.active !== 0);
+  const pool = list.length > 0 ? list : candidates;
+  const plain = pool.find((d) => d.name.trim() === d.ville.trim());
+  if (plain) return plain;
+  const autres = pool.find((d) => /autres\s+quartiers/i.test(d.name));
+  if (autres) return autres;
+  return [...pool].sort(
+    (a, b) =>
+      a.name.length - b.name.length ||
+      a.name.localeCompare(b.name, "fr") ||
+      a.id - b.id,
+  )[0]!;
+}
+
+function sameVilleGroup(candidates: SenditDistrict[]): string | null {
+  if (candidates.length === 0) return null;
+  const keys = new Set(candidates.map((d) => normalizeCityKey(d.ville)));
+  if (keys.size !== 1) return null;
+  return candidates[0]!.ville.trim() || null;
+}
+
+/**
  * Classify city match without fuzzy guessing.
- * EXACT_MATCH: raw string equals ville/name (trim only)
- * SAFE_NORMALIZED_MATCH: accent/case/whitespace normalized equality
+ * EXACT_MATCH / SAFE_NORMALIZED_MATCH: unique district, or a shared ville
+ * (e.g. "Casablanca") resolved to a preferred district for shipping.
  */
 export async function classifySenditCityMatch(cityName: string): Promise<CityResolveResult> {
   const city = cityName.trim();
@@ -129,6 +180,7 @@ export async function classifySenditCityMatch(cityName: string): Promise<CityRes
 
   const rows = await fetchDistrictsForQuery(city);
   const active = rows.filter((d) => d.active !== 0);
+  const want = normalizeCityKey(city);
 
   const exact = active.filter(
     (d) =>
@@ -137,9 +189,15 @@ export async function classifySenditCityMatch(cityName: string): Promise<CityRes
       (d.arabic_name ? d.arabic_name.trim() === city : false),
   );
   if (exact.length === 1) return { kind: "EXACT_MATCH", district: exact[0]! };
-  if (exact.length > 1) return { kind: "AMBIGUOUS", candidates: exact };
+  if (exact.length > 1) {
+    const ville = sameVilleGroup(exact);
+    // Customer typed the city name (e.g. Casablanca) — collapse districts.
+    if (ville && (ville === city || normalizeCityKey(ville) === want)) {
+      return { kind: "EXACT_MATCH", district: pickPreferredDistrict(exact) };
+    }
+    return { kind: "AMBIGUOUS", candidates: exact };
+  }
 
-  const want = normalizeCityKey(city);
   const normalized = active.filter(
     (d) =>
       normalizeCityKey(d.ville) === want ||
@@ -150,7 +208,13 @@ export async function classifySenditCityMatch(cityName: string): Promise<CityRes
   for (const d of normalized) unique.set(d.id, d);
   const matches = [...unique.values()];
   if (matches.length === 1) return { kind: "SAFE_NORMALIZED_MATCH", district: matches[0]! };
-  if (matches.length > 1) return { kind: "AMBIGUOUS", candidates: matches };
+  if (matches.length > 1) {
+    const ville = sameVilleGroup(matches);
+    if (ville && normalizeCityKey(ville) === want) {
+      return { kind: "SAFE_NORMALIZED_MATCH", district: pickPreferredDistrict(matches) };
+    }
+    return { kind: "AMBIGUOUS", candidates: matches };
+  }
   return { kind: "NOT_FOUND" };
 }
 
@@ -280,42 +344,58 @@ export async function listSenditCityNames(): Promise<string[]> {
   return cached?.names ?? [];
 }
 
-/** Public checkout suggestions while typing a city (Sendit district search). */
+/**
+ * Public checkout suggestions: unique Sendit cities (ville), not districts.
+ * e.g. typing "Casa" → "Casablanca" only (not every Casablanca quarter).
+ */
 export async function searchSenditCitySuggestions(
   cityName: string,
-  limit = 12,
+  limit = 200,
 ): Promise<SenditDistrict[]> {
   const city = cityName.trim();
   if (city.length < 2) return [];
 
   const rows = await fetchDistrictsForQuery(city);
-  const unique = new Map<number, SenditDistrict>();
+  const want = normalizeCityKey(city);
+  const byVille = new Map<string, SenditDistrict[]>();
+
   for (const district of rows) {
     if (district.active === 0) continue;
-    unique.set(district.id, district);
+    const ville = district.ville.trim();
+    if (!ville) continue;
+    const key = normalizeCityKey(ville);
+    // Only surface city names that match what the customer typed.
+    if (!key.includes(want) && !want.includes(key)) continue;
+    const list = byVille.get(key) ?? [];
+    list.push(district);
+    byVille.set(key, list);
   }
 
-  const want = normalizeCityKey(city);
-  return [...unique.values()]
-    .sort((a, b) => {
-      const aLabel = a.name || a.ville;
-      const bLabel = b.name || b.ville;
-      const aExact =
-        normalizeCityKey(a.ville) === want ||
-        normalizeCityKey(a.name) === want ||
-        (a.arabic_name ? normalizeCityKey(a.arabic_name) === want : false)
-          ? 0
-          : 1;
-      const bExact =
-        normalizeCityKey(b.ville) === want ||
-        normalizeCityKey(b.name) === want ||
-        (b.arabic_name ? normalizeCityKey(b.arabic_name) === want : false)
-          ? 0
-          : 1;
-      if (aExact !== bExact) return aExact - bExact;
-      return aLabel.localeCompare(bLabel, "fr");
-    })
-    .slice(0, Math.max(1, Math.min(limit, 40)));
+  const collapsed: SenditDistrict[] = [];
+  for (const group of byVille.values()) {
+    const preferred = pickPreferredDistrict(group);
+    const ville = preferred.ville.trim();
+    collapsed.push({
+      ...preferred,
+      name: ville,
+      ville,
+    });
+  }
+
+  collapsed.sort((a, b) => {
+    const aKey = normalizeCityKey(a.ville);
+    const bKey = normalizeCityKey(b.ville);
+    const aExact = aKey === want ? 0 : 1;
+    const bExact = bKey === want ? 0 : 1;
+    if (aExact !== bExact) return aExact - bExact;
+    const aStarts = aKey.startsWith(want) ? 0 : 1;
+    const bStarts = bKey.startsWith(want) ? 0 : 1;
+    if (aStarts !== bStarts) return aStarts - bStarts;
+    return a.ville.localeCompare(b.ville, "fr");
+  });
+
+  const capped = Math.max(1, Math.min(limit, 300));
+  return collapsed.slice(0, capped);
 }
 
 /** Full active Sendit districts for admin autocomplete / mapping (cached 30 min). */

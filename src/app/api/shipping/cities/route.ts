@@ -22,21 +22,22 @@ export async function GET(request: Request) {
 
     const [match, suggestions] = await Promise.all([
       classifySenditCityMatch(city),
-      searchSenditCitySuggestions(city, 12),
+      searchSenditCitySuggestions(city, 200),
     ]);
 
-    const cities = suggestions.map((district) => ({
-      id: district.id,
-      name: district.name.trim() || district.ville.trim(),
-      ville: district.ville.trim() || district.name.trim(),
-    }));
+    const cities = suggestions.map((district) => {
+      const ville = district.ville.trim() || district.name.trim();
+      return { id: district.id, name: ville, ville };
+    });
 
     if (match.kind === "EXACT_MATCH" || match.kind === "SAFE_NORMALIZED_MATCH") {
+      const cityLabel =
+        match.district.ville.trim() || match.district.name.trim();
       return NextResponse.json({
         ok: true,
         configured: true,
         kind: match.kind,
-        city: match.district.name.trim() || match.district.ville.trim(),
+        city: cityLabel,
         cities,
       });
     }

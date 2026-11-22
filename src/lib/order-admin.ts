@@ -381,7 +381,8 @@ async function parseBasketOrder(input: {
     if (match.kind !== "EXACT_MATCH" && match.kind !== "SAFE_NORMALIZED_MATCH") {
       return { error: "City is outside delivery area", status: 400 };
     }
-    city = match.district.name.trim() || match.district.ville.trim();
+    // Store the city (ville), not a Sendit quarter — shipping resolves a district later.
+    city = match.district.ville.trim() || match.district.name.trim();
   }
 
   const adminFields = input.options?.allowAdminFields

@@ -244,7 +244,7 @@ export function CheckoutPage() {
             </div>
 
             <div className="checkout-fields">
-              <label className="checkout-field">
+              <label className="checkout-field checkout-field-wide">
                 <span>{productT("customerName")}</span>
                 <input
                   value={customerName}
