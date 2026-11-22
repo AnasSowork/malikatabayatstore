@@ -28,7 +28,8 @@
     "classic": "Classiques",
     "embroidered": "Brodées",
     "newIn": "Nouveautés",
-    "announcement": "Livraison rapide Partout au Maroc"
+    "announcement": "Livraison rapide Partout au Maroc",
+    "basket": "Panier"
   },
   "home": {
     "heroLine1": "Nira",
@@ -601,6 +602,32 @@
   },
   "whatsapp": {
     "label": "Contactez-nous sur WhatsApp"
+  },
+  "basket": {
+    "eyebrow": "NIRA MODE",
+    "title": "Panier",
+    "count": "{count, plural, one {1 pièce} other {# pièces}}",
+    "empty": "Votre panier est vide.",
+    "continue": "Continuer vos achats",
+    "remove": "Retirer",
+    "decrease": "Diminuer la quantité",
+    "increase": "Augmenter la quantité",
+    "add": "Ajouter au panier",
+    "added": "Ajouté au panier.",
+    "view": "Voir le panier",
+    "checkout": "Passer à la commande",
+    "checkoutTitle": "Commande",
+    "checkoutSubtitle": "Paiement à la livraison. Nous vous contactons pour confirmer la commande.",
+    "detailsStep": "Vos coordonnées",
+    "streetAddress": "Adresse de livraison",
+    "streetAddressPlaceholder": "Rue, quartier, immeuble, étage…",
+    "addressRequired": "Ajoutez une adresse de livraison complète.",
+    "codNote": "Vous payez uniquement à la réception.",
+    "summary": "Votre commande",
+    "edit": "Modifier le panier",
+    "unavailable": "Un article n’est plus disponible. Retirez-le du panier et réessayez.",
+    "quantityUnavailable": "Cette quantité n’est plus disponible.",
+    "invalidSelection": "Vérifiez la taille et la couleur de chaque article."
   },
   "thankYou": {
     "eyebrow": "Commande confirmée",

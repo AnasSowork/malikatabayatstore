@@ -25,6 +25,8 @@ type Props = {
   deliveryFee: number;
   images: string[];
   productName: string;
+  catalogName: string;
+  nameFr: string | null;
   description: string;
   editionLine: string;
   colorVariants: ProductColorVariant[];
@@ -46,6 +48,8 @@ export function ProductDetailExperience({
   deliveryFee,
   images,
   productName,
+  catalogName,
+  nameFr,
   description,
   editionLine,
   colorVariants,
@@ -175,11 +179,15 @@ export function ProductDetailExperience({
         <ProductPurchasePanel
           productId={productId}
           productName={productName}
+          catalogName={catalogName}
+          nameFr={nameFr}
+          image={images[0] ?? ""}
           unitPrice={unitPrice}
           deliveryFee={deliveryFee}
           colorVariants={colorVariants}
           bundleOffers={bundleOffers}
           availableSizes={availableSizes}
+          stockQuantity={stockQuantity}
           inStock={inStock}
           preferredColor={galleryColor}
           purchaseUi={detailContent.purchaseUi}

@@ -7,6 +7,7 @@ import { Link, usePathname } from "@/i18n/navigation";
 import { BrandLogo } from "@/components/BrandLogo";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { MaterialIcon } from "@/components/MaterialIcon";
+import { useBasket } from "@/components/BasketProvider";
 import {
   getLocalizedCategoryLabel,
   type CategoryForClient,
@@ -34,6 +35,7 @@ function SiteHeaderFrame({
 }: Props & { activeCategory: string | null }) {
   const t = useTranslations("nav");
   const brand = useTranslations("brand");
+  const basket = useBasket();
   const locale = useLocale() as AppLocale;
   const pathname = usePathname();
   if (pathname.startsWith("/admin")) return null;
@@ -69,6 +71,10 @@ function SiteHeaderFrame({
         <div className="flex shrink-0 items-center gap-3 md:gap-4">
           <Link href="/products" className="text-brand-black" aria-label={t("shop")}>
             <MaterialIcon name="search" className="!text-[22px]" />
+          </Link>
+          <Link href="/basket" className="basket-link text-brand-black" aria-label={t("basket")}>
+            <MaterialIcon name="shopping_bag" className="!text-[22px]" />
+            {basket.count > 0 ? <span className="basket-count">{basket.count}</span> : null}
           </Link>
           <LocaleSwitcher />
         </div>

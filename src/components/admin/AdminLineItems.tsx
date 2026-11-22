@@ -10,6 +10,7 @@ export function AdminLineItems({ items }: { items: OrderLineItem[] }) {
       {items.map((item, i) => (
         <span key={i} className="admin-chip">
           <span className="admin-chip-num">{i + 1}</span>
+          {item.productName ? `${item.productName} · ` : null}
           {item.size}
           {item.color ? (
             <>

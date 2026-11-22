@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { MaterialIcon } from "@/components/MaterialIcon";
+import { AdminLineItems } from "@/components/admin/AdminLineItems";
 import type { OrderWithProduct } from "@/components/admin/types";
 import type { ProductForClient } from "@/lib/product-serialize";
 import type { OrderLineItem } from "@/lib/bundle-offers";
@@ -171,12 +172,15 @@ export function AdminOrderModal({
     () => products.find((p) => p.id === form.productId) ?? null,
     [products, form.productId],
   );
+  const isMultiBasket =
+    new Set(form.lineItems.map((item) => item.productId).filter(Boolean)).size > 1;
 
   const quantities = useMemo(() => {
-    if (!product) return [1];
+    if (!product) return [form.quantity || 1];
     const qs = product.bundleOffers.map((o) => o.quantity).sort((a, b) => a - b);
-    return qs.length > 0 ? qs : [1];
-  }, [product]);
+    const list = qs.length > 0 ? qs : [1];
+    return list.includes(form.quantity) ? list : [form.quantity, ...list];
+  }, [product, form.quantity]);
 
   const shippingPreview = useMemo(() => {
     if (!product) return null;
@@ -574,6 +578,7 @@ export function AdminOrderModal({
                 required
                 className="admin-input"
                 value={form.productId}
+                disabled={isMultiBasket}
                 onChange={(e) => onProductChange(e.target.value)}
               >
                 {products.map((p) => {
@@ -591,6 +596,7 @@ export function AdminOrderModal({
               <select
                 className="admin-input"
                 value={form.quantity}
+                disabled={isMultiBasket}
                 onChange={(e) => onQuantityChange(Number(e.target.value))}
               >
                 {quantities.map((q) => (
@@ -625,7 +631,8 @@ export function AdminOrderModal({
               <MaterialIcon name="tune" className="!text-lg brand-gold-text" />
               {t("lineItemsLabel")}
             </h3>
-            {form.lineItems.map((item, index) => (
+            {isMultiBasket ? <AdminLineItems items={form.lineItems} /> : null}
+            {!isMultiBasket && form.lineItems.map((item, index) => (
               <div key={index} className="grid grid-cols-2 gap-3 rounded-xl border border-black/10 p-3">
                 <label className="admin-field">
                   <span>

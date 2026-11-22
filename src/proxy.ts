@@ -19,6 +19,15 @@ export default function proxy(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
+  // The unprefixed URL is rewritten to /fr or /en. That internal request must render,
+  // not bounce back to `/`, or the browser never receives the page.
+  const prefixed = pathname.match(/^\/(fr|en)(?=\/|$)/);
+  if (prefixed) {
+    const headers = new Headers(request.headers);
+    headers.set("X-NEXT-INTL-LOCALE", prefixed[1]);
+    return NextResponse.next({ request: { headers } });
+  }
+
   // First visits land in French, including browsers that ask for English.
   // nira_locale marks that this browser has been through that landing once.
   // After that, a saved fr/en choice from the language switcher is kept.

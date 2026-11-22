@@ -27,7 +27,8 @@
     "products": "الأزياء",
     "classic": "كلاسيك",
     "embroidered": "مطرزة",
-    "announcement": "توصيل مجاني لجميع أنحاء المغرب. الدفع عند الاستلام"
+    "announcement": "توصيل مجاني لجميع أنحاء المغرب. الدفع عند الاستلام",
+    "basket": "السلة"
   },
   "home": {
     "heroLine1": "ملكة",
@@ -591,6 +592,32 @@
   },
   "whatsapp": {
     "label": "تواصل معنا عبر واتساب"
+  },
+  "basket": {
+    "eyebrow": "NIRA MODE",
+    "title": "السلة",
+    "count": "{count, plural, one {قطعة واحدة} other {# قطع}}",
+    "empty": "سلتك فارغة.",
+    "continue": "متابعة التسوق",
+    "remove": "إزالة",
+    "decrease": "تقليل الكمية",
+    "increase": "زيادة الكمية",
+    "add": "أضيفي إلى السلة",
+    "added": "تمت الإضافة إلى السلة.",
+    "view": "عرض السلة",
+    "checkout": "إتمام الطلب",
+    "checkoutTitle": "الطلب",
+    "checkoutSubtitle": "الدفع عند الاستلام. سنتصل بك لتأكيد الطلب.",
+    "detailsStep": "بياناتك",
+    "streetAddress": "عنوان التسليم",
+    "streetAddressPlaceholder": "الشارع، الحي، العمارة، الطابق…",
+    "addressRequired": "أضيفي عنوان تسليم كاملاً.",
+    "codNote": "تدفعين فقط عند الاستلام.",
+    "summary": "طلبك",
+    "edit": "تعديل السلة",
+    "unavailable": "أحد المنتجات لم يعد متاحاً.",
+    "quantityUnavailable": "هذه الكمية لم تعد متاحة.",
+    "invalidSelection": "تحققي من المقاس واللون."
   },
   "thankYou": {
     "eyebrow": "تم تأكيد الطلب",

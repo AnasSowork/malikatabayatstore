@@ -15,6 +15,7 @@ import { SiteAnalyticsBeacon } from "@/components/SiteAnalyticsBeacon";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import { AttributionCapture } from "@/components/AttributionCapture";
 import { WhatsAppFab } from "@/components/WhatsAppFab";
+import { BasketProvider } from "@/components/BasketProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -105,6 +106,7 @@ export default async function LocaleLayout({ children, params }: Props) {
       </head>
       <body className="flex min-h-full flex-col bg-surface font-sans text-on-surface">
         <NextIntlClientProvider messages={messages}>
+          <BasketProvider>
           <MetaPixel />
           <AttributionCapture />
           <SiteAnalyticsBeacon />
@@ -115,6 +117,7 @@ export default async function LocaleLayout({ children, params }: Props) {
             <SiteFooter />
           </StorefrontOnly>
           <WhatsAppFab />
+          </BasketProvider>
         </NextIntlClientProvider>
       </body>
     </html>

@@ -103,6 +103,8 @@ export default async function ProductDetailPage({ params }: Props) {
         deliveryFee={Number(serialized.deliveryFee)}
         images={serialized.images}
         productName={name}
+        catalogName={product.name}
+        nameFr={product.nameFr}
         description={description}
         editionLine={editionLine}
         colorVariants={serialized.colorVariants}

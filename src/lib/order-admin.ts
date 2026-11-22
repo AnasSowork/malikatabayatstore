@@ -1,5 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { findBundleOffer, toOrderLineItems, type OrderLineItem } from "@/lib/bundle-offers";
+import {
+  BASKET_MAX_LINES,
+  BASKET_MAX_QUANTITY,
+  priceForQuantity,
+  roundMoney,
+  type BasketLineInput,
+} from "@/lib/basket";
 import { parseOrderStatus } from "@/lib/order-status";
 import { normalizeProductSize } from "@/lib/product-sizes";
 import { serializeProduct } from "@/lib/product-serialize";
@@ -35,6 +42,12 @@ function readOptionalString(value: unknown): string | null | undefined {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function readStreetAddress(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim().slice(0, 500);
+  return trimmed.length >= 3 ? trimmed : null;
 }
 
 function readOptionalBoolean(value: unknown): boolean | undefined {
@@ -73,9 +86,7 @@ export async function parseOrderInput(
     typeof phone !== "string" ||
     !phone.trim() ||
     typeof city !== "string" ||
-    !city.trim() ||
-    typeof productId !== "string" ||
-    (!productId.trim() && !options?.allowDetachedProduct)
+    !city.trim()
   ) {
     return { error: "Missing required fields", status: 400 };
   }
@@ -83,6 +94,24 @@ export async function parseOrderInput(
   const normalizedPhone = normalizeMoroccanPhone(phone);
   if (!normalizedPhone) {
     return { error: "Invalid Moroccan phone number", status: 400 };
+  }
+
+  const basketRequest = readBasketRequest(body);
+  if (basketRequest) {
+    if ("error" in basketRequest) return basketRequest;
+    return parseBasketOrder({
+      customerName: customerName.trim(),
+      phone: normalizedPhone,
+      city: city.trim(),
+      items: basketRequest.items,
+      rawTotalPrice,
+      options,
+      body,
+    });
+  }
+
+  if (typeof productId !== "string" || (!productId.trim() && !options?.allowDetachedProduct)) {
+    return { error: "Missing required fields", status: 400 };
   }
 
   const quantity =
@@ -197,6 +226,173 @@ export async function parseOrderInput(
     lineItems,
     totalPrice,
     selectedColor: lineItems[0]?.color ?? null,
+    ...adminFields,
+  };
+}
+
+function readBasketRequest(
+  body: Record<string, unknown>,
+): { items: BasketLineInput[] } | ParseOrderError | null {
+  if (Array.isArray(body.items)) {
+    const items = parseBasketItems(body.items);
+    if (!items) return { error: "Invalid basket", status: 400 };
+    return { items };
+  }
+
+  const detailed = toOrderLineItems(body.lineItems);
+  if (detailed.length === 0 || detailed.some((item) => !item.productId)) return null;
+  return { items: groupPieces(detailed) };
+}
+
+function parseBasketItems(value: unknown[]): BasketLineInput[] | null {
+  if (value.length === 0 || value.length > BASKET_MAX_LINES) return null;
+  const items: BasketLineInput[] = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object") return null;
+    const row = entry as Record<string, unknown>;
+    const productId = typeof row.productId === "string" ? row.productId.trim() : "";
+    const quantity = typeof row.quantity === "number" ? row.quantity : Number(row.quantity);
+    const size = typeof row.size === "string" ? row.size.trim() : "";
+    const color = typeof row.color === "string" && row.color.trim() ? row.color.trim() : null;
+    if (!productId || !Number.isInteger(quantity) || quantity < 1 || quantity > BASKET_MAX_QUANTITY || !size) {
+      return null;
+    }
+    items.push({ productId, quantity, size, color });
+  }
+  return mergeBasketItems(items);
+}
+
+function groupPieces(items: OrderLineItem[]): BasketLineInput[] {
+  const grouped = new Map<string, BasketLineInput>();
+  for (const item of items) {
+    const productId = item.productId ?? "";
+    const key = `${productId}|${item.size}|${item.color ?? ""}`;
+    const existing = grouped.get(key);
+    if (existing) existing.quantity += 1;
+    else grouped.set(key, { productId, quantity: 1, size: item.size, color: item.color });
+  }
+  return mergeBasketItems([...grouped.values()]);
+}
+
+function mergeBasketItems(items: BasketLineInput[]): BasketLineInput[] {
+  const grouped = new Map<string, BasketLineInput>();
+  for (const item of items) {
+    const key = `${item.productId}|${item.size}|${item.color ?? ""}`;
+    const existing = grouped.get(key);
+    if (existing) existing.quantity += item.quantity;
+    else grouped.set(key, { ...item });
+  }
+  return [...grouped.values()];
+}
+
+async function parseBasketOrder(input: {
+  customerName: string;
+  phone: string;
+  city: string;
+  items: BasketLineInput[];
+  rawTotalPrice: unknown;
+  body: Record<string, unknown>;
+  options?: {
+    allowCustomTotalPrice?: boolean;
+    allowAdminFields?: boolean;
+    allowHiddenProduct?: boolean;
+  };
+}): Promise<ParsedOrderInput | ParseOrderError> {
+  const items = mergeBasketItems(input.items);
+  if (items.length === 0 || items.length > BASKET_MAX_LINES) {
+    return { error: "Invalid basket", status: 400 };
+  }
+  if (items.some((item) => item.quantity < 1 || item.quantity > BASKET_MAX_QUANTITY)) {
+    return { error: "Quantity is not available", status: 400 };
+  }
+
+  const products = await prisma.product.findMany({
+    where: { id: { in: [...new Set(items.map((item) => item.productId))] } },
+  });
+  const byId = new Map(products.map((product) => [product.id, product]));
+
+  const lineItems: OrderLineItem[] = [];
+  let merchandise = 0;
+  const deliveryByProduct = new Map<string, number>();
+  const requestedByProduct = new Map<string, number>();
+
+  for (const item of items) {
+    const product = byId.get(item.productId);
+    if (!product || (product.hidden && !input.options?.allowHiddenProduct)) {
+      return { error: "Product not found", status: 400 };
+    }
+    const serialized = serializeProduct(product);
+    const size = normalizeProductSize(item.size);
+    if (!serialized.availableSizes.includes(size)) {
+      return { error: "Invalid size", status: 400 };
+    }
+    const variantNames = serialized.colorVariants.map((variant) => variant.name);
+    if (variantNames.length > 0 && (!item.color || !variantNames.includes(item.color))) {
+      return { error: "Invalid color variant", status: 400 };
+    }
+
+    requestedByProduct.set(item.productId, (requestedByProduct.get(item.productId) ?? 0) + item.quantity);
+    const stock = serialized.stockQuantity;
+    if (stock != null && (requestedByProduct.get(item.productId) ?? 0) > stock) {
+      return { error: "Quantity is not available", status: 400 };
+    }
+
+    const label = product.nameFr?.trim() || product.name;
+    merchandise += priceForQuantity(Number(serialized.price), serialized.bundleOffers, item.quantity);
+    if (!deliveryByProduct.has(item.productId)) {
+      deliveryByProduct.set(item.productId, Number(serialized.deliveryFee) || 0);
+    }
+    for (let index = 0; index < item.quantity; index += 1) {
+      lineItems.push({
+        size,
+        color: variantNames.length > 0 ? item.color : null,
+        productId: product.id,
+        productName: label,
+      });
+    }
+  }
+
+  const delivery = [...deliveryByProduct.values()].reduce((sum, fee) => sum + fee, 0);
+  let totalPrice = roundMoney(merchandise + delivery);
+  if (input.options?.allowCustomTotalPrice && input.rawTotalPrice != null) {
+    const custom =
+      typeof input.rawTotalPrice === "number"
+        ? input.rawTotalPrice
+        : typeof input.rawTotalPrice === "string"
+          ? Number(input.rawTotalPrice)
+          : NaN;
+    if (!Number.isFinite(custom) || custom < 0) {
+      return { error: "Invalid total price", status: 400 };
+    }
+    totalPrice = custom;
+  }
+
+  const names = [...new Set(lineItems.map((item) => item.productName).filter(Boolean))];
+  const streetAddress = readStreetAddress(input.body.streetAddress);
+  if (!streetAddress && !input.options?.allowAdminFields) {
+    return { error: "Delivery address is required", status: 400 };
+  }
+  const adminFields = input.options?.allowAdminFields
+    ? {
+        status: parseOrderStatus(input.body.status) ?? undefined,
+        statusNote: readOptionalString(input.body.statusNote),
+        shippingComment: readOptionalString(input.body.shippingComment),
+        shippingDescription: readOptionalString(input.body.shippingDescription),
+        shippingNoOpen: readOptionalBoolean(input.body.shippingNoOpen),
+      }
+    : {};
+
+  return {
+    customerName: input.customerName,
+    phone: input.phone,
+    city: input.city,
+    productId: lineItems[0]?.productId ?? items[0]!.productId,
+    productName: names.join(" · ").slice(0, 255),
+    quantity: lineItems.length,
+    lineItems,
+    totalPrice,
+    selectedColor: lineItems.find((item) => item.color)?.color ?? null,
+    streetAddress: streetAddress ?? readOptionalString(input.body.streetAddress) ?? null,
     ...adminFields,
   };
 }

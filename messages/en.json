@@ -28,7 +28,8 @@
     "classic": "Classic",
     "embroidered": "Embroidered",
     "newIn": "New in",
-    "announcement": "Fast delivery across Morocco"
+    "announcement": "Fast delivery across Morocco",
+    "basket": "Basket"
   },
   "home": {
     "heroLine1": "Nira",
@@ -601,6 +602,32 @@
   },
   "whatsapp": {
     "label": "Contact us on WhatsApp"
+  },
+  "basket": {
+    "eyebrow": "NIRA MODE",
+    "title": "Basket",
+    "count": "{count, plural, one {1 piece} other {# pieces}}",
+    "empty": "Your basket is empty.",
+    "continue": "Continue shopping",
+    "remove": "Remove",
+    "decrease": "Decrease quantity",
+    "increase": "Increase quantity",
+    "add": "Add to basket",
+    "added": "Added to your basket.",
+    "view": "View basket",
+    "checkout": "Continue to purchase",
+    "checkoutTitle": "Purchase",
+    "checkoutSubtitle": "Cash on delivery. We will contact you to confirm the order.",
+    "detailsStep": "Your details",
+    "streetAddress": "Delivery address",
+    "streetAddressPlaceholder": "Street, neighborhood, building, floor…",
+    "addressRequired": "Please add a full delivery address.",
+    "codNote": "You pay only when your order arrives.",
+    "summary": "Your order",
+    "edit": "Edit basket",
+    "unavailable": "An item is no longer available. Remove it from the basket and try again.",
+    "quantityUnavailable": "That quantity is no longer available.",
+    "invalidSelection": "Check the size and color of each item."
   },
   "thankYou": {
     "eyebrow": "Order confirmed",

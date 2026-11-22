@@ -4,150 +4,189 @@ import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { SizeSelector } from "@/components/SizeSelector";
 import { ColorVariantSelector } from "@/components/ColorVariantSelector";
-import { BundleQuantitySelector } from "@/components/BundleQuantitySelector";
-import { PieceConfigurator } from "@/components/PieceConfigurator";
-import { OrderForm } from "@/components/OrderForm";
+import { useBasket } from "@/components/BasketProvider";
+import { Link } from "@/i18n/navigation";
 import type { ProductColorVariant } from "@/lib/product-serialize";
 import type { AppLocale } from "@/lib/product-i18n";
-import { storefrontOffer, type BundleOffer, type OrderLineItem } from "@/lib/bundle-offers";
+import { bundleSavings, type BundleOffer } from "@/lib/bundle-offers";
+import { lineMerchandise, maxBasketQuantity } from "@/lib/basket";
 import { MadPrice } from "@/components/MadPrice";
+import { formatMad } from "@/lib/format-price";
 import { DEFAULT_PRODUCT_SIZE } from "@/lib/product-sizes";
+import { trackAddToCart } from "@/lib/meta-pixel-events";
 import type { ProductPurchaseUi } from "@/lib/product-detail-content";
 
 type Props = {
   productId: string;
   productName: string;
+  catalogName: string;
+  nameFr: string | null;
+  image: string;
   unitPrice: number;
   deliveryFee: number;
   colorVariants: ProductColorVariant[];
   bundleOffers: BundleOffer[];
   availableSizes: string[];
+  stockQuantity: number | null;
   inStock: boolean;
   preferredColor?: string | null;
-  purchaseUi: ProductPurchaseUi;
+  purchaseUi?: ProductPurchaseUi;
   onColorChange?: (colorName: string) => void;
 };
-
-function defaultPiece(colorVariants: ProductColorVariant[], availableSizes: string[]): OrderLineItem {
-  return {
-    size: availableSizes[0] ?? DEFAULT_PRODUCT_SIZE,
-    color: colorVariants.length > 0 ? colorVariants[0].name : null,
-  };
-}
-
-function buildPieces(
-  quantity: number,
-  colorVariants: ProductColorVariant[],
-  availableSizes: string[],
-  prev: OrderLineItem[],
-): OrderLineItem[] {
-  const base = defaultPiece(colorVariants, availableSizes);
-  return Array.from({ length: quantity }, (_, i) => prev[i] ?? { ...base });
-}
 
 export function ProductPurchasePanel({
   productId,
   productName,
+  catalogName,
+  nameFr,
+  image,
   unitPrice,
   deliveryFee,
   colorVariants,
   bundleOffers,
   availableSizes,
+  stockQuantity,
   inStock,
   preferredColor,
-  purchaseUi,
   onColorChange,
 }: Props) {
   const t = useTranslations("product");
+  const basketT = useTranslations("basket");
   const locale = useLocale() as AppLocale;
-  const offer = storefrontOffer(bundleOffers, unitPrice);
-  const selectedQuantity = offer.quantity;
-  const [pieces, setPieces] = useState<OrderLineItem[]>(() =>
-    buildPieces(offer.quantity, colorVariants, availableSizes, []),
+  const basket = useBasket();
+  const maxQuantity = maxBasketQuantity(stockQuantity);
+  const [quantity, setQuantity] = useState(1);
+  const [size, setSize] = useState(availableSizes[0] ?? DEFAULT_PRODUCT_SIZE);
+  const [color, setColor] = useState<string | null>(
+    preferredColor ?? (colorVariants[0]?.name ?? null),
   );
-
-  const totalPrice = offer.price;
+  const [added, setAdded] = useState(false);
 
   useEffect(() => {
     if (!preferredColor) return;
-    setPieces((prev) => {
-      if (prev.length !== 1) return prev;
-      if (prev[0]?.color === preferredColor) return prev;
-      return [{ ...prev[0], color: preferredColor }];
-    });
+    setColor(preferredColor);
   }, [preferredColor]);
 
   const requiresColor = colorVariants.length > 0;
-  const isMultiPiece = selectedQuantity > 1;
+  const line = {
+    unitPrice,
+    bundleOffers,
+    quantity: Math.min(maxQuantity, Math.max(1, quantity)),
+  };
+  const merchandise = maxQuantity > 0 ? lineMerchandise(line) : 0;
+  const savings = bundleSavings(
+    { quantity: line.quantity, price: merchandise },
+    unitPrice,
+  );
+  const canAdd = inStock && maxQuantity > 0 && Boolean(size) && (!requiresColor || Boolean(color));
 
-  function onSingleSizeChange(size: string) {
-    setPieces([{ ...pieces[0], size }]);
+  function addToBasket() {
+    if (!canAdd) return;
+    basket.addItem({
+      productId,
+      name: catalogName,
+      nameFr,
+      image,
+      unitPrice,
+      bundleOffers,
+      deliveryFee,
+      quantity: line.quantity,
+      size,
+      color: requiresColor ? color : null,
+      maxQuantity,
+    });
+    trackAddToCart({
+      productId,
+      productName,
+      value: merchandise,
+      quantity: line.quantity,
+      unitPrice,
+    });
+    setAdded(true);
   }
-
-  function onSingleColorChange(color: string) {
-    setPieces([{ ...pieces[0], color }]);
-    onColorChange?.(color);
-  }
-
-  const singlePiece = pieces[0] ?? defaultPiece(colorVariants, availableSizes);
-  const lineItemsValid =
-    pieces.length === selectedQuantity &&
-    pieces.every((p) => p.size && (!requiresColor || p.color));
 
   return (
     <div className="product-purchase-panel">
-      <BundleQuantitySelector offer={offer} locale={locale} />
+      <div className="basket-stepper-row">
+        <span>{t("bundleQuantity")}</span>
+        <div className="basket-stepper">
+          <button
+            type="button"
+            aria-label={basketT("decrease")}
+            disabled={!canAdd || line.quantity <= 1}
+            onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+          >
+            −
+          </button>
+          <span>{line.quantity}</span>
+          <button
+            type="button"
+            aria-label={basketT("increase")}
+            disabled={!canAdd || line.quantity >= maxQuantity}
+            onClick={() => setQuantity((current) => Math.min(maxQuantity, current + 1))}
+          >
+            +
+          </button>
+        </div>
+      </div>
 
-      {isMultiPiece ? (
-        <PieceConfigurator
-          pieces={pieces}
-          colorVariants={colorVariants}
-          availableSizes={availableSizes}
-          purchaseUi={purchaseUi}
-          onChange={setPieces}
-          onColorChange={onColorChange}
-        />
-      ) : (
-        <>
-          <ColorVariantSelector
-            variants={colorVariants}
-            selectedColor={preferredColor ?? singlePiece.color}
-            onSelect={onSingleColorChange}
-          />
-          <SizeSelector
-            selectedSize={singlePiece.size}
-            onSelect={onSingleSizeChange}
-            sizes={availableSizes}
-          />
-        </>
-      )}
+      <ColorVariantSelector
+        variants={colorVariants}
+        selectedColor={color}
+        onSelect={(next) => {
+          setColor(next);
+          onColorChange?.(next);
+          setAdded(false);
+        }}
+      />
+      <SizeSelector
+        selectedSize={size}
+        onSelect={(next) => {
+          setSize(next);
+          setAdded(false);
+        }}
+        sizes={availableSizes}
+      />
 
       {inStock ? (
-        <OrderForm
-          productId={productId}
-          productName={productName}
-          quantity={selectedQuantity}
-          totalPrice={totalPrice}
-          deliveryFee={deliveryFee}
-          lineItems={pieces}
-          requiresColorSelection={requiresColor}
-          canSubmit={lineItemsValid}
-          locale={locale}
-        />
+        <>
+          <div className="order-cost-summary">
+            <div className="order-cost-row order-cost-row-total">
+              <span>{t("selectedTotal")}</span>
+              <strong>
+                <MadPrice amount={merchandise} locale={locale} />
+              </strong>
+            </div>
+            {savings > 0 ? (
+              <p className="basket-savings">{t("saveAmount", { amount: formatMad(savings, locale) })}</p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            className="btn-brand btn-brand-block order-form-cta"
+            disabled={!canAdd}
+            onClick={addToBasket}
+          >
+            {basketT("add")}
+          </button>
+          {added ? (
+            <p className="basket-added">
+              {basketT("added")}{" "}
+              <Link href="/basket">{basketT("view")}</Link>
+            </p>
+          ) : null}
+          <button type="button" className="product-mobile-order-cta" disabled={!canAdd} onClick={addToBasket}>
+            <span>{basketT("add")}</span>
+            <strong>
+              <MadPrice amount={merchandise} locale={locale} />
+            </strong>
+          </button>
+        </>
       ) : (
         <div className="product-out-of-stock" role="status">
           {t("outOfStockMessage")}
         </div>
       )}
-
-      {inStock ? (
-        <a href="#order-form" className="product-mobile-order-cta">
-          <span>{t("submit")}</span>
-          <strong>
-            <MadPrice amount={totalPrice + deliveryFee} locale={locale} />
-          </strong>
-        </a>
-      ) : null}
     </div>
   );
 }

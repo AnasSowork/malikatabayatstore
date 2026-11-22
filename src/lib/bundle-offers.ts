@@ -8,6 +8,8 @@ export type BundleOffer = {
 export type OrderLineItem = {
   size: string;
   color: string | null;
+  productId?: string;
+  productName?: string;
 };
 
 export function toBundleOffers(value: unknown, basePrice: number): BundleOffer[] {
@@ -89,13 +91,23 @@ export function toOrderLineItems(value: unknown): OrderLineItem[] {
   if (!Array.isArray(value)) return [];
   return value
     .filter(
-      (v): v is { size: string; color?: string | null } =>
+      (v): v is { size: string; color?: string | null; productId?: string; productName?: string } =>
         Boolean(v && typeof v === "object" && typeof (v as { size?: unknown }).size === "string"),
     )
-    .map((v) => ({
-      size: v.size.trim(),
-      color: typeof v.color === "string" && v.color.trim() ? v.color.trim() : null,
-    }));
+    .map((v) => {
+      const productId =
+        typeof v.productId === "string" && v.productId.trim() ? v.productId.trim() : undefined;
+      const productName =
+        typeof v.productName === "string" && v.productName.trim()
+          ? v.productName.trim()
+          : undefined;
+      return {
+        size: v.size.trim(),
+        color: typeof v.color === "string" && v.color.trim() ? v.color.trim() : null,
+        ...(productId ? { productId } : {}),
+        ...(productName ? { productName } : {}),
+      };
+    });
 }
 
 export function formatLineItemsSummary(items: OrderLineItem[]): string {

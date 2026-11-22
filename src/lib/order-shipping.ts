@@ -19,10 +19,25 @@ export type OrderShippingSource = {
 
 function formatLineItems(items: OrderLineItem[]): string {
   if (!items.length) return "";
-  return items
-    .map((item) => {
-      const color = item.color ? `/${item.color}` : "";
-      return `${item.size}${color}`;
+  const groups = new Map<string, { name?: string; size: string; color: string | null; count: number }>();
+  for (const item of items) {
+    const key = `${item.productName ?? ""}|${item.productId ?? ""}|${item.size}|${item.color ?? ""}`;
+    const current = groups.get(key);
+    if (current) current.count += 1;
+    else {
+      groups.set(key, {
+        name: item.productName,
+        size: item.size,
+        color: item.color,
+        count: 1,
+      });
+    }
+  }
+  return [...groups.values()]
+    .map((group) => {
+      const color = group.color ? `/${group.color}` : "";
+      const label = group.name ? `${group.name} ` : "";
+      return `${label}×${group.count} ${group.size}${color}`.trim();
     })
     .join(", ");
 }
@@ -31,8 +46,11 @@ export function buildDefaultShippingDescription(
   order: OrderShippingSource,
   locale: AppLocale = "fr",
 ): string {
-  const { name } = getLocalizedProductFields(order.product, locale);
   const pieces = formatLineItems(order.lineItems);
+  if (order.lineItems.some((item) => item.productName)) {
+    return pieces.slice(0, 500);
+  }
+  const { name } = getLocalizedProductFields(order.product, locale);
   const suffix = pieces ? ` — ${pieces}` : "";
   return `${name} ×${order.quantity}${suffix}`.slice(0, 500);
 }
