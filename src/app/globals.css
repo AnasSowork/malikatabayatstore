@@ -4861,6 +4861,74 @@ body:has([data-consent-banner]) .whatsapp-fab {
   color: rgba(33, 28, 26, 0.48);
 }
 
+.checkout-city-field {
+  position: relative;
+  z-index: 2;
+}
+
+.checkout-city-field.is-matched input {
+  border-color: #1f6b45;
+  background: #f3faf6;
+}
+
+.checkout-city-ok {
+  color: #1f6b45 !important;
+}
+
+.checkout-city-warn {
+  color: #8a5a16 !important;
+}
+
+.checkout-city-suggestions {
+  position: absolute;
+  top: calc(100% - 0.15rem);
+  left: 0;
+  right: 0;
+  display: grid;
+  gap: 0.2rem;
+  z-index: 20;
+  max-height: 16rem;
+  overflow: auto;
+  border: 1.5px solid rgba(33, 28, 26, 0.22);
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(33, 28, 26, 0.12);
+  padding: 0.45rem;
+  box-shadow: 0 16px 36px -28px rgba(33, 28, 26, 0.55);
+}
+
+.checkout-city-suggestions button {
+  display: grid;
+  gap: 0.15rem;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0.7rem 0.75rem;
+  text-align: start;
+  color: #211c1a;
+  transition: background-color 0.15s ease;
+}
+
+.checkout-city-suggestions button:hover,
+.checkout-city-suggestions button[aria-selected="true"] {
+  background: #f7f4ef;
+}
+
+.checkout-city-suggestions strong {
+  font-family: var(--font-store);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #211c1a;
+}
+
+.checkout-city-suggestions .checkout-city-ville {
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: rgba(33, 28, 26, 0.52);
+}
+
 .checkout-error {
   margin: 0;
   border: 1px solid rgba(138, 40, 40, 0.22);

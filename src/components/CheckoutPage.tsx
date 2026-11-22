@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { BrandButton } from "@/components/BrandButton";
 import { MadPrice } from "@/components/MadPrice";
@@ -19,6 +19,8 @@ import { readConsentPreferences } from "@/lib/consent";
 import { readStoredUtm } from "@/lib/meta-utm";
 import { readFirstTouchFbclid, readFirstTouchLandingUrl } from "@/lib/meta-first-touch";
 
+type CitySuggestion = { id: number; name: string; ville: string };
+
 function itemName(item: { name: string; nameFr: string | null }, locale: AppLocale) {
   if (locale === "fr") return item.nameFr?.trim() || item.name;
   return item.name;
@@ -30,13 +32,82 @@ export function CheckoutPage() {
   const locale = useLocale() as AppLocale;
   const router = useRouter();
   const basket = useBasket();
-  const totals = basketTotals(basket.items);
+  const totals = basket.ready ? basketTotals(basket.items) : { merchandise: 0, delivery: 0, total: 0 };
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
   const [streetAddress, setStreetAddress] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState("");
+  const [cityBusy, setCityBusy] = useState(false);
+  const [matchedCity, setMatchedCity] = useState<string | null>(null);
+  const [cityHint, setCityHint] = useState("");
+  const [citySuggestions, setCitySuggestions] = useState<CitySuggestion[]>([]);
+  const cityMatched = Boolean(matchedCity && city.trim() === matchedCity);
+
+  useEffect(() => {
+    const query = city.trim();
+    if (matchedCity && query === matchedCity) {
+      setCityBusy(false);
+      setCityHint(t("cityMatched", { city: matchedCity }));
+      setCitySuggestions([]);
+      return;
+    }
+
+    if (query.length < 2) {
+      setCityBusy(false);
+      setMatchedCity(null);
+      setCityHint(query.length === 0 ? "" : t("cityPick"));
+      setCitySuggestions([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      setCityBusy(true);
+      void fetch(`/api/shipping/cities?q=${encodeURIComponent(query)}`, {
+        signal: controller.signal,
+      })
+        .then(async (res) => {
+          const data = (await res.json()) as {
+            ok?: boolean;
+            configured?: boolean;
+            city?: string;
+            cities?: CitySuggestion[];
+          };
+          if (data.configured === false) {
+            setMatchedCity(null);
+            setCityHint(t("cityUnavailable"));
+            setCitySuggestions([]);
+            return;
+          }
+          const suggestions = Array.isArray(data.cities) ? data.cities : [];
+          if (data.ok && data.city) {
+            setMatchedCity(data.city);
+            // Keep typed casing until click/blur unless Sendit returns a different label.
+            if (query !== data.city) setCity(data.city);
+            setCityHint(t("cityMatched", { city: data.city }));
+            setCitySuggestions([]);
+            return;
+          }
+          setMatchedCity(null);
+          setCitySuggestions(suggestions);
+          setCityHint(suggestions.length > 0 ? t("cityPick") : t("cityUnknown"));
+        })
+        .catch((err: unknown) => {
+          if (err instanceof DOMException && err.name === "AbortError") return;
+          setMatchedCity(null);
+          setCityHint(t("cityUnknown"));
+          setCitySuggestions([]);
+        })
+        .finally(() => setCityBusy(false));
+    }, 280);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [city, matchedCity, t]);
 
   if (!basket.ready) return <main className="basket-shell" />;
 
@@ -64,14 +135,19 @@ export function CheckoutPage() {
   const canSubmit =
     status !== "loading" &&
     customerName.trim().length > 0 &&
-    city.trim().length > 0 &&
+    cityMatched &&
     streetAddress.trim().length >= 3 &&
     /^0[5-7][0-9]{8}$/.test(phone);
 
   async function submitOrder() {
     if (status === "loading") return;
-    if (!customerName.trim() || !city.trim()) {
+    if (!customerName.trim()) {
       setError(productT("error"));
+      setStatus("error");
+      return;
+    }
+    if (!cityMatched || !matchedCity) {
+      setError(t("cityPick"));
       setStatus("error");
       return;
     }
@@ -106,7 +182,7 @@ export function CheckoutPage() {
         body: JSON.stringify({
           customerName,
           phone,
-          city,
+          city: matchedCity,
           streetAddress: streetAddress.trim(),
           items: basket.items.map((item) => ({
             productId: item.productId,
@@ -181,18 +257,51 @@ export function CheckoutPage() {
                 />
               </label>
 
-              <label className="checkout-field">
+              <div className={`checkout-field checkout-field-wide checkout-city-field${cityMatched ? " is-matched" : ""}`}>
                 <span>{productT("city")}</span>
                 <input
                   value={city}
-                  autoComplete="address-level2"
+                  autoComplete="off"
                   placeholder={productT("cityPlaceholder")}
+                  role="combobox"
+                  aria-expanded={citySuggestions.length > 0}
+                  aria-controls="checkout-city-suggestions"
+                  aria-autocomplete="list"
                   onChange={(event) => {
                     setCity(event.target.value);
+                    setMatchedCity(null);
                     if (error) setError("");
                   }}
                 />
-              </label>
+                {cityBusy ? <em>{t("citySearching")}</em> : null}
+                {!cityBusy && cityHint ? (
+                  <em className={cityMatched ? "checkout-city-ok" : "checkout-city-warn"}>{cityHint}</em>
+                ) : null}
+                {citySuggestions.length > 0 ? (
+                  <div id="checkout-city-suggestions" className="checkout-city-suggestions" role="listbox">
+                    {citySuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.id}
+                        type="button"
+                        role="option"
+                        aria-selected={city === suggestion.name}
+                        onClick={() => {
+                          setCity(suggestion.name);
+                          setMatchedCity(suggestion.name);
+                          setCityHint(t("cityMatched", { city: suggestion.name }));
+                          setCitySuggestions([]);
+                          if (error) setError("");
+                        }}
+                      >
+                        <strong>{suggestion.name}</strong>
+                        {suggestion.ville && suggestion.ville !== suggestion.name ? (
+                          <span className="checkout-city-ville">{suggestion.ville}</span>
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
 
               <label className="checkout-field checkout-field-wide">
                 <span>{t("streetAddress")}</span>
@@ -303,12 +412,21 @@ export function CheckoutPage() {
 
 function checkoutError(
   code: string | undefined,
-  t: (key: "unavailable" | "quantityUnavailable" | "invalidSelection" | "addressRequired") => string,
+  t: (
+    key:
+      | "unavailable"
+      | "quantityUnavailable"
+      | "invalidSelection"
+      | "addressRequired"
+      | "cityPick"
+      | "cityUnknown",
+  ) => string,
   productT: (key: "phoneFormatHint" | "error") => string,
 ) {
   if (code === "Product not found") return t("unavailable");
   if (code === "Quantity is not available") return t("quantityUnavailable");
   if (code === "Delivery address is required") return t("addressRequired");
+  if (code === "City is outside delivery area") return t("cityUnknown");
   if (code === "Invalid size" || code === "Invalid color variant" || code === "Invalid basket") {
     return t("invalidSelection");
   }

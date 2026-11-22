@@ -280,6 +280,44 @@ export async function listSenditCityNames(): Promise<string[]> {
   return cached?.names ?? [];
 }
 
+/** Public checkout suggestions while typing a city (Sendit district search). */
+export async function searchSenditCitySuggestions(
+  cityName: string,
+  limit = 12,
+): Promise<SenditDistrict[]> {
+  const city = cityName.trim();
+  if (city.length < 2) return [];
+
+  const rows = await fetchDistrictsForQuery(city);
+  const unique = new Map<number, SenditDistrict>();
+  for (const district of rows) {
+    if (district.active === 0) continue;
+    unique.set(district.id, district);
+  }
+
+  const want = normalizeCityKey(city);
+  return [...unique.values()]
+    .sort((a, b) => {
+      const aLabel = a.name || a.ville;
+      const bLabel = b.name || b.ville;
+      const aExact =
+        normalizeCityKey(a.ville) === want ||
+        normalizeCityKey(a.name) === want ||
+        (a.arabic_name ? normalizeCityKey(a.arabic_name) === want : false)
+          ? 0
+          : 1;
+      const bExact =
+        normalizeCityKey(b.ville) === want ||
+        normalizeCityKey(b.name) === want ||
+        (b.arabic_name ? normalizeCityKey(b.arabic_name) === want : false)
+          ? 0
+          : 1;
+      if (aExact !== bExact) return aExact - bExact;
+      return aLabel.localeCompare(bLabel, "fr");
+    })
+    .slice(0, Math.max(1, Math.min(limit, 40)));
+}
+
 /** Full active Sendit districts for admin autocomplete / mapping (cached 30 min). */
 export async function listSenditDistricts(): Promise<SenditDistrict[]> {
   return fetchAllSenditDistricts();

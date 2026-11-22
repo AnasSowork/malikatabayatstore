@@ -83,7 +83,8 @@ export function bundleSavings(offer: BundleOffer, unitPrice: number): number {
   return Math.max(0, unitPrice * offer.quantity - offer.price);
 }
 
-export function findBundleOffer(offers: BundleOffer[], quantity: number): BundleOffer | null {
+export function findBundleOffer(offers: BundleOffer[] | null | undefined, quantity: number): BundleOffer | null {
+  if (!Array.isArray(offers) || offers.length === 0) return null;
   return offers.find((o) => o.quantity === quantity) ?? null;
 }
 

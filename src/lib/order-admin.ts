@@ -10,6 +10,8 @@ import {
 import { parseOrderStatus } from "@/lib/order-status";
 import { normalizeProductSize } from "@/lib/product-sizes";
 import { serializeProduct } from "@/lib/product-serialize";
+import { senditShippingProvider } from "@/lib/shipping/providers/sendit";
+import { classifySenditCityMatch } from "@/lib/shipping/providers/sendit-cities";
 import type { OrderStatus } from "@prisma/client";
 
 export function normalizeMoroccanPhone(value: string): string | null {
@@ -372,6 +374,16 @@ async function parseBasketOrder(input: {
   if (!streetAddress && !input.options?.allowAdminFields) {
     return { error: "Delivery address is required", status: 400 };
   }
+
+  let city = input.city.trim();
+  if (!input.options?.allowAdminFields && senditShippingProvider.isConfigured()) {
+    const match = await classifySenditCityMatch(city);
+    if (match.kind !== "EXACT_MATCH" && match.kind !== "SAFE_NORMALIZED_MATCH") {
+      return { error: "City is outside delivery area", status: 400 };
+    }
+    city = match.district.name.trim() || match.district.ville.trim();
+  }
+
   const adminFields = input.options?.allowAdminFields
     ? {
         status: parseOrderStatus(input.body.status) ?? undefined,
@@ -385,7 +397,7 @@ async function parseBasketOrder(input: {
   return {
     customerName: input.customerName,
     phone: input.phone,
-    city: input.city,
+    city,
     productId: lineItems[0]?.productId ?? items[0]!.productId,
     productName: names.join(" · ").slice(0, 255),
     quantity: lineItems.length,

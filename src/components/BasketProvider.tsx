@@ -32,16 +32,25 @@ function readStoredBasket(): CartItem[] {
 function isCartItem(value: unknown): value is CartItem {
   if (!value || typeof value !== "object") return false;
   const item = value as Partial<CartItem>;
-  return (
-    typeof item.id === "string" &&
-    typeof item.productId === "string" &&
-    typeof item.name === "string" &&
-    typeof item.unitPrice === "number" &&
-    typeof item.quantity === "number" &&
-    item.quantity >= 1 &&
-    typeof item.size === "string" &&
-    typeof item.maxQuantity === "number"
-  );
+  if (
+    typeof item.id !== "string" ||
+    typeof item.productId !== "string" ||
+    typeof item.name !== "string" ||
+    typeof item.unitPrice !== "number" ||
+    typeof item.quantity !== "number" ||
+    item.quantity < 1 ||
+    typeof item.size !== "string" ||
+    typeof item.maxQuantity !== "number"
+  ) {
+    return false;
+  }
+  // Older / partial basket rows — fill required fields so totals never crash.
+  if (item.nameFr === undefined) item.nameFr = null;
+  if (typeof item.image !== "string") item.image = "";
+  if (!Array.isArray(item.bundleOffers)) item.bundleOffers = [];
+  if (typeof item.deliveryFee !== "number") item.deliveryFee = 0;
+  if (item.color === undefined) item.color = null;
+  return true;
 }
 
 export function BasketProvider({ children }: { children: React.ReactNode }) {
