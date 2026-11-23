@@ -9,7 +9,9 @@ import { join } from "node:path";
 const root = process.cwd();
 
 function purchaseEventId(orderId) {
-  return orderId.trim();
+  const id = orderId.trim();
+  if (!id) return "";
+  return id.startsWith("order_") ? id : `order_${id}`;
 }
 function qualifiedOrderEventId(orderId) {
   return `qualified-order:${orderId.trim()}`;
@@ -19,7 +21,8 @@ function deliveredOrderEventId(orderId) {
 }
 
 const id = "clxxxxxxxxxxxxxxxx";
-assert.equal(purchaseEventId(id), id);
+assert.equal(purchaseEventId(id), `order_${id}`);
+assert.equal(purchaseEventId(`order_${id}`), `order_${id}`);
 assert.equal(qualifiedOrderEventId(id), `qualified-order:${id}`);
 assert.equal(deliveredOrderEventId(id), `delivered-order:${id}`);
 assert.equal(qualifiedOrderEventId(id), qualifiedOrderEventId(id));

@@ -342,6 +342,9 @@ export function trackInitiateCheckout(input: {
 
 function sendPurchasePixelOnly(input: PendingPurchase) {
   const eventId = purchaseEventId(input.orderId);
+  // external_id helps Meta fall back-match when event_id dedupe is delayed.
+  setMetaPixelUserData({ externalId: input.orderId });
+  captureMetaBrowserIds();
   trackPixel(
     "Purchase",
     commerceParams({

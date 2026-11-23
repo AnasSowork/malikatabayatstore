@@ -9,10 +9,13 @@ export function createMetaEventId(prefix: MetaEventPrefix): string {
 
 /**
  * Deterministic Purchase event_id for browser/server deduplication.
+ * Same value must be sent on Pixel (`eventID`) and CAPI (`event_id`).
  * Retries MUST reuse this value for the same order.
  */
 export function purchaseEventId(orderId: string): string {
-  return orderId.trim();
+  const id = orderId.trim();
+  if (!id) return "";
+  return id.startsWith("order_") ? id : `order_${id}`;
 }
 
 /** Deterministic CAPI event_id for first CONFIRMED transition. */

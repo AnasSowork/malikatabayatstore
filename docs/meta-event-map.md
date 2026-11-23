@@ -6,7 +6,7 @@
 | ViewContent | Product viewed | Product detail mount | Yes | Yes (`/api/meta/events`) | product | `vc_*` UUID | marketing |
 | AddToCart | Bundle offer chosen | Quantity select (not mount) | Yes | Yes | offer | `atc_*` UUID | marketing |
 | InitiateCheckout | Checkout submitted | Order form CTA | Yes | Yes | cart | `ic_*` UUID | marketing |
-| **Purchase** | **COD order submitted** | `POST /api/orders` → `PENDING` | Thank-you Pixel only | Order API CAPI (always) | submitted `totalPrice` MAD | order UUID | Pixel: marketing; CAPI: always |
+| **Purchase** | **COD order submitted** | `POST /api/orders` → `PENDING` | Thank-you Pixel only | Order API CAPI (always) | submitted `totalPrice` MAD | `order_{orderId}` | Pixel: marketing; CAPI: always |
 | **QualifiedOrder** | **COD order validated** | First transition → `CONFIRMED` | **No** | Lifecycle CAPI custom | confirmed `totalPrice` MAD | `qualified-order:{orderId}` | marketing |
 | **DeliveredOrder** | **Successfully delivered** | First transition → `DELIVERED` | **No** | Lifecycle CAPI custom | delivered `totalPrice` MAD | `delivered-order:{orderId}` | marketing |
 

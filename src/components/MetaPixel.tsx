@@ -83,7 +83,9 @@ export function MetaPixel() {
           t.src=v;s=b.getElementsByTagName(e)[0];
           s.parentNode.insertBefore(t,s)}(window, document,'script',
           'https://connect.facebook.net/en_US/fbevents.js');
-          fbq('set', 'autoConfig', false, false);
+          // Must pass the pixel id — otherwise automatic events stay on and
+          // can fire Purchase without eventID (duplicates CAPI Results).
+          fbq('set', 'autoConfig', false, '${PIXEL_ID}');
           fbq('init', '${PIXEL_ID}', { country: 'ma' });
           fbq('track', 'PageView');
         `}

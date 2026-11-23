@@ -119,7 +119,7 @@ After deploy:
 ## event_id strategy
 
 - Funnel: client UUID prefixed (`vc_`, `atc_`, `ic_`)
-- Purchase: deterministic order UUID (`purchaseEventId`)
+- Purchase: deterministic `order_{orderId}` (`purchaseEventId`) — same on Pixel `eventID` + CAPI `event_id`
 - QualifiedOrder: `qualified-order:{orderId}`
 - DeliveredOrder: `delivered-order:{orderId}`
 - Retries reuse the same `event_id`
