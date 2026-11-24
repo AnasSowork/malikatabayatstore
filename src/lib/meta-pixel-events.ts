@@ -75,13 +75,18 @@ function commerceParams(input: Pick<MetaTrackInput, "productId" | "productName" 
   return data;
 }
 
+const META_PIXEL_ID = NIRA_META_PIXEL_ID;
+
+/** Send to our pixel only — avoids a second Hostinger/GTM pixel getting undeduped copies. */
 function trackPixel(eventName: string, params: Record<string, unknown>, eventId: string) {
   whenFbqReady(() => {
-    window.fbq?.("track", eventName, params, { eventID: eventId });
+    if (META_PIXEL_ID) {
+      window.fbq?.("trackSingle", META_PIXEL_ID, eventName, params, { eventID: eventId });
+    } else {
+      window.fbq?.("track", eventName, params, { eventID: eventId });
+    }
   });
 }
-
-const META_PIXEL_ID = NIRA_META_PIXEL_ID;
 
 /** Updates Pixel Advanced Matching when the customer fills checkout fields. */
 export function setMetaPixelUserData(user: MetaPixelUserData) {
@@ -102,7 +107,7 @@ function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
-type BrowserRelayEvent = "ViewContent" | "AddToCart" | "InitiateCheckout";
+type BrowserRelayEvent = "PageView" | "ViewContent" | "AddToCart" | "InitiateCheckout";
 
 type CapiPayload = {
   eventName: BrowserRelayEvent;
@@ -112,10 +117,10 @@ type CapiPayload = {
   fbc: string | null;
   fbclid: string | null;
   landingEventSourceUrl: string | null;
-  productId: string;
+  productId?: string;
   productName?: string;
-  value: number;
-  quantity: number;
+  value?: number;
+  quantity?: number;
   unitPrice?: number;
   user?: MetaTrackInput["user"];
   marketingConsent: boolean;
@@ -123,7 +128,10 @@ type CapiPayload = {
 
 type QueuedCapiPayload = CapiPayload & { queuedAt: number };
 
-function buildCapiPayload(eventName: BrowserRelayEvent, input: MetaTrackInput): CapiPayload {
+function buildCapiPayload(
+  eventName: BrowserRelayEvent,
+  input: Partial<MetaTrackInput> & { eventId: string },
+): CapiPayload {
   const { fbp, fbc } = getMetaBrowserIds();
   return {
     eventName,
@@ -173,26 +181,30 @@ function enqueueCapiPayload(payload: CapiPayload) {
 }
 
 async function postCapiPayload(payload: CapiPayload): Promise<boolean> {
+  const body: Record<string, unknown> = {
+    eventName: payload.eventName,
+    eventId: payload.eventId,
+    eventSourceUrl: payload.eventSourceUrl,
+    fbp: payload.fbp,
+    fbc: payload.fbc,
+    fbclid: payload.fbclid,
+    landingEventSourceUrl: payload.landingEventSourceUrl,
+    marketingConsent: payload.marketingConsent,
+  };
+  if (payload.eventName !== "PageView") {
+    body.productId = payload.productId;
+    body.productName = payload.productName;
+    body.value = payload.value;
+    body.quantity = payload.quantity;
+    body.unitPrice = payload.unitPrice;
+    body.user = payload.user;
+  }
+
   const res = await fetch("/api/meta/events", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     keepalive: true,
-    body: JSON.stringify({
-      eventName: payload.eventName,
-      eventId: payload.eventId,
-      eventSourceUrl: payload.eventSourceUrl,
-      fbp: payload.fbp,
-      fbc: payload.fbc,
-      fbclid: payload.fbclid,
-      landingEventSourceUrl: payload.landingEventSourceUrl,
-      productId: payload.productId,
-      productName: payload.productName,
-      value: payload.value,
-      quantity: payload.quantity,
-      unitPrice: payload.unitPrice,
-      user: payload.user,
-      marketingConsent: payload.marketingConsent,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) return false;
@@ -254,12 +266,16 @@ export function flushCapiQueue() {
   });
 }
 
-function trackDual(eventName: BrowserRelayEvent, input: MetaTrackInput) {
+function trackDual(eventName: Exclude<BrowserRelayEvent, "PageView">, input: MetaTrackInput) {
   if (!hasMarketingConsent()) return;
   const params = commerceParams(input);
   whenFbqReady(() => {
     captureMetaBrowserIds();
-    window.fbq?.("track", eventName, params, { eventID: input.eventId });
+    if (META_PIXEL_ID) {
+      window.fbq?.("trackSingle", META_PIXEL_ID, eventName, params, { eventID: input.eventId });
+    } else {
+      window.fbq?.("track", eventName, params, { eventID: input.eventId });
+    }
     const payload = buildCapiPayload(eventName, input);
     void (async () => {
       const sent = await sendCapiPayload(payload);
@@ -267,6 +283,27 @@ function trackDual(eventName: BrowserRelayEvent, input: MetaTrackInput) {
     })();
   });
   flushCapiQueue();
+}
+
+/** PageView with matching event_id on Pixel + CAPI (raises Meta Event Coverage). */
+export function trackPageView(eventId?: string) {
+  if (!hasMarketingConsent()) return;
+  const id = eventId ?? createMetaEventId("pv");
+  whenFbqReady(() => {
+    captureMetaBrowserIds();
+    if (META_PIXEL_ID) {
+      window.fbq?.("trackSingle", META_PIXEL_ID, "PageView", {}, { eventID: id });
+    } else {
+      window.fbq?.("track", "PageView", {}, { eventID: id });
+    }
+    const payload = buildCapiPayload("PageView", { eventId: id });
+    void (async () => {
+      const sent = await sendCapiPayload(payload);
+      if (!sent) enqueueCapiPayload(payload);
+    })();
+  });
+  flushCapiQueue();
+  return id;
 }
 
 export function savePendingPurchase(input: PendingPurchase) {
@@ -389,6 +426,15 @@ export function flushPendingPurchase() {
     sendPurchasePixelOnly(pending);
     clearPendingPurchase();
   });
+}
+
+/**
+ * Fire Pixel Purchase as soon as the order id is known (same event_id as CAPI).
+ * Call right after POST /api/orders succeeds; thank-you flush stays idempotent.
+ */
+export function firePurchasePixelNow(input: PendingPurchase) {
+  savePendingPurchase(input);
+  flushPendingPurchase();
 }
 
 export { CURRENCY, createMetaEventId, purchaseEventId };

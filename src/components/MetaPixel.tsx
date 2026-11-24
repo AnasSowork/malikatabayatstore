@@ -4,7 +4,7 @@ import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "@/i18n/navigation";
 import { hasMarketingConsent, readConsentPreferences } from "@/lib/consent";
-import { flushCapiQueue, captureMetaBrowserIds } from "@/lib/meta-pixel-events";
+import { flushCapiQueue, captureMetaBrowserIds, trackPageView } from "@/lib/meta-pixel-events";
 import { NIRA_META_PIXEL_ID } from "@/lib/meta-pixel-user";
 
 const PIXEL_ID = NIRA_META_PIXEL_ID;
@@ -19,15 +19,11 @@ function isAdminPath(pathname: string) {
   return pathname === "/admin" || pathname.startsWith("/admin/");
 }
 
-function trackPageView() {
-  window.fbq?.("track", "PageView");
-}
-
 export function MetaPixel() {
   const pathname = usePathname();
-  const skipInitialRouteEffect = useRef(true);
   const onAdmin = isAdminPath(pathname);
   const [marketingAllowed, setMarketingAllowed] = useState(false);
+  const lastTrackedPath = useRef<string | null>(null);
 
   useEffect(() => {
     const sync = () => setMarketingAllowed(hasMarketingConsent());
@@ -50,13 +46,9 @@ export function MetaPixel() {
 
   useEffect(() => {
     if (!PIXEL_ID || onAdmin || !marketingAllowed) return;
-
-    if (skipInitialRouteEffect.current) {
-      skipInitialRouteEffect.current = false;
-      flushCapiQueue();
-      return;
-    }
-
+    // One dual PageView (Pixel + CAPI, same event_id) per path — including first load.
+    if (lastTrackedPath.current === pathname) return;
+    lastTrackedPath.current = pathname;
     trackPageView();
     captureMetaBrowserIds();
     flushCapiQueue();
@@ -87,7 +79,7 @@ export function MetaPixel() {
           // can fire Purchase without eventID (duplicates CAPI Results).
           fbq('set', 'autoConfig', false, '${PIXEL_ID}');
           fbq('init', '${PIXEL_ID}', { country: 'ma' });
-          fbq('track', 'PageView');
+          // PageView is fired from React with eventID + matching CAPI (not here).
         `}
       </Script>
       {/* eslint-disable-next-line @next/next/no-img-element -- Meta Pixel noscript fallback */}

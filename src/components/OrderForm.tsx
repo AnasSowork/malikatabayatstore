@@ -9,7 +9,7 @@ import { MadPrice } from "@/components/MadPrice";
 import type { OrderLineItem } from "@/lib/bundle-offers";
 import {
   getMetaBrowserIds,
-  savePendingPurchase,
+  firePurchasePixelNow,
   setMetaPixelUserData,
   trackInitiateCheckout,
 } from "@/lib/meta-pixel-events";
@@ -120,7 +120,7 @@ export function OrderForm({
       });
       if (!res.ok) throw new Error("order failed");
       const order = (await res.json()) as { id: string };
-      savePendingPurchase({
+      firePurchasePixelNow({
         productId,
         productName,
         value: payable,

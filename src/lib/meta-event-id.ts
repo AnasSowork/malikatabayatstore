@@ -1,4 +1,4 @@
-export type MetaEventPrefix = "vc" | "atc" | "ic" | "purchase";
+export type MetaEventPrefix = "pv" | "vc" | "atc" | "ic" | "purchase";
 
 export function createMetaEventId(prefix: MetaEventPrefix): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {

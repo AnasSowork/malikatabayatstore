@@ -13,6 +13,7 @@ import type { MetaCapiResolvedUserData } from "@/lib/meta-param-builder-server";
 
 /** Standard Meta ecommerce events + COD quality custom events (CAPI-only). */
 export type MetaCapiEventName =
+  | "PageView"
   | "ViewContent"
   | "AddToCart"
   | "InitiateCheckout"
@@ -20,12 +21,15 @@ export type MetaCapiEventName =
   | "QualifiedOrder"
   | "DeliveredOrder";
 
-/** Browser-relayable events only — Purchase is order-API authoritative. */
+/** Browser-relayable events — Purchase stays order-API authoritative. */
 export const META_BROWSER_RELAY_EVENTS = [
+  "PageView",
   "ViewContent",
   "AddToCart",
   "InitiateCheckout",
-] as const satisfies ReadonlyArray<"ViewContent" | "AddToCart" | "InitiateCheckout">;
+] as const satisfies ReadonlyArray<
+  "PageView" | "ViewContent" | "AddToCart" | "InitiateCheckout"
+>;
 
 /**
  * Meta Graph CAPI accepts custom `event_name` strings for optimization/custom conversions.
@@ -54,7 +58,8 @@ export type MetaCapiEventInput = {
   eventTime?: number;
   eventSourceUrl?: string | null;
   referrerUrl?: string | null;
-  commerce: MetaCommerceInput;
+  /** Required for ecommerce events; omit for PageView. */
+  commerce?: MetaCommerceInput | null;
   productName?: string | null;
   user?: MetaCapiUserInput;
 };
@@ -145,19 +150,21 @@ export async function sendMetaCapiEvent(input: MetaCapiEventInput): Promise<Meta
     return { sent: false, error: "missing_event_id" };
   }
 
-  const customData = buildMetaCommerceData(input.commerce);
-  if (input.productName) {
-    (customData as Record<string, unknown>).content_name = input.productName;
-  }
-
   const payload: Record<string, unknown> = {
     event_name: input.eventName,
     event_time: input.eventTime ?? Math.floor(Date.now() / 1000),
     event_id: input.eventId,
     action_source: "website",
     user_data: buildUserData(input.user),
-    custom_data: customData,
   };
+
+  if (input.commerce) {
+    const customData = buildMetaCommerceData(input.commerce) as Record<string, unknown>;
+    if (input.productName) {
+      customData.content_name = input.productName;
+    }
+    payload.custom_data = customData;
+  }
 
   if (input.eventSourceUrl) {
     payload.event_source_url = input.eventSourceUrl;

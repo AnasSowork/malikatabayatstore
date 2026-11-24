@@ -143,13 +143,46 @@ export async function POST(request: Request) {
     }
 
     const eventId = asString(body.eventId, MAX_EVENT_ID_LEN);
+    if (!eventId) {
+      return NextResponse.json({ error: "Missing event_id" }, { status: 400 });
+    }
+
+    const resolved = resolveMetaCapiUserFromRequest(request, {
+      fbclid: asVerbatimString(body.fbclid),
+      landingEventSourceUrl: asVerbatimString(body.landingEventSourceUrl),
+      checkoutEventSourceUrl: asString(body.eventSourceUrl, 2000),
+      clientFbp: sanitizeMetaBrowserIdFromBody(body.fbp, "fbp"),
+      clientFbc: sanitizeMetaBrowserIdFromBody(body.fbc, "fbc"),
+      phone: asString(body.user?.phone, 20),
+      fullName: asString(body.user?.fullName, 120),
+      city: asString(body.user?.city, 80),
+      externalId: asString(body.user?.externalId, 128),
+    });
+
+    const user = {
+      fbp: resolved.fbp,
+      fbc: resolved.fbc,
+      clientIpAddress: resolved.clientIpAddress,
+      clientUserAgent: resolved.clientUserAgent ?? request.headers.get("user-agent"),
+      paramBuilder: resolved.hashed,
+    };
+
+    // PageView has no product payload — still needs the same event_id on Pixel + CAPI.
+    if (eventName === "PageView") {
+      const capi = await sendMetaCapiEvent({
+        eventName: "PageView",
+        eventId,
+        eventSourceUrl: resolved.eventSourceUrl,
+        referrerUrl: resolved.referrerUrl,
+        user,
+      });
+      return NextResponse.json({ ok: capi.sent });
+    }
+
     const productId = asString(body.productId, MAX_PRODUCT_ID_LEN);
     const value = asNumber(body.value);
     const quantity = asNumber(body.quantity);
 
-    if (!eventId) {
-      return NextResponse.json({ error: "Missing event_id" }, { status: 400 });
-    }
     if (!productId || productId.length < 8 || productId.length > MAX_PRODUCT_ID_LEN) {
       return NextResponse.json({ error: "Missing or invalid productId" }, { status: 400 });
     }
@@ -173,18 +206,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid unitPrice" }, { status: 400 });
     }
 
-    const resolved = resolveMetaCapiUserFromRequest(request, {
-      fbclid: asVerbatimString(body.fbclid),
-      landingEventSourceUrl: asVerbatimString(body.landingEventSourceUrl),
-      checkoutEventSourceUrl: asString(body.eventSourceUrl, 2000),
-      clientFbp: sanitizeMetaBrowserIdFromBody(body.fbp, "fbp"),
-      clientFbc: sanitizeMetaBrowserIdFromBody(body.fbc, "fbc"),
-      phone: asString(body.user?.phone, 20),
-      fullName: asString(body.user?.fullName, 120),
-      city: asString(body.user?.city, 80),
-      externalId: asString(body.user?.externalId, 128),
-    });
-
     const capi = await sendMetaCapiEvent({
       eventName: eventName as MetaCapiEventName,
       eventId,
@@ -197,13 +218,7 @@ export async function POST(request: Request) {
         quantity,
         unitPrice: unitPrice ?? undefined,
       },
-      user: {
-        fbp: resolved.fbp,
-        fbc: resolved.fbc,
-        clientIpAddress: resolved.clientIpAddress,
-        clientUserAgent: resolved.clientUserAgent ?? request.headers.get("user-agent"),
-        paramBuilder: resolved.hashed,
-      },
+      user,
     });
 
     return NextResponse.json({ ok: capi.sent });

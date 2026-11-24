@@ -11,7 +11,7 @@ import { basketTotals, lineMerchandise } from "@/lib/basket";
 import type { AppLocale } from "@/lib/product-i18n";
 import {
   getMetaBrowserIds,
-  savePendingPurchase,
+  firePurchasePixelNow,
   setMetaPixelUserData,
   trackInitiateCheckout,
 } from "@/lib/meta-pixel-events";
@@ -212,7 +212,7 @@ export function CheckoutPage() {
         setStatus("error");
         return;
       }
-      savePendingPurchase({
+      firePurchasePixelNow({
         productId: first.productId,
         productName: itemName(first, locale),
         value: totals.total,
